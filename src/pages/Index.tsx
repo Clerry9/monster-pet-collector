@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Gift, LogOut, Volume2, VolumeX } from "lucide-react";
-import { isMuted, setMuted } from "@/lib/sfx";
+import { isMuted, setMuted, startBgm, stopBgm } from "@/lib/sfx";
 import { CoinCounter } from "@/components/CoinCounter";
 import { GameBoard } from "@/components/GameBoard";
 import { MonsterDisplay } from "@/components/MonsterDisplay";
@@ -28,6 +28,12 @@ const Index = () => {
   const [muted, setMutedState] = useState(isMuted());
   const isGuest = user?.is_anonymous === true;
   const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile } | null>(null);
+
+  // Start background music on mount
+  useEffect(() => {
+    startBgm();
+    return () => stopBgm();
+  }, []);
 
   const handleRollDice = () => {
     const result = game.rollDice();
