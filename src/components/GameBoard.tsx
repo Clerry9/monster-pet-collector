@@ -152,6 +152,31 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
           </AnimatePresence>
         </div>
 
+        {/* Particles */}
+        <AnimatePresence>
+          {particles.map((p) => (
+            <motion.div
+              key={p.id}
+              className="absolute left-1/2 top-1/2 z-30 rounded-full pointer-events-none"
+              initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+              animate={{
+                x: p.x * 2.5,
+                y: p.y * 3 - 30,
+                opacity: 0,
+                scale: 0,
+              }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+              style={{
+                width: p.size,
+                height: p.size,
+                backgroundColor: p.color,
+                boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
+              }}
+            />
+          ))}
+        </AnimatePresence>
+
         {/* Monster on current tile */}
         <motion.div
           className="absolute left-1/2 -translate-x-1/2 -top-1 z-20"
