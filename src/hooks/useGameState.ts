@@ -1,5 +1,7 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { MONSTERS, getMonsterEvolution } from "@/data/monsters";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface DiceTier {
   id: string;
@@ -52,7 +54,6 @@ function generateBoard(length: number): BoardTile[] {
     { type: "star", weight: 10, minVal: 50, maxVal: 200 },
   ];
   const totalWeight = tileTypes.reduce((s, t) => s + t.weight, 0);
-
   for (let i = 0; i < length; i++) {
     const progress = i / length;
     const x = 10 + 80 * (0.5 + 0.4 * Math.sin(progress * Math.PI * 3));
@@ -81,12 +82,25 @@ export interface GameState {
   activeDiceTier: string;
   totalSteps: number;
   cardsCollected: number;
-  monsterTaps: Record<string, number>; // tap count per monster
+  monsterTaps: Record<string, number>;
 }
+
+const DEFAULT_STATE: GameState = {
+  coins: 50,
+  rolls: 10,
+  position: 0,
+  unlockedMonsters: ["gobby"],
+  activeMonster: "gobby",
+  unlockedDiceTiers: ["basic"],
+  activeDiceTier: "basic",
+  totalSteps: 0,
+  cardsCollected: 0,
+  monsterTaps: {},
+};
 
 const STORAGE_KEY = "monster-mash-state";
 
-function loadState(): GameState {
+function loadLocalState(): GameState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -105,34 +119,106 @@ function loadState(): GameState {
       };
     }
   } catch {}
-  return {
-    coins: 50,
-    rolls: 10,
-    position: 0,
-    unlockedMonsters: ["gobby"],
-    activeMonster: "gobby",
-    unlockedDiceTiers: ["basic"],
-    activeDiceTier: "basic",
-    totalSteps: 0,
-    cardsCollected: 0,
-    monsterTaps: {},
-  };
+  return { ...DEFAULT_STATE };
 }
 
-function saveState(state: GameState) {
+function saveLocalState(state: GameState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-export function useGameState() {
-  const [state, setState] = useState<GameState>(loadState);
+// Convert DB row to GameState
+function dbToState(row: any): GameState {
+  return {
+    coins: row.coins,
+    rolls: row.rolls,
+    position: row.position,
+    unlockedMonsters: row.unlocked_monsters,
+    activeMonster: row.active_monster,
+    unlockedDiceTiers: row.unlocked_dice_tiers,
+    activeDiceTier: row.active_dice_tier,
+    totalSteps: row.total_steps,
+    cardsCollected: row.cards_collected,
+    monsterTaps: row.monster_taps as Record<string, number>,
+  };
+}
 
-  const update = useCallback((updater: (prev: GameState) => GameState) => {
-    setState((prev) => {
-      const next = updater(prev);
-      saveState(next);
-      return next;
-    });
-  }, []);
+function stateToDb(state: GameState, userId: string) {
+  return {
+    user_id: userId,
+    coins: state.coins,
+    rolls: state.rolls,
+    position: state.position,
+    unlocked_monsters: state.unlockedMonsters,
+    active_monster: state.activeMonster,
+    unlocked_dice_tiers: state.unlockedDiceTiers,
+    active_dice_tier: state.activeDiceTier,
+    total_steps: state.totalSteps,
+    cards_collected: state.cardsCollected,
+    monster_taps: state.monsterTaps,
+  };
+}
+
+export function useGameState() {
+  const { user } = useAuth();
+  const [state, setState] = useState<GameState>(loadLocalState);
+  const [dbLoaded, setDbLoaded] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load from DB when user logs in
+  useEffect(() => {
+    if (!user) {
+      setDbLoaded(false);
+      return;
+    }
+
+    const loadFromDb = async () => {
+      const { data } = await supabase
+        .from("game_state")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (data) {
+        const dbState = dbToState(data);
+        setState(dbState);
+        saveLocalState(dbState);
+      } else {
+        // First login — save current local state to DB
+        const local = loadLocalState();
+        await supabase.from("game_state").upsert(stateToDb(local, user.id));
+        setState(local);
+      }
+      setDbLoaded(true);
+    };
+
+    loadFromDb();
+  }, [user]);
+
+  // Debounced save to DB
+  const saveToDb = useCallback(
+    (newState: GameState) => {
+      if (!user) return;
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(async () => {
+        await supabase
+          .from("game_state")
+          .upsert(stateToDb(newState, user.id));
+      }, 1000);
+    },
+    [user]
+  );
+
+  const update = useCallback(
+    (updater: (prev: GameState) => GameState) => {
+      setState((prev) => {
+        const next = updater(prev);
+        saveLocalState(next);
+        saveToDb(next);
+        return next;
+      });
+    },
+    [saveToDb]
+  );
 
   const addCoins = useCallback(
     (amount: number) => update((s) => ({ ...s, coins: Math.max(0, s.coins + amount) })),
