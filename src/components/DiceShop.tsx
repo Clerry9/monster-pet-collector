@@ -1,6 +1,15 @@
 import { motion } from "framer-motion";
-import { DICE_PACKS, DICE_TIERS, DicePack, DiceTier } from "@/hooks/useGameState";
-import { Lock, Check, Zap } from "lucide-react";
+import { DICE_PACKS, DICE_TIERS } from "@/hooks/useGameState";
+import { Lock, Check, Zap, CreditCard } from "lucide-react";
+import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { toast } from "sonner";
+
+// Map pack IDs to Paddle price IDs
+const PACK_PRICE_IDS: Record<string, string> = {
+  value: "value_pack_price",
+  mega: "mega_pack_price",
+  ultra: "ultra_pack_price",
+};
 
 interface DiceShopProps {
   coins: number;
@@ -10,6 +19,7 @@ interface DiceShopProps {
   onBuyPack: (packId: string) => boolean;
   onUnlockTier: (tierId: string) => boolean;
   onSelectTier: (tierId: string) => void;
+  onAddRolls: (amount: number) => void;
 }
 
 export function DiceShop({
@@ -20,7 +30,25 @@ export function DiceShop({
   onBuyPack,
   onUnlockTier,
   onSelectTier,
+  onAddRolls,
 }: DiceShopProps) {
+  const { openCheckout, loading } = usePaddleCheckout();
+
+  const handleBuyWithMoney = async (packId: string, packRolls: number) => {
+    const priceId = PACK_PRICE_IDS[packId];
+    if (!priceId) return;
+
+    try {
+      await openCheckout({
+        priceId,
+        customData: { packId, rolls: String(packRolls) },
+        successUrl: `${window.location.origin}/?checkout=success&pack=${packId}&rolls=${packRolls}`,
+      });
+    } catch (err) {
+      toast.error("Failed to open checkout");
+    }
+  };
+
   return (
     <div className="w-full space-y-6">
       {/* Current rolls */}
@@ -86,18 +114,11 @@ export function DiceShop({
         <div className="grid grid-cols-2 gap-3">
           {DICE_PACKS.map((pack) => {
             const canAfford = coins >= pack.costCoins;
+            const hasPaddlePrice = !!PACK_PRICE_IDS[pack.id];
             return (
-              <motion.button
+              <div
                 key={pack.id}
-                whileTap={{ scale: 0.95 }}
-                whileHover={{ scale: 1.03 }}
-                onClick={() => canAfford ? onBuyPack(pack.id) : undefined}
-                disabled={!canAfford}
-                className={`rounded-xl border-2 p-4 flex flex-col items-center gap-2 transition-all ${
-                  canAfford
-                    ? "border-accent/40 bg-card hover:bg-accent/5 cursor-pointer"
-                    : "border-border bg-card/50 opacity-50 cursor-not-allowed"
-                }`}
+                className="rounded-xl border-2 border-accent/40 bg-card p-4 flex flex-col items-center gap-2"
               >
                 <span className="text-3xl">{pack.emoji}</span>
                 <span className="font-bold font-body text-sm text-foreground">{pack.label}</span>
@@ -105,13 +126,34 @@ export function DiceShop({
                   <Zap size={14} />
                   <span className="font-extrabold">{pack.rolls} rolls</span>
                 </div>
-                <span className="text-xs font-bold text-accent">🪙 {pack.costCoins}</span>
-                {pack.costReal > 0 && (
-                  <span className="text-[10px] text-muted-foreground">
-                    or ${(pack.costReal / 100).toFixed(2)}
-                  </span>
+
+                {/* Buy with coins */}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => canAfford ? onBuyPack(pack.id) : undefined}
+                  disabled={!canAfford}
+                  className={`w-full rounded-lg py-1.5 text-xs font-bold font-body transition-all ${
+                    canAfford
+                      ? "bg-accent/20 text-accent hover:bg-accent/30 cursor-pointer"
+                      : "bg-muted/50 text-muted-foreground cursor-not-allowed"
+                  }`}
+                >
+                  🪙 {pack.costCoins} coins
+                </motion.button>
+
+                {/* Buy with real money */}
+                {hasPaddlePrice && (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleBuyWithMoney(pack.id, pack.rolls)}
+                    disabled={loading}
+                    className="w-full rounded-lg bg-primary/20 text-primary hover:bg-primary/30 py-1.5 text-xs font-bold font-body flex items-center justify-center gap-1 cursor-pointer transition-all"
+                  >
+                    <CreditCard size={12} />
+                    ${(pack.costReal / 100).toFixed(2)}
+                  </motion.button>
                 )}
-              </motion.button>
+              </div>
             );
           })}
         </div>
