@@ -1,16 +1,78 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { CoinCounter } from "@/components/CoinCounter";
+import { MonsterDisplay } from "@/components/MonsterDisplay";
+import { MonsterCollection } from "@/components/MonsterCollection";
+import { SpinWheel } from "@/components/SpinWheel";
+import { GameTabs } from "@/components/GameTabs";
+import { useGameState } from "@/hooks/useGameState";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+type Tab = "monster" | "collection" | "spin";
+
+const Index = () => {
+  const game = useGameState();
+  const [tab, setTab] = useState<Tab>("monster");
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="flex min-h-screen flex-col items-center bg-background px-4 py-6 overflow-hidden">
+      {/* Header */}
+      <div className="w-full max-w-md flex items-center justify-between mb-6">
+        <h1 className="font-display text-3xl text-foreground text-glow-purple">
+          Monster Mash
+        </h1>
+        <CoinCounter coins={game.coins} />
+      </div>
+
+      {/* Tabs */}
+      <GameTabs active={tab} onTabChange={setTab} />
+
+      {/* Content */}
+      <div className="w-full max-w-md flex-1 flex items-center justify-center py-8">
+        <AnimatePresence mode="wait">
+          {tab === "monster" && (
+            <motion.div
+              key="monster"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              className="flex flex-col items-center"
+            >
+              <MonsterDisplay monster={game.activeMonsterData} onTap={game.tap} />
+            </motion.div>
+          )}
+
+          {tab === "collection" && (
+            <motion.div
+              key="collection"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              className="w-full"
+            >
+              <MonsterCollection
+                unlockedMonsters={game.unlockedMonsters}
+                activeMonster={game.activeMonster}
+                coins={game.coins}
+                onSelect={game.setActiveMonster}
+                onUnlock={game.unlockMonster}
+              />
+            </motion.div>
+          )}
+
+          {tab === "spin" && (
+            <motion.div
+              key="spin"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+            >
+              <SpinWheel onWin={game.addCoins} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
