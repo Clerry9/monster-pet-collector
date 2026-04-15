@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Gift, LogOut, Volume2, VolumeX } from "lucide-react";
 import { isMuted, setMuted, startBgm, stopBgm } from "@/lib/sfx";
+import { getLevelForXp } from "@/data/levels";
 import { CoinCounter } from "@/components/CoinCounter";
 import { GameBoard } from "@/components/GameBoard";
 import { MonsterDisplay } from "@/components/MonsterDisplay";
@@ -13,6 +14,7 @@ import { DailyReward } from "@/components/DailyReward";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { LevelProgressBar } from "@/components/LevelProgressBar";
 import { BetSelector } from "@/components/BetSelector";
+import { LevelUpCelebration } from "@/components/LevelUpCelebration";
 import { useGameState, BoardTile } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,12 +32,22 @@ const Index = () => {
   const [muted, setMutedState] = useState(isMuted());
   const isGuest = user?.is_anonymous === true;
   const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile } | null>(null);
+  const [levelUpData, setLevelUpData] = useState<ReturnType<typeof getLevelForXp> | null>(null);
+  const prevLevelRef = useRef(game.level);
 
   // Start background music on mount
   useEffect(() => {
     startBgm();
     return () => stopBgm();
   }, []);
+
+  // Detect level-up
+  useEffect(() => {
+    if (game.level > prevLevelRef.current) {
+      setLevelUpData(getLevelForXp(game.xp));
+    }
+    prevLevelRef.current = game.level;
+  }, [game.level, game.xp]);
 
   const handleRollDice = () => {
     const result = game.rollDice();
@@ -45,6 +57,7 @@ const Index = () => {
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-4 py-6 overflow-hidden">
       <LinkAccount open={showLink} onClose={() => setShowLink(false)} />
+      <LevelUpCelebration level={levelUpData} onComplete={() => setLevelUpData(null)} />
       <PaymentTestModeBanner />
       <DailyReward
         open={daily.showModal}
