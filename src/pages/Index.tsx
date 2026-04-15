@@ -13,14 +13,18 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { useGameState, BoardTile } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
+import { LinkAccount } from "@/components/LinkAccount";
+import { Link2 } from "lucide-react";
 
 type Tab = "board" | "monster" | "collection" | "shop" | "spin";
 
 const Index = () => {
   const game = useGameState();
   const daily = useDailyReward(game.addCoins);
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>("board");
+  const [showLink, setShowLink] = useState(false);
+  const isGuest = user?.is_anonymous === true;
   const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile } | null>(null);
 
   const handleRollDice = () => {
@@ -30,6 +34,7 @@ const Index = () => {
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-4 py-6 overflow-hidden">
+      <LinkAccount open={showLink} onClose={() => setShowLink(false)} />
       <PaymentTestModeBanner />
       <DailyReward
         open={daily.showModal}
@@ -54,6 +59,15 @@ const Index = () => {
             <Gift size={18} />
           </button>
           <CoinCounter coins={game.coins} />
+          {isGuest && (
+            <button
+              onClick={() => setShowLink(true)}
+              className="rounded-full bg-primary/20 p-2 text-primary hover:bg-primary/30 transition-colors"
+              title="Link Account"
+            >
+              <Link2 size={16} />
+            </button>
+          )}
           <button
             onClick={signOut}
             className="rounded-full bg-card p-2 text-muted-foreground hover:text-foreground transition-colors"
