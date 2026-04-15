@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Gift, LogOut, Volume2, VolumeX } from "lucide-react";
 import { isMuted, setMuted, startBgm, stopBgm } from "@/lib/sfx";
+import { getLevelForXp } from "@/data/levels";
 import { CoinCounter } from "@/components/CoinCounter";
 import { GameBoard } from "@/components/GameBoard";
 import { MonsterDisplay } from "@/components/MonsterDisplay";
