@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        display: ['Creepster', 'cursive'],
+        body: ['Nunito', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -47,6 +51,11 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        coin: "hsl(var(--coin))",
+        "neon-green": "hsl(var(--neon-green))",
+        "neon-purple": "hsl(var(--neon-purple))",
+        "neon-orange": "hsl(var(--neon-orange))",
+        "monster-bg": "hsl(var(--monster-bg))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
