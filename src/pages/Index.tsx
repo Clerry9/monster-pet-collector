@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Gift } from "lucide-react";
 import { CoinCounter } from "@/components/CoinCounter";
 import { MonsterDisplay } from "@/components/MonsterDisplay";
 import { MonsterCollection } from "@/components/MonsterCollection";
 import { SpinWheel } from "@/components/SpinWheel";
 import { GameTabs } from "@/components/GameTabs";
+import { DailyReward } from "@/components/DailyReward";
 import { useGameState } from "@/hooks/useGameState";
+import { useDailyReward } from "@/hooks/useDailyReward";
 
 type Tab = "monster" | "collection" | "spin";
 
