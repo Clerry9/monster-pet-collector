@@ -123,6 +123,9 @@ function loadLocalState(): GameState {
         totalSteps: p.totalSteps ?? 0,
         cardsCollected: p.cardsCollected ?? 0,
         monsterTaps: p.monsterTaps ?? {},
+        level: p.level ?? 1,
+        xp: p.xp ?? 0,
+        betMultiplier: p.betMultiplier ?? 1,
       };
     }
   } catch {}
