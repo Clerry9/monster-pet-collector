@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { MONSTERS, getMonsterEvolution } from "@/data/monsters";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { getLevelForXp, getLevelProgress, getAvailableBets } from "@/data/levels";
 
 export interface DiceTier {
   id: string;
