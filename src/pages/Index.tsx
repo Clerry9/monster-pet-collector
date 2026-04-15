@@ -32,6 +32,8 @@ const Index = () => {
   const [muted, setMutedState] = useState(isMuted());
   const isGuest = user?.is_anonymous === true;
   const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile } | null>(null);
+  const [levelUpData, setLevelUpData] = useState<ReturnType<typeof getLevelForXp> | null>(null);
+  const prevLevelRef = useRef(game.level);
 
   // Start background music on mount
   useEffect(() => {
