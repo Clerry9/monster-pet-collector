@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { MONSTERS, getMonsterEvolution } from "@/data/monsters";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { getLevelForXp, getLevelProgress, getAvailableBets } from "@/data/levels";
 
 export interface DiceTier {
   id: string;
@@ -83,6 +84,9 @@ export interface GameState {
   totalSteps: number;
   cardsCollected: number;
   monsterTaps: Record<string, number>;
+  level: number;
+  xp: number;
+  betMultiplier: number;
 }
 
 const DEFAULT_STATE: GameState = {
@@ -96,6 +100,9 @@ const DEFAULT_STATE: GameState = {
   totalSteps: 0,
   cardsCollected: 0,
   monsterTaps: {},
+  level: 1,
+  xp: 0,
+  betMultiplier: 1,
 };
 
 const STORAGE_KEY = "monster-mash-state";
@@ -116,6 +123,9 @@ function loadLocalState(): GameState {
         totalSteps: p.totalSteps ?? 0,
         cardsCollected: p.cardsCollected ?? 0,
         monsterTaps: p.monsterTaps ?? {},
+        level: p.level ?? 1,
+        xp: p.xp ?? 0,
+        betMultiplier: p.betMultiplier ?? 1,
       };
     }
   } catch {}
@@ -139,6 +149,9 @@ function dbToState(row: any): GameState {
     totalSteps: row.total_steps,
     cardsCollected: row.cards_collected,
     monsterTaps: row.monster_taps as Record<string, number>,
+    level: row.level ?? 1,
+    xp: row.xp ?? 0,
+    betMultiplier: row.bet_multiplier ?? 1,
   };
 }
 
@@ -155,6 +168,9 @@ function stateToDb(state: GameState, userId: string) {
     total_steps: state.totalSteps,
     cards_collected: state.cardsCollected,
     monster_taps: state.monsterTaps,
+    level: state.level,
+    xp: state.xp,
+    bet_multiplier: state.betMultiplier,
   };
 }
 
@@ -261,16 +277,32 @@ export function useGameState() {
     const steps = Math.floor(Math.random() * tier.maxRoll) + 1;
     const newPosition = (state.position + steps) % BOARD_TILES.length;
     const tile = BOARD_TILES[newPosition];
-    update((s) => ({
-      ...s,
-      rolls: s.rolls - 1,
-      position: newPosition,
-      totalSteps: s.totalSteps + steps,
-      coins: Math.max(0, s.coins + tile.value),
-      cardsCollected: tile.type === "chest" || tile.type === "star" ? s.cardsCollected + 1 : s.cardsCollected,
-    }));
-    return { steps, tile };
-  }, [state.rolls, state.position, state.activeDiceTier, update]);
+
+    // Apply level theme modifier and bet multiplier
+    const currentLevel = getLevelForXp(state.xp);
+    const modifiedValue = currentLevel.tileModifier(tile.type, tile.value);
+    const finalValue = Math.round(modifiedValue * state.betMultiplier);
+    const xpGain = Math.max(1, Math.round(steps * state.betMultiplier));
+
+    // Create a modified tile for display
+    const modifiedTile = { ...tile, value: finalValue };
+
+    update((s) => {
+      const newXp = s.xp + xpGain;
+      const newLevel = getLevelForXp(newXp);
+      return {
+        ...s,
+        rolls: s.rolls - 1,
+        position: newPosition,
+        totalSteps: s.totalSteps + steps,
+        coins: Math.max(0, s.coins + finalValue),
+        cardsCollected: tile.type === "chest" || tile.type === "star" ? s.cardsCollected + 1 : s.cardsCollected,
+        xp: newXp,
+        level: newLevel.id,
+      };
+    });
+    return { steps, tile: modifiedTile };
+  }, [state.rolls, state.position, state.activeDiceTier, state.betMultiplier, state.xp, update]);
 
   const buyDicePack = useCallback(
     (packId: string) => {
@@ -328,9 +360,19 @@ export function useGameState() {
     [state.unlockedMonsters, update]
   );
 
+  const setBetMultiplier = useCallback(
+    (mult: number) => {
+      const available = getAvailableBets(state.coins);
+      if (!available.includes(mult)) return;
+      update((s) => ({ ...s, betMultiplier: mult }));
+    },
+    [state.coins, update]
+  );
+
   const activeMonsterData = MONSTERS.find((m) => m.id === state.activeMonster)!;
   const activeMonsterTaps = state.monsterTaps[state.activeMonster] ?? 0;
   const activeEvolution = getMonsterEvolution(activeMonsterData, activeMonsterTaps);
+  const levelProgress = getLevelProgress(state.xp);
 
   return {
     ...state,
@@ -343,9 +385,11 @@ export function useGameState() {
     setActiveDiceTier,
     unlockMonster,
     setActiveMonster,
+    setBetMultiplier,
     activeMonsterData,
     activeMonsterTaps,
     activeEvolution,
     activeDiceTierData: DICE_TIERS.find((t) => t.id === state.activeDiceTier) ?? DICE_TIERS[0],
+    levelProgress,
   };
 }

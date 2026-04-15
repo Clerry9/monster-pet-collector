@@ -18,10 +18,12 @@ export type Database = {
         Row: {
           active_dice_tier: string
           active_monster: string
+          bet_multiplier: number
           cards_collected: number
           coins: number
           created_at: string
           id: string
+          level: number
           monster_taps: Json
           position: number
           rolls: number
@@ -30,14 +32,17 @@ export type Database = {
           unlocked_monsters: string[]
           updated_at: string
           user_id: string
+          xp: number
         }
         Insert: {
           active_dice_tier?: string
           active_monster?: string
+          bet_multiplier?: number
           cards_collected?: number
           coins?: number
           created_at?: string
           id?: string
+          level?: number
           monster_taps?: Json
           position?: number
           rolls?: number
@@ -46,14 +51,17 @@ export type Database = {
           unlocked_monsters?: string[]
           updated_at?: string
           user_id: string
+          xp?: number
         }
         Update: {
           active_dice_tier?: string
           active_monster?: string
+          bet_multiplier?: number
           cards_collected?: number
           coins?: number
           created_at?: string
           id?: string
+          level?: number
           monster_taps?: Json
           position?: number
           rolls?: number
@@ -62,6 +70,7 @@ export type Database = {
           unlocked_monsters?: string[]
           updated_at?: string
           user_id?: string
+          xp?: number
         }
         Relationships: []
       }
