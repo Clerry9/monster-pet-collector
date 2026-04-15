@@ -228,3 +228,43 @@ export function sfxHop() {
   osc.start();
   osc.stop(c.currentTime + 0.08);
 }
+
+/** Triumphant fanfare for level-up */
+export function sfxLevelUp() {
+  const c = getCtx();
+  if (!c) return;
+  // Ascending major arpeggio with harmonics
+  const notes = [523, 659, 784, 1047, 1319, 1568]; // C5 E5 G5 C6 E6 G6
+  notes.forEach((freq, i) => {
+    const osc = c.createOscillator();
+    const osc2 = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = "sine";
+    osc2.type = "triangle";
+    const t = c.currentTime + i * 0.1;
+    osc.frequency.setValueAtTime(freq, t);
+    osc2.frequency.setValueAtTime(freq * 2, t);
+    gain.gain.setValueAtTime(0.18 - i * 0.02, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    osc.connect(gain);
+    osc2.connect(gain);
+    gain.connect(c.destination);
+    osc.start(t);
+    osc.stop(t + 0.4);
+    osc2.start(t);
+    osc2.stop(t + 0.4);
+  });
+  // Final shimmer chord
+  const shimmerTime = c.currentTime + notes.length * 0.1 + 0.05;
+  [1047, 1319, 1568, 2093].forEach((freq) => {
+    const osc = c.createOscillator();
+    const g = c.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, shimmerTime);
+    g.gain.setValueAtTime(0.1, shimmerTime);
+    g.gain.exponentialRampToValueAtTime(0.001, shimmerTime + 0.8);
+    osc.connect(g).connect(c.destination);
+    osc.start(shimmerTime);
+    osc.stop(shimmerTime + 0.8);
+  });
+}

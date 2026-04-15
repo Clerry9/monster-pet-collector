@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LevelTheme } from "@/data/levels";
+import { sfxLevelUp } from "@/lib/sfx";
 
 interface LevelUpCelebrationProps {
   level: LevelTheme | null;
@@ -36,6 +37,7 @@ export function LevelUpCelebration({ level, onComplete }: LevelUpCelebrationProp
 
   useEffect(() => {
     if (!level) return;
+    sfxLevelUp();
     const timer = setTimeout(onComplete, 3500);
     return () => clearTimeout(timer);
   }, [level, onComplete]);
