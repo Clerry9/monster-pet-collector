@@ -111,6 +111,23 @@ export default function AuthPage() {
         </div>
 
         <Button
+          onClick={async () => {
+            try {
+              const { error } = await supabase.auth.signInAnonymously();
+              if (error) throw error;
+              toast.success("Playing as guest!");
+            } catch (err: any) {
+              toast.error(err.message || "Guest login failed");
+            }
+          }}
+          variant="outline"
+          className="w-full border-border text-foreground hover:bg-card"
+        >
+          <User className="w-4 h-4 mr-2" />
+          Play as Guest
+        </Button>
+
+        <Button
           onClick={handleGoogleAuth}
           variant="outline"
           className="w-full border-border text-foreground hover:bg-card"
