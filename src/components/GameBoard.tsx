@@ -83,6 +83,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
 
       const hopSequence = async () => {
         for (let i = 0; i < Math.min(steps, 6); i++) {
+          sfxHop();
           spawnParticles(4);
           await monsterControls.start({
             y: -28,
@@ -97,6 +98,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
             transition: { duration: 0.1, ease: "easeIn" },
           });
         }
+        sfxLand();
         spawnParticles(8);
         await monsterControls.start({
           y: [0, -14, 0, -5, 0],
