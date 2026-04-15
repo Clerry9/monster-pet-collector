@@ -56,7 +56,7 @@ const Index = () => {
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-4 py-6 overflow-hidden">
-      <LinkAccount open={showLink} onClose={() => setShowLink(false)} />
+      <LevelUpCelebration level={levelUpData} onComplete={() => setLevelUpData(null)} />
       <PaymentTestModeBanner />
       <DailyReward
         open={daily.showModal}
