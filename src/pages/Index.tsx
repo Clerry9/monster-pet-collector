@@ -21,6 +21,18 @@ const Index = () => {
   const [tab, setTab] = useState<Tab>("board");
   const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile } | null>(null);
 
+  // Handle checkout success - grant rolls from URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") === "success") {
+      const rolls = parseInt(params.get("rolls") || "0", 10);
+      if (rolls > 0) {
+        game.addRolls(rolls);
+      }
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleRollDice = () => {
     const result = game.rollDice();
     if (result) setLastResult(result);
@@ -28,6 +40,7 @@ const Index = () => {
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-4 py-6 overflow-hidden">
+      <PaymentTestModeBanner />
       <DailyReward
         open={daily.showModal}
         streak={daily.streak}
