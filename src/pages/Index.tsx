@@ -41,6 +41,14 @@ const Index = () => {
     return () => stopBgm();
   }, []);
 
+  // Detect level-up
+  useEffect(() => {
+    if (game.level > prevLevelRef.current) {
+      setLevelUpData(getLevelForXp(game.xp));
+    }
+    prevLevelRef.current = game.level;
+  }, [game.level, game.xp]);
+
   const handleRollDice = () => {
     const result = game.rollDice();
     if (result) setLastResult(result);
