@@ -95,8 +95,11 @@ const Index = () => {
         </div>
       </div>
 
+      {/* Level progress */}
+      <LevelProgressBar xp={game.xp} level={game.level} />
+
       {/* Stats bar */}
-      <div className="w-full max-w-md flex items-center justify-center gap-4 mb-4 text-xs font-body text-muted-foreground">
+      <div className="w-full max-w-md flex items-center justify-center gap-4 mb-2 mt-2 text-xs font-body text-muted-foreground">
         <span>🎲 {game.rolls} rolls</span>
         <span>👣 {game.totalSteps} steps</span>
         <span>🃏 {game.cardsCollected} cards</span>
@@ -114,7 +117,7 @@ const Index = () => {
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 50 }}
-              className="w-full flex flex-col items-center"
+              className="w-full flex flex-col items-center gap-3"
             >
               <GameBoard
                 position={game.position}
@@ -123,6 +126,11 @@ const Index = () => {
                 lastResult={lastResult}
                 onRollDice={handleRollDice}
                 activeDiceMax={game.activeDiceTierData.maxRoll}
+              />
+              <BetSelector
+                coins={game.coins}
+                currentBet={game.betMultiplier}
+                onSetBet={game.setBetMultiplier}
               />
             </motion.div>
           )}
