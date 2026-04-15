@@ -2,20 +2,27 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Gift } from "lucide-react";
 import { CoinCounter } from "@/components/CoinCounter";
-import { MonsterDisplay } from "@/components/MonsterDisplay";
+import { GameBoard } from "@/components/GameBoard";
 import { MonsterCollection } from "@/components/MonsterCollection";
 import { SpinWheel } from "@/components/SpinWheel";
+import { DiceShop } from "@/components/DiceShop";
 import { GameTabs } from "@/components/GameTabs";
 import { DailyReward } from "@/components/DailyReward";
-import { useGameState } from "@/hooks/useGameState";
+import { useGameState, BoardTile } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
 
-type Tab = "monster" | "collection" | "spin";
+type Tab = "board" | "collection" | "shop" | "spin";
 
 const Index = () => {
   const game = useGameState();
   const daily = useDailyReward(game.addCoins);
-  const [tab, setTab] = useState<Tab>("monster");
+  const [tab, setTab] = useState<Tab>("board");
+  const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile } | null>(null);
+
+  const handleRollDice = () => {
+    const result = game.rollDice();
+    if (result) setLastResult(result);
+  };
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-4 py-6 overflow-hidden">
@@ -29,8 +36,8 @@ const Index = () => {
       />
 
       {/* Header */}
-      <div className="w-full max-w-md flex items-center justify-between mb-6">
-        <h1 className="font-display text-3xl text-foreground text-glow-purple">
+      <div className="w-full max-w-md flex items-center justify-between mb-4">
+        <h1 className="font-display text-2xl text-foreground text-glow-purple">
           Monster Mash
         </h1>
         <div className="flex items-center gap-2">
@@ -39,27 +46,61 @@ const Index = () => {
             className="rounded-full bg-card p-2 text-accent transition-transform hover:scale-110"
             title="Daily Reward"
           >
-            <Gift size={20} />
+            <Gift size={18} />
           </button>
           <CoinCounter coins={game.coins} />
         </div>
+      </div>
+
+      {/* Stats bar */}
+      <div className="w-full max-w-md flex items-center justify-center gap-4 mb-4 text-xs font-body text-muted-foreground">
+        <span>🎲 {game.rolls} rolls</span>
+        <span>👣 {game.totalSteps} steps</span>
+        <span>🃏 {game.cardsCollected} cards</span>
       </div>
 
       {/* Tabs */}
       <GameTabs active={tab} onTabChange={setTab} />
 
       {/* Content */}
-      <div className="w-full max-w-md flex-1 flex items-center justify-center py-8">
+      <div className="w-full max-w-md flex-1 flex items-start justify-center py-6 overflow-y-auto">
         <AnimatePresence mode="wait">
-          {tab === "monster" && (
+          {tab === "board" && (
             <motion.div
-              key="monster"
+              key="board"
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 50 }}
-              className="flex flex-col items-center"
+              className="w-full flex flex-col items-center"
             >
-              <MonsterDisplay monster={game.activeMonsterData} onTap={game.tap} />
+              <GameBoard
+                position={game.position}
+                monster={game.activeMonsterData}
+                rolls={game.rolls}
+                lastResult={lastResult}
+                onRollDice={handleRollDice}
+                activeDiceMax={game.activeDiceTierData.maxRoll}
+              />
+            </motion.div>
+          )}
+
+          {tab === "shop" && (
+            <motion.div
+              key="shop"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              className="w-full"
+            >
+              <DiceShop
+                coins={game.coins}
+                rolls={game.rolls}
+                unlockedDiceTiers={game.unlockedDiceTiers}
+                activeDiceTier={game.activeDiceTier}
+                onBuyPack={game.buyDicePack}
+                onUnlockTier={game.unlockDiceTier}
+                onSelectTier={game.setActiveDiceTier}
+              />
             </motion.div>
           )}
 
