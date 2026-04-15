@@ -14,7 +14,123 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      game_state: {
+        Row: {
+          active_dice_tier: string
+          active_monster: string
+          cards_collected: number
+          coins: number
+          created_at: string
+          id: string
+          monster_taps: Json
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_dice_tier?: string
+          active_monster?: string
+          cards_collected?: number
+          coins?: number
+          created_at?: string
+          id?: string
+          monster_taps?: Json
+          position?: number
+          rolls?: number
+          total_steps?: number
+          unlocked_dice_tiers?: string[]
+          unlocked_monsters?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_dice_tier?: string
+          active_monster?: string
+          cards_collected?: number
+          coins?: number
+          created_at?: string
+          id?: string
+          monster_taps?: Json
+          position?: number
+          rolls?: number
+          total_steps?: number
+          unlocked_dice_tiers?: string[]
+          unlocked_monsters?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      purchases: {
+        Row: {
+          created_at: string
+          environment: string
+          id: string
+          pack_id: string | null
+          paddle_transaction_id: string
+          price_id: string
+          product_id: string
+          rolls_granted: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          environment?: string
+          id?: string
+          pack_id?: string | null
+          paddle_transaction_id: string
+          price_id: string
+          product_id: string
+          rolls_granted?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          id?: string
+          pack_id?: string | null
+          paddle_transaction_id?: string
+          price_id?: string
+          product_id?: string
+          rolls_granted?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

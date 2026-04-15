@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Gift } from "lucide-react";
+import { Gift, LogOut } from "lucide-react";
 import { CoinCounter } from "@/components/CoinCounter";
 import { GameBoard } from "@/components/GameBoard";
 import { MonsterDisplay } from "@/components/MonsterDisplay";
@@ -12,26 +12,16 @@ import { DailyReward } from "@/components/DailyReward";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { useGameState, BoardTile } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
+import { useAuth } from "@/hooks/useAuth";
 
 type Tab = "board" | "monster" | "collection" | "shop" | "spin";
 
 const Index = () => {
   const game = useGameState();
   const daily = useDailyReward(game.addCoins);
+  const { signOut } = useAuth();
   const [tab, setTab] = useState<Tab>("board");
   const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile } | null>(null);
-
-  // Handle checkout success - grant rolls from URL params
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("checkout") === "success") {
-      const rolls = parseInt(params.get("rolls") || "0", 10);
-      if (rolls > 0) {
-        game.addRolls(rolls);
-      }
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRollDice = () => {
     const result = game.rollDice();
@@ -64,6 +54,13 @@ const Index = () => {
             <Gift size={18} />
           </button>
           <CoinCounter coins={game.coins} />
+          <button
+            onClick={signOut}
+            className="rounded-full bg-card p-2 text-muted-foreground hover:text-foreground transition-colors"
+            title="Sign Out"
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       </div>
 
@@ -131,7 +128,6 @@ const Index = () => {
                 onBuyPack={game.buyDicePack}
                 onUnlockTier={game.unlockDiceTier}
                 onSelectTier={game.setActiveDiceTier}
-                onAddRolls={game.addRolls}
               />
             </motion.div>
           )}
