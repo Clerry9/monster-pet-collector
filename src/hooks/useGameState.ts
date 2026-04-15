@@ -1,12 +1,12 @@
 import { useState, useCallback } from "react";
-import { MONSTERS } from "@/data/monsters";
+import { MONSTERS, getMonsterEvolution } from "@/data/monsters";
 
 export interface DiceTier {
   id: string;
   label: string;
   maxRoll: number;
   costCoins: number;
-  costReal: number; // USD cents
+  costReal: number;
 }
 
 export const DICE_TIERS: DiceTier[] = [
@@ -20,7 +20,7 @@ export interface DicePack {
   label: string;
   rolls: number;
   costCoins: number;
-  costReal: number; // USD cents
+  costReal: number;
   emoji: string;
 }
 
@@ -31,18 +31,16 @@ export const DICE_PACKS: DicePack[] = [
   { id: "ultra", label: "Ultra Pack", rolls: 150, costCoins: 900, costReal: 699, emoji: "🔥" },
 ];
 
-// Board tile types
 export type TileType = "coins" | "bonus" | "monster" | "chest" | "skull" | "star";
 
 export interface BoardTile {
   id: number;
   type: TileType;
-  value: number; // coins reward or multiplier
-  x: number; // percentage position
+  value: number;
+  x: number;
   y: number;
 }
 
-// Generate a winding path of tiles
 function generateBoard(length: number): BoardTile[] {
   const tiles: BoardTile[] = [];
   const tileTypes: { type: TileType; weight: number; minVal: number; maxVal: number }[] = [
@@ -53,28 +51,21 @@ function generateBoard(length: number): BoardTile[] {
     { type: "skull", weight: 10, minVal: -10, maxVal: -5 },
     { type: "star", weight: 10, minVal: 50, maxVal: 200 },
   ];
-
   const totalWeight = tileTypes.reduce((s, t) => s + t.weight, 0);
 
   for (let i = 0; i < length; i++) {
-    // Create a winding path using sine waves
     const progress = i / length;
     const x = 10 + 80 * (0.5 + 0.4 * Math.sin(progress * Math.PI * 3));
     const y = 5 + 90 * progress;
-
-    // Pick random tile type
     let r = Math.random() * totalWeight;
     let tileType = tileTypes[0];
     for (const t of tileTypes) {
       r -= t.weight;
       if (r <= 0) { tileType = t; break; }
     }
-
     const value = Math.floor(tileType.minVal + Math.random() * (tileType.maxVal - tileType.minVal));
-
     tiles.push({ id: i, type: tileType.type, value, x, y });
   }
-
   return tiles;
 }
 
@@ -90,6 +81,7 @@ export interface GameState {
   activeDiceTier: string;
   totalSteps: number;
   cardsCollected: number;
+  monsterTaps: Record<string, number>; // tap count per monster
 }
 
 const STORAGE_KEY = "monster-mash-state";
@@ -98,18 +90,18 @@ function loadState(): GameState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      const parsed = JSON.parse(saved);
-      // Migration: add new fields
+      const p = JSON.parse(saved);
       return {
-        coins: parsed.coins ?? 50,
-        rolls: parsed.rolls ?? 10,
-        position: parsed.position ?? 0,
-        unlockedMonsters: parsed.unlockedMonsters ?? ["gobby"],
-        activeMonster: parsed.activeMonster ?? "gobby",
-        unlockedDiceTiers: parsed.unlockedDiceTiers ?? ["basic"],
-        activeDiceTier: parsed.activeDiceTier ?? "basic",
-        totalSteps: parsed.totalSteps ?? 0,
-        cardsCollected: parsed.cardsCollected ?? 0,
+        coins: p.coins ?? 50,
+        rolls: p.rolls ?? 10,
+        position: p.position ?? 0,
+        unlockedMonsters: p.unlockedMonsters ?? ["gobby"],
+        activeMonster: p.activeMonster ?? "gobby",
+        unlockedDiceTiers: p.unlockedDiceTiers ?? ["basic"],
+        activeDiceTier: p.activeDiceTier ?? "basic",
+        totalSteps: p.totalSteps ?? 0,
+        cardsCollected: p.cardsCollected ?? 0,
+        monsterTaps: p.monsterTaps ?? {},
       };
     }
   } catch {}
@@ -123,6 +115,7 @@ function loadState(): GameState {
     activeDiceTier: "basic",
     totalSteps: 0,
     cardsCollected: 0,
+    monsterTaps: {},
   };
 }
 
@@ -142,11 +135,26 @@ export function useGameState() {
   }, []);
 
   const addCoins = useCallback(
-    (amount: number) => {
-      update((s) => ({ ...s, coins: Math.max(0, s.coins + amount) }));
-    },
+    (amount: number) => update((s) => ({ ...s, coins: Math.max(0, s.coins + amount) })),
     [update]
   );
+
+  const addRolls = useCallback(
+    (amount: number) => update((s) => ({ ...s, rolls: s.rolls + amount })),
+    [update]
+  );
+
+  const tapMonster = useCallback(() => {
+    const monster = MONSTERS.find((m) => m.id === state.activeMonster);
+    if (!monster) return;
+    const currentTaps = state.monsterTaps[monster.id] ?? 0;
+    const evo = getMonsterEvolution(monster, currentTaps + 1);
+    update((s) => ({
+      ...s,
+      coins: s.coins + evo.coinsPerTap,
+      monsterTaps: { ...s.monsterTaps, [monster.id]: (s.monsterTaps[monster.id] ?? 0) + 1 },
+    }));
+  }, [state.activeMonster, state.monsterTaps, update]);
 
   const rollDice = useCallback((): { steps: number; tile: BoardTile } | null => {
     if (state.rolls <= 0) return null;
@@ -154,7 +162,6 @@ export function useGameState() {
     const steps = Math.floor(Math.random() * tier.maxRoll) + 1;
     const newPosition = (state.position + steps) % BOARD_TILES.length;
     const tile = BOARD_TILES[newPosition];
-
     update((s) => ({
       ...s,
       rolls: s.rolls - 1,
@@ -163,7 +170,6 @@ export function useGameState() {
       coins: Math.max(0, s.coins + tile.value),
       cardsCollected: tile.type === "chest" || tile.type === "star" ? s.cardsCollected + 1 : s.cardsCollected,
     }));
-
     return { steps, tile };
   }, [state.rolls, state.position, state.activeDiceTier, update]);
 
@@ -171,11 +177,7 @@ export function useGameState() {
     (packId: string) => {
       const pack = DICE_PACKS.find((p) => p.id === packId);
       if (!pack || state.coins < pack.costCoins) return false;
-      update((s) => ({
-        ...s,
-        coins: s.coins - pack.costCoins,
-        rolls: s.rolls + pack.rolls,
-      }));
+      update((s) => ({ ...s, coins: s.coins - pack.costCoins, rolls: s.rolls + pack.rolls }));
       return true;
     },
     [state.coins, update]
@@ -227,16 +229,24 @@ export function useGameState() {
     [state.unlockedMonsters, update]
   );
 
+  const activeMonsterData = MONSTERS.find((m) => m.id === state.activeMonster)!;
+  const activeMonsterTaps = state.monsterTaps[state.activeMonster] ?? 0;
+  const activeEvolution = getMonsterEvolution(activeMonsterData, activeMonsterTaps);
+
   return {
     ...state,
     addCoins,
+    addRolls,
+    tapMonster,
     rollDice,
     buyDicePack,
     unlockDiceTier,
     setActiveDiceTier,
     unlockMonster,
     setActiveMonster,
-    activeMonsterData: MONSTERS.find((m) => m.id === state.activeMonster)!,
+    activeMonsterData,
+    activeMonsterTaps,
+    activeEvolution,
     activeDiceTierData: DICE_TIERS.find((t) => t.id === state.activeDiceTier) ?? DICE_TIERS[0],
   };
 }
