@@ -277,16 +277,32 @@ export function useGameState() {
     const steps = Math.floor(Math.random() * tier.maxRoll) + 1;
     const newPosition = (state.position + steps) % BOARD_TILES.length;
     const tile = BOARD_TILES[newPosition];
-    update((s) => ({
-      ...s,
-      rolls: s.rolls - 1,
-      position: newPosition,
-      totalSteps: s.totalSteps + steps,
-      coins: Math.max(0, s.coins + tile.value),
-      cardsCollected: tile.type === "chest" || tile.type === "star" ? s.cardsCollected + 1 : s.cardsCollected,
-    }));
-    return { steps, tile };
-  }, [state.rolls, state.position, state.activeDiceTier, update]);
+
+    // Apply level theme modifier and bet multiplier
+    const currentLevel = getLevelForXp(state.xp);
+    const modifiedValue = currentLevel.tileModifier(tile.type, tile.value);
+    const finalValue = Math.round(modifiedValue * state.betMultiplier);
+    const xpGain = Math.max(1, Math.round(steps * state.betMultiplier));
+
+    // Create a modified tile for display
+    const modifiedTile = { ...tile, value: finalValue };
+
+    update((s) => {
+      const newXp = s.xp + xpGain;
+      const newLevel = getLevelForXp(newXp);
+      return {
+        ...s,
+        rolls: s.rolls - 1,
+        position: newPosition,
+        totalSteps: s.totalSteps + steps,
+        coins: Math.max(0, s.coins + finalValue),
+        cardsCollected: tile.type === "chest" || tile.type === "star" ? s.cardsCollected + 1 : s.cardsCollected,
+        xp: newXp,
+        level: newLevel.id,
+      };
+    });
+    return { steps, tile: modifiedTile };
+  }, [state.rolls, state.position, state.activeDiceTier, state.betMultiplier, state.xp, update]);
 
   const buyDicePack = useCallback(
     (packId: string) => {
