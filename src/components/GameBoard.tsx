@@ -127,10 +127,16 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
         {/* Monster on current tile */}
         <motion.div
           className="absolute left-1/2 -translate-x-1/2 -top-1 z-20"
-          animate={{ y: [0, -5, 0] }}
-          transition={{ repeat: Infinity, duration: 1.5 }}
+          animate={monsterControls}
+          initial={{ y: 0, scale: 1, rotate: 0 }}
         >
-          <img src={monster.image} alt={monster.name} className="w-12 h-12 drop-shadow-lg" />
+          <motion.img
+            src={monster.image}
+            alt={monster.name}
+            className="w-12 h-12 drop-shadow-lg"
+            animate={isRolling ? {} : { y: [0, -5, 0] }}
+            transition={isRolling ? {} : { repeat: Infinity, duration: 1.5 }}
+          />
         </motion.div>
       </div>
 
