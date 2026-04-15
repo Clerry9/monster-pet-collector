@@ -59,6 +59,15 @@ const Index = () => {
             <Gift size={18} />
           </button>
           <CoinCounter coins={game.coins} />
+          {isGuest && (
+            <button
+              onClick={() => setShowLink(true)}
+              className="rounded-full bg-primary/20 p-2 text-primary hover:bg-primary/30 transition-colors"
+              title="Link Account"
+            >
+              <Link2 size={16} />
+            </button>
+          )}
           <button
             onClick={signOut}
             className="rounded-full bg-card p-2 text-muted-foreground hover:text-foreground transition-colors"
