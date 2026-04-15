@@ -37,6 +37,7 @@ export function LevelUpCelebration({ level, onComplete }: LevelUpCelebrationProp
 
   useEffect(() => {
     if (!level) return;
+    sfxLevelUp();
     const timer = setTimeout(onComplete, 3500);
     return () => clearTimeout(timer);
   }, [level, onComplete]);
