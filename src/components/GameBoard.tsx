@@ -141,7 +141,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   }
 
   return (
-    <div className="flex flex-col items-center gap-4 w-full">
+    <div className={`flex flex-col items-center gap-4 w-full ${isShaking ? "animate-shake" : ""}`}>
       {/* Path visualization */}
       <div className="relative w-full max-w-md h-28 overflow-hidden rounded-2xl bg-card border border-border">
         {/* Scrolling path */}
