@@ -30,11 +30,37 @@ const TILE_COLORS: Record<TileType, string> = {
   star: "bg-accent/30 border-accent/60",
 };
 
+interface Particle {
+  id: number;
+  x: number;
+  y: number;
+  color: string;
+  size: number;
+}
+
+const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
+let particleIdCounter = 0;
+
 export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
+  const [particles, setParticles] = useState<Particle[]>([]);
   const monsterControls = useAnimation();
   const prevPositionRef = useRef(position);
+
+  const spawnParticles = (count: number) => {
+    const newParticles: Particle[] = Array.from({ length: count }, () => ({
+      id: particleIdCounter++,
+      x: (Math.random() - 0.5) * 40,
+      y: (Math.random() - 0.5) * 20,
+      color: PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
+      size: Math.random() * 6 + 3,
+    }));
+    setParticles((prev) => [...prev, ...newParticles]);
+    setTimeout(() => {
+      setParticles((prev) => prev.filter((p) => !newParticles.includes(p)));
+    }, 800);
+  };
 
   // Animate monster on position change
   useEffect(() => {
@@ -45,6 +71,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       // Hop animation sequence
       const hopSequence = async () => {
         for (let i = 0; i < Math.min(steps, 6); i++) {
+          spawnParticles(4);
           await monsterControls.start({
             y: -28,
             x: [0, 6, -6, 0],
@@ -58,7 +85,8 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
             transition: { duration: 0.1, ease: "easeIn" },
           });
         }
-        // Landing bounce
+        // Landing burst
+        spawnParticles(8);
         await monsterControls.start({
           y: [0, -14, 0, -5, 0],
           scale: [1, 1.2, 0.9, 1.05, 1],
