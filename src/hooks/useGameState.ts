@@ -84,6 +84,9 @@ export interface GameState {
   totalSteps: number;
   cardsCollected: number;
   monsterTaps: Record<string, number>;
+  level: number;
+  xp: number;
+  betMultiplier: number;
 }
 
 const DEFAULT_STATE: GameState = {
@@ -97,6 +100,9 @@ const DEFAULT_STATE: GameState = {
   totalSteps: 0,
   cardsCollected: 0,
   monsterTaps: {},
+  level: 1,
+  xp: 0,
+  betMultiplier: 1,
 };
 
 const STORAGE_KEY = "monster-mash-state";
