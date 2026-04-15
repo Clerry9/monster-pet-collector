@@ -14,6 +14,7 @@ import { DailyReward } from "@/components/DailyReward";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { LevelProgressBar } from "@/components/LevelProgressBar";
 import { BetSelector } from "@/components/BetSelector";
+import { LevelUpCelebration } from "@/components/LevelUpCelebration";
 import { useGameState, BoardTile } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
