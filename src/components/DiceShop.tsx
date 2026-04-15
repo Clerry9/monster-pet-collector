@@ -2,13 +2,18 @@ import { motion } from "framer-motion";
 import { DICE_PACKS, DICE_TIERS } from "@/hooks/useGameState";
 import { Lock, Check, Zap, CreditCard } from "lucide-react";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
-// Map pack IDs to Paddle price IDs
 const PACK_PRICE_IDS: Record<string, string> = {
   value: "value_pack_price",
   mega: "mega_pack_price",
   ultra: "ultra_pack_price",
+};
+
+const TIER_PRICE_IDS: Record<string, string> = {
+  silver: "silver_dice_price",
+  gold: "gold_dice_price",
 };
 
 interface DiceShopProps {
@@ -19,7 +24,6 @@ interface DiceShopProps {
   onBuyPack: (packId: string) => boolean;
   onUnlockTier: (tierId: string) => boolean;
   onSelectTier: (tierId: string) => void;
-  onAddRolls: (amount: number) => void;
 }
 
 export function DiceShop({
@@ -30,21 +34,41 @@ export function DiceShop({
   onBuyPack,
   onUnlockTier,
   onSelectTier,
-  onAddRolls,
 }: DiceShopProps) {
   const { openCheckout, loading } = usePaddleCheckout();
+  const { user } = useAuth();
 
-  const handleBuyWithMoney = async (packId: string, packRolls: number) => {
-    const priceId = PACK_PRICE_IDS[packId];
-    if (!priceId) return;
+  const handleBuyWithMoney = async (priceId: string, packId: string, rollsCount: number) => {
+    if (!user) {
+      toast.error("Please log in to make purchases");
+      return;
+    }
 
     try {
       await openCheckout({
         priceId,
-        customData: { packId, rolls: String(packRolls) },
-        successUrl: `${window.location.origin}/?checkout=success&pack=${packId}&rolls=${packRolls}`,
+        customerEmail: user.email,
+        customData: { userId: user.id, packId, rolls: String(rollsCount) },
       });
-    } catch (err) {
+    } catch {
+      toast.error("Failed to open checkout");
+    }
+  };
+
+  const handleBuyTierWithMoney = async (tierId: string) => {
+    const priceId = TIER_PRICE_IDS[tierId];
+    if (!priceId || !user) {
+      if (!user) toast.error("Please log in to make purchases");
+      return;
+    }
+
+    try {
+      await openCheckout({
+        priceId,
+        customerEmail: user.email,
+        customData: { userId: user.id, packId: `${tierId}_dice` },
+      });
+    } catch {
       toast.error("Failed to open checkout");
     }
   };
@@ -69,38 +93,52 @@ export function DiceShop({
             const unlocked = unlockedDiceTiers.includes(tier.id);
             const active = tier.id === activeDiceTier;
             const canAfford = coins >= tier.costCoins;
+            const hasPaddlePrice = !!TIER_PRICE_IDS[tier.id];
 
             return (
-              <motion.button
-                key={tier.id}
-                whileTap={{ scale: 0.95 }}
-                whileHover={{ scale: 1.03 }}
-                onClick={() => unlocked ? onSelectTier(tier.id) : canAfford ? onUnlockTier(tier.id) : undefined}
-                className={`relative rounded-xl border-2 p-3 flex flex-col items-center gap-1 transition-all cursor-pointer ${
-                  active
-                    ? "border-primary bg-primary/10 box-glow-green"
-                    : unlocked
-                    ? "border-border bg-card"
-                    : "border-border bg-card/50 opacity-70"
-                } ${!unlocked && !canAfford ? "cursor-not-allowed" : ""}`}
-              >
-                {active && (
-                  <div className="absolute -top-2 -right-2 bg-primary rounded-full p-1">
-                    <Check size={12} className="text-primary-foreground" />
-                  </div>
-                )}
-                {!unlocked && (
-                  <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-background/60 z-10">
-                    <div className="flex flex-col items-center gap-1">
-                      <Lock size={16} className="text-muted-foreground" />
-                      <span className="text-xs font-bold text-accent">🪙 {tier.costCoins}</span>
+              <div key={tier.id} className="flex flex-col gap-1">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.03 }}
+                  onClick={() => unlocked ? onSelectTier(tier.id) : canAfford ? onUnlockTier(tier.id) : undefined}
+                  className={`relative rounded-xl border-2 p-3 flex flex-col items-center gap-1 transition-all cursor-pointer ${
+                    active
+                      ? "border-primary bg-primary/10 box-glow-green"
+                      : unlocked
+                      ? "border-border bg-card"
+                      : "border-border bg-card/50 opacity-70"
+                  } ${!unlocked && !canAfford ? "cursor-not-allowed" : ""}`}
+                >
+                  {active && (
+                    <div className="absolute -top-2 -right-2 bg-primary rounded-full p-1">
+                      <Check size={12} className="text-primary-foreground" />
                     </div>
-                  </div>
+                  )}
+                  {!unlocked && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-background/60 z-10">
+                      <div className="flex flex-col items-center gap-1">
+                        <Lock size={16} className="text-muted-foreground" />
+                        <span className="text-xs font-bold text-accent">🪙 {tier.costCoins}</span>
+                      </div>
+                    </div>
+                  )}
+                  <span className="text-2xl">🎲</span>
+                  <span className="text-xs font-bold font-body text-foreground">{tier.label}</span>
+                  <span className="text-[10px] font-body text-primary">1-{tier.maxRoll}</span>
+                </motion.button>
+                {/* Real money buy button for locked tiers */}
+                {!unlocked && hasPaddlePrice && (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleBuyTierWithMoney(tier.id)}
+                    disabled={loading}
+                    className="rounded-lg bg-primary/20 text-primary hover:bg-primary/30 py-1 text-[10px] font-bold font-body flex items-center justify-center gap-1 cursor-pointer transition-all"
+                  >
+                    <CreditCard size={10} />
+                    ${(tier.costReal / 100).toFixed(2)}
+                  </motion.button>
                 )}
-                <span className="text-2xl">🎲</span>
-                <span className="text-xs font-bold font-body text-foreground">{tier.label}</span>
-                <span className="text-[10px] font-body text-primary">1-{tier.maxRoll}</span>
-              </motion.button>
+              </div>
             );
           })}
         </div>
@@ -127,7 +165,6 @@ export function DiceShop({
                   <span className="font-extrabold">{pack.rolls} rolls</span>
                 </div>
 
-                {/* Buy with coins */}
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => canAfford ? onBuyPack(pack.id) : undefined}
@@ -141,11 +178,10 @@ export function DiceShop({
                   🪙 {pack.costCoins} coins
                 </motion.button>
 
-                {/* Buy with real money */}
                 {hasPaddlePrice && (
                   <motion.button
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => handleBuyWithMoney(pack.id, pack.rolls)}
+                    onClick={() => handleBuyWithMoney(PACK_PRICE_IDS[pack.id], pack.id, pack.rolls)}
                     disabled={loading}
                     className="w-full rounded-lg bg-primary/20 text-primary hover:bg-primary/30 py-1.5 text-xs font-bold font-body flex items-center justify-center gap-1 cursor-pointer transition-all"
                   >
