@@ -1,8 +1,19 @@
 // Synthesized sound effects using Web Audio API — no external files needed
 
 let ctx: AudioContext | null = null;
+let _muted = localStorage.getItem("sfx-muted") === "true";
 
-function getCtx(): AudioContext {
+export function isMuted(): boolean {
+  return _muted;
+}
+
+export function setMuted(muted: boolean) {
+  _muted = muted;
+  localStorage.setItem("sfx-muted", String(muted));
+}
+
+function getCtx(): AudioContext | null {
+  if (_muted) return null;
   if (!ctx) ctx = new AudioContext();
   if (ctx.state === "suspended") ctx.resume();
   return ctx;
