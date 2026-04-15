@@ -29,6 +29,12 @@ const Index = () => {
   const isGuest = user?.is_anonymous === true;
   const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile } | null>(null);
 
+  // Start background music on mount
+  useEffect(() => {
+    startBgm();
+    return () => stopBgm();
+  }, []);
+
   const handleRollDice = () => {
     const result = game.rollDice();
     if (result) setLastResult(result);
