@@ -25,6 +25,7 @@ const Index = () => {
   const { user, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>("board");
   const [showLink, setShowLink] = useState(false);
+  const [muted, setMutedState] = useState(isMuted());
   const isGuest = user?.is_anonymous === true;
   const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile } | null>(null);
 
