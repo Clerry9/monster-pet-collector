@@ -149,6 +149,9 @@ function dbToState(row: any): GameState {
     totalSteps: row.total_steps,
     cardsCollected: row.cards_collected,
     monsterTaps: row.monster_taps as Record<string, number>,
+    level: row.level ?? 1,
+    xp: row.xp ?? 0,
+    betMultiplier: row.bet_multiplier ?? 1,
   };
 }
 
@@ -165,6 +168,9 @@ function stateToDb(state: GameState, userId: string) {
     total_steps: state.totalSteps,
     cards_collected: state.cardsCollected,
     monster_taps: state.monsterTaps,
+    level: state.level,
+    xp: state.xp,
+    bet_multiplier: state.betMultiplier,
   };
 }
 
