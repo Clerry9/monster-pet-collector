@@ -109,10 +109,14 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
     }
   }, [position, monsterControls]);
 
-  // Trigger skull effect when landing on skull tile
+  // Trigger effects when landing on a tile
   useEffect(() => {
-    if (lastResult && !isRolling && lastResult.tile.type === "skull") {
-      triggerSkullEffect();
+    if (lastResult && !isRolling) {
+      if (lastResult.tile.type === "skull") {
+        triggerSkullEffect();
+      } else if (lastResult.tile.value > 0) {
+        sfxCoinGain();
+      }
     }
   }, [lastResult, isRolling]);
 
@@ -123,6 +127,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
 
     let count = 0;
     const interval = setInterval(() => {
+      sfxDiceTick();
       setDiceValue(Math.floor(Math.random() * activeDiceMax) + 1);
       count++;
       if (count > 12) {
