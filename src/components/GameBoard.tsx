@@ -65,11 +65,9 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   };
 
   const triggerSkullEffect = () => {
-    // Screen shake
+    sfxSkull();
     setIsShaking(true);
     setTimeout(() => setIsShaking(false), 500);
-
-    // Haptic vibration on supported devices
     if (navigator.vibrate) {
       navigator.vibrate([50, 30, 80, 30, 50]);
     }
