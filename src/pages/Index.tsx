@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Gift, LogOut } from "lucide-react";
+import { Gift, LogOut, Volume2, VolumeX } from "lucide-react";
+import { isMuted, setMuted } from "@/lib/sfx";
 import { CoinCounter } from "@/components/CoinCounter";
 import { GameBoard } from "@/components/GameBoard";
 import { MonsterDisplay } from "@/components/MonsterDisplay";
@@ -24,6 +25,7 @@ const Index = () => {
   const { user, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>("board");
   const [showLink, setShowLink] = useState(false);
+  const [muted, setMutedState] = useState(isMuted());
   const isGuest = user?.is_anonymous === true;
   const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile } | null>(null);
 
@@ -51,6 +53,13 @@ const Index = () => {
           Monster Mash
         </h1>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => { const next = !muted; setMuted(next); setMutedState(next); }}
+            className="rounded-full bg-card p-2 text-muted-foreground hover:text-foreground transition-colors"
+            title={muted ? "Unmute" : "Mute"}
+          >
+            {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          </button>
           <button
             onClick={daily.openModal}
             className="rounded-full bg-card p-2 text-accent transition-transform hover:scale-110"
