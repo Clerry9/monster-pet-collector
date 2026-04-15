@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Gift } from "lucide-react";
 import { CoinCounter } from "@/components/CoinCounter";
 import { GameBoard } from "@/components/GameBoard";
+import { MonsterDisplay } from "@/components/MonsterDisplay";
 import { MonsterCollection } from "@/components/MonsterCollection";
 import { SpinWheel } from "@/components/SpinWheel";
 import { DiceShop } from "@/components/DiceShop";
@@ -11,7 +12,7 @@ import { DailyReward } from "@/components/DailyReward";
 import { useGameState, BoardTile } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
 
-type Tab = "board" | "collection" | "shop" | "spin";
+type Tab = "board" | "monster" | "collection" | "shop" | "spin";
 
 const Index = () => {
   const game = useGameState();
@@ -84,6 +85,22 @@ const Index = () => {
             </motion.div>
           )}
 
+          {tab === "monster" && (
+            <motion.div
+              key="monster"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              className="flex flex-col items-center"
+            >
+              <MonsterDisplay
+                monster={game.activeMonsterData}
+                taps={game.activeMonsterTaps}
+                onTap={game.tapMonster}
+              />
+            </motion.div>
+          )}
+
           {tab === "shop" && (
             <motion.div
               key="shop"
@@ -116,6 +133,7 @@ const Index = () => {
                 unlockedMonsters={game.unlockedMonsters}
                 activeMonster={game.activeMonster}
                 coins={game.coins}
+                monsterTaps={game.monsterTaps}
                 onSelect={game.setActiveMonster}
                 onUnlock={game.unlockMonster}
               />

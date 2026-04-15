@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-type Tab = "board" | "collection" | "shop" | "spin";
+type Tab = "board" | "monster" | "collection" | "shop" | "spin";
 
 interface GameTabsProps {
   active: Tab;
@@ -9,19 +9,20 @@ interface GameTabsProps {
 
 const tabs: { id: Tab; label: string; emoji: string }[] = [
   { id: "board", label: "Play", emoji: "🎲" },
+  { id: "monster", label: "Pet", emoji: "👾" },
   { id: "shop", label: "Shop", emoji: "🛒" },
-  { id: "collection", label: "Monsters", emoji: "👾" },
+  { id: "collection", label: "Team", emoji: "📦" },
   { id: "spin", label: "Spin", emoji: "🎰" },
 ];
 
 export function GameTabs({ active, onTabChange }: GameTabsProps) {
   return (
-    <div className="flex gap-1 rounded-full bg-card p-1">
+    <div className="flex gap-0.5 rounded-full bg-card p-1">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
-          className={`relative px-3 py-2 rounded-full text-xs font-bold font-body transition-colors cursor-pointer ${
+          className={`relative px-2.5 py-2 rounded-full text-[11px] font-bold font-body transition-colors cursor-pointer ${
             active === tab.id ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
           }`}
         >

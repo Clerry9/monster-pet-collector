@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
-import { MONSTERS, Monster } from "@/data/monsters";
-import { Lock } from "lucide-react";
+import { MONSTERS, Monster, getMonsterEvolution } from "@/data/monsters";
+import { Lock, Sparkles } from "lucide-react";
 
 interface Props {
   unlockedMonsters: string[];
   activeMonster: string;
   coins: number;
+  monsterTaps: Record<string, number>;
   onSelect: (id: string) => void;
   onUnlock: (id: string) => void;
 }
@@ -24,7 +25,7 @@ const rarityBadge: Record<string, string> = {
   legendary: "bg-accent/20 text-accent",
 };
 
-export function MonsterCollection({ unlockedMonsters, activeMonster, coins, onSelect, onUnlock }: Props) {
+export function MonsterCollection({ unlockedMonsters, activeMonster, coins, monsterTaps, onSelect, onUnlock }: Props) {
   const isUnlocked = (m: Monster) => unlockedMonsters.includes(m.id);
 
   return (
@@ -37,6 +38,8 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, onSe
           const unlocked = isUnlocked(m);
           const active = m.id === activeMonster;
           const canAfford = coins >= m.cost;
+          const taps = monsterTaps[m.id] ?? 0;
+          const evo = getMonsterEvolution(m, taps);
 
           return (
             <motion.button
@@ -64,7 +67,13 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, onSe
                 loading="lazy"
                 className="w-16 h-16 object-contain"
               />
-              <span className="text-xs font-bold font-body text-foreground">{m.name}</span>
+              <span className="text-xs font-bold font-body text-foreground">{unlocked ? evo.name : m.name}</span>
+              {unlocked && (
+                <div className="flex items-center gap-0.5 text-[9px] text-secondary">
+                  <Sparkles size={9} />
+                  <span>Lv.{evo.level}</span>
+                </div>
+              )}
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rarityBadge[m.rarity]}`}>
                 {m.rarity}
               </span>
