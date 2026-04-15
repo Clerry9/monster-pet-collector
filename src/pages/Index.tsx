@@ -54,6 +54,13 @@ const Index = () => {
         </h1>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => { const next = !muted; setMuted(next); setMutedState(next); }}
+            className="rounded-full bg-card p-2 text-muted-foreground hover:text-foreground transition-colors"
+            title={muted ? "Unmute" : "Mute"}
+          >
+            {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          </button>
+          <button
             onClick={daily.openModal}
             className="rounded-full bg-card p-2 text-accent transition-transform hover:scale-110"
             title="Daily Reward"
