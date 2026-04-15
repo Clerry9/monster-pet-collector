@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Gift } from "lucide-react";
 import { CoinCounter } from "@/components/CoinCounter";
@@ -9,6 +9,7 @@ import { SpinWheel } from "@/components/SpinWheel";
 import { DiceShop } from "@/components/DiceShop";
 import { GameTabs } from "@/components/GameTabs";
 import { DailyReward } from "@/components/DailyReward";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { useGameState, BoardTile } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
 
@@ -117,6 +118,7 @@ const Index = () => {
                 onBuyPack={game.buyDicePack}
                 onUnlockTier={game.unlockDiceTier}
                 onSelectTier={game.setActiveDiceTier}
+                onAddRolls={game.addRolls}
               />
             </motion.div>
           )}
