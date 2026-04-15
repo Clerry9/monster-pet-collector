@@ -22,6 +22,7 @@ function getCtx(): AudioContext | null {
 /** Short dice-rattle tick (called rapidly during roll animation) */
 export function sfxDiceTick() {
   const c = getCtx();
+  if (!c) return;
   const osc = c.createOscillator();
   const gain = c.createGain();
   osc.type = "square";
@@ -37,7 +38,7 @@ export function sfxDiceTick() {
 /** Satisfying "pop" when the monster lands on a tile */
 export function sfxLand() {
   const c = getCtx();
-  // Pop
+  if (!c) return;
   const osc = c.createOscillator();
   const gain = c.createGain();
   osc.type = "sine";
@@ -53,6 +54,7 @@ export function sfxLand() {
 /** Cheerful ascending chime for positive tile rewards */
 export function sfxCoinGain() {
   const c = getCtx();
+  if (!c) return;
   const notes = [523, 659, 784]; // C5, E5, G5
   notes.forEach((freq, i) => {
     const osc = c.createOscillator();
@@ -71,7 +73,7 @@ export function sfxCoinGain() {
 /** Ominous descending buzz for skull tile penalty */
 export function sfxSkull() {
   const c = getCtx();
-  // Low rumble
+  if (!c) return;
   const osc1 = c.createOscillator();
   const gain1 = c.createGain();
   osc1.type = "sawtooth";
@@ -83,7 +85,6 @@ export function sfxSkull() {
   osc1.start();
   osc1.stop(c.currentTime + 0.4);
 
-  // Noise burst
   const bufferSize = c.sampleRate * 0.3;
   const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
   const data = buffer.getChannelData(0);
@@ -103,6 +104,7 @@ export function sfxSkull() {
 /** Quick hop sound during movement */
 export function sfxHop() {
   const c = getCtx();
+  if (!c) return;
   const osc = c.createOscillator();
   const gain = c.createGain();
   osc.type = "sine";

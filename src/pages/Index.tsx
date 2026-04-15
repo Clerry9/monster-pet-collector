@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Gift, LogOut } from "lucide-react";
+import { Gift, LogOut, Volume2, VolumeX } from "lucide-react";
+import { isMuted, setMuted } from "@/lib/sfx";
 import { CoinCounter } from "@/components/CoinCounter";
 import { GameBoard } from "@/components/GameBoard";
 import { MonsterDisplay } from "@/components/MonsterDisplay";
