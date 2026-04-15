@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { BOARD_TILES, BoardTile, TileType } from "@/hooks/useGameState";
 import { Monster } from "@/data/monsters";
+import { sfxDiceTick, sfxHop, sfxLand, sfxCoinGain, sfxSkull } from "@/lib/sfx";
 
 interface GameBoardProps {
   position: number;
@@ -64,11 +65,9 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   };
 
   const triggerSkullEffect = () => {
-    // Screen shake
+    sfxSkull();
     setIsShaking(true);
     setTimeout(() => setIsShaking(false), 500);
-
-    // Haptic vibration on supported devices
     if (navigator.vibrate) {
       navigator.vibrate([50, 30, 80, 30, 50]);
     }
@@ -82,6 +81,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
 
       const hopSequence = async () => {
         for (let i = 0; i < Math.min(steps, 6); i++) {
+          sfxHop();
           spawnParticles(4);
           await monsterControls.start({
             y: -28,
@@ -96,6 +96,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
             transition: { duration: 0.1, ease: "easeIn" },
           });
         }
+        sfxLand();
         spawnParticles(8);
         await monsterControls.start({
           y: [0, -14, 0, -5, 0],
@@ -108,10 +109,14 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
     }
   }, [position, monsterControls]);
 
-  // Trigger skull effect when landing on skull tile
+  // Trigger effects when landing on a tile
   useEffect(() => {
-    if (lastResult && !isRolling && lastResult.tile.type === "skull") {
-      triggerSkullEffect();
+    if (lastResult && !isRolling) {
+      if (lastResult.tile.type === "skull") {
+        triggerSkullEffect();
+      } else if (lastResult.tile.value > 0) {
+        sfxCoinGain();
+      }
     }
   }, [lastResult, isRolling]);
 
@@ -122,6 +127,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
 
     let count = 0;
     const interval = setInterval(() => {
+      sfxDiceTick();
       setDiceValue(Math.floor(Math.random() * activeDiceMax) + 1);
       count++;
       if (count > 12) {
