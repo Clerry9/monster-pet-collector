@@ -16,7 +16,7 @@ export function MonsterDisplay({ monster, taps, onTap }: MonsterDisplayProps) {
     : 100;
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-3" role="region" aria-label={`${currentEvo.name} - Level ${currentEvo.level}`}>
       {/* Evolution name + level */}
       <motion.div
         key={currentEvo.name}
@@ -28,7 +28,7 @@ export function MonsterDisplay({ monster, taps, onTap }: MonsterDisplayProps) {
           {currentEvo.name}
         </h2>
         <div className="flex items-center gap-1 text-xs font-body text-secondary">
-          <Sparkles size={12} />
+          <Sparkles size={12} aria-hidden="true" />
           <span>Lv.{currentEvo.level}</span>
           <span className="text-muted-foreground">• +{currentEvo.coinsPerTap}/tap</span>
         </div>
@@ -39,19 +39,21 @@ export function MonsterDisplay({ monster, taps, onTap }: MonsterDisplayProps) {
         whileTap={{ scale: 0.88 }}
         whileHover={{ scale: 1.05 }}
         onClick={onTap}
-        className="relative cursor-pointer focus:outline-none"
+        aria-label={`Tap ${currentEvo.name} to earn ${currentEvo.coinsPerTap} coins`}
+        className="relative cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary rounded-full"
       >
         <motion.div
           className="absolute inset-0 rounded-full bg-primary/10 blur-3xl"
           animate={{ scale: [1, 1.15, 1] }}
           transition={{ repeat: Infinity, duration: 2 }}
+          aria-hidden="true"
         />
         <motion.img
           key={monster.id}
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           src={monster.image}
-          alt={currentEvo.name}
+          alt={`${currentEvo.name}, Level ${currentEvo.level} monster`}
           width={220}
           height={220}
           className="relative z-10 drop-shadow-2xl"
@@ -71,7 +73,14 @@ export function MonsterDisplay({ monster, taps, onTap }: MonsterDisplayProps) {
             <span className="text-accent">MAX LEVEL ⭐</span>
           )}
         </div>
-        <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+        <div
+          className="h-2 w-full rounded-full bg-muted overflow-hidden"
+          role="progressbar"
+          aria-valuenow={Math.min(progress, 100)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Evolution progress: ${Math.round(Math.min(progress, 100))}%`}
+        >
           <motion.div
             className="h-full rounded-full bg-gradient-to-r from-primary to-secondary"
             initial={{ width: 0 }}
@@ -86,10 +95,12 @@ export function MonsterDisplay({ monster, taps, onTap }: MonsterDisplayProps) {
       </p>
 
       {/* Evolution stages preview */}
-      <div className="flex gap-1 mt-1">
+      <div className="flex gap-1 mt-1" role="list" aria-label="Evolution stages">
         {monster.evolutions.map((evo) => (
           <div
             key={evo.level}
+            role="listitem"
+            aria-label={`Level ${evo.level}${taps >= evo.tapsRequired ? " (unlocked)" : " (locked)"}`}
             className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-bold ${
               taps >= evo.tapsRequired
                 ? "border-primary bg-primary/20 text-primary"

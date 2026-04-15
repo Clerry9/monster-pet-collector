@@ -23,6 +23,9 @@ export function DailyReward({ open, streak, reward, onClaim, onDismiss, alreadyC
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Daily reward"
       >
         <motion.div
           initial={{ scale: 0.7, opacity: 0 }}
@@ -30,7 +33,11 @@ export function DailyReward({ open, streak, reward, onClaim, onDismiss, alreadyC
           exit={{ scale: 0.7, opacity: 0 }}
           className="relative w-full max-w-sm rounded-2xl border border-border bg-card p-6"
         >
-          <button onClick={onDismiss} className="absolute right-3 top-3 text-muted-foreground hover:text-foreground">
+          <button
+            onClick={onDismiss}
+            aria-label="Close daily reward"
+            className="absolute right-3 top-3 text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded"
+          >
             <X size={20} />
           </button>
 
@@ -38,6 +45,7 @@ export function DailyReward({ open, streak, reward, onClaim, onDismiss, alreadyC
             <motion.div
               animate={{ rotate: [0, -10, 10, -10, 0] }}
               transition={{ duration: 0.6, delay: 0.3 }}
+              aria-hidden="true"
             >
               <Gift className="h-16 w-16 text-accent" />
             </motion.div>
@@ -47,14 +55,14 @@ export function DailyReward({ open, streak, reward, onClaim, onDismiss, alreadyC
             </h2>
 
             <div className="flex items-center gap-2 text-accent">
-              <Flame className="h-5 w-5 text-destructive" />
+              <Flame className="h-5 w-5 text-destructive" aria-hidden="true" />
               <span className="font-body text-lg font-bold">
                 {streak} day streak!
               </span>
             </div>
 
             {/* 7-day reward track */}
-            <div className="grid w-full grid-cols-7 gap-1">
+            <div className="grid w-full grid-cols-7 gap-1" role="list" aria-label="7-day reward track">
               {DAILY_REWARDS.map((amount, i) => {
                 const dayNum = i + 1;
                 const isCurrent = (streak % 7 || 7) === dayNum;
@@ -65,6 +73,8 @@ export function DailyReward({ open, streak, reward, onClaim, onDismiss, alreadyC
                 return (
                   <div
                     key={i}
+                    role="listitem"
+                    aria-label={`Day ${dayNum}: ${amount} coins${isCurrent && !alreadyClaimed ? " (today)" : isPast ? " (claimed)" : ""}`}
                     className={`flex flex-col items-center rounded-lg border px-1 py-2 text-xs transition-all ${
                       isCurrent && !alreadyClaimed
                         ? "border-primary bg-primary/20 box-glow-green"
@@ -74,7 +84,7 @@ export function DailyReward({ open, streak, reward, onClaim, onDismiss, alreadyC
                     }`}
                   >
                     <span className="font-bold text-muted-foreground">D{dayNum}</span>
-                    <span className="text-2xl">🪙</span>
+                    <span className="text-2xl" aria-hidden="true">🪙</span>
                     <span className="font-extrabold text-accent">{amount}</span>
                   </div>
                 );
@@ -88,11 +98,11 @@ export function DailyReward({ open, streak, reward, onClaim, onDismiss, alreadyC
             ) : (
               <>
                 <p className="text-lg font-body">
-                  Collect <span className="font-extrabold text-accent">{reward} 🪙</span> today!
+                  Collect <span className="font-extrabold text-accent">{reward}</span> <span aria-hidden="true">🪙</span><span className="sr-only">coins</span> today!
                 </p>
                 <Button
                   onClick={onClaim}
-                  className="w-full bg-primary text-primary-foreground font-bold text-lg py-6 box-glow-green hover:brightness-110"
+                  className="w-full bg-primary text-primary-foreground font-bold text-lg py-6 box-glow-green hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   Claim Reward!
                 </Button>

@@ -34,12 +34,12 @@ export function SpinWheel({ onWin }: SpinWheelProps) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-4" role="region" aria-label="Lucky spin wheel">
       <h3 className="font-display text-2xl text-foreground text-glow-green">
         Lucky Spin
       </h3>
 
-      <div className="relative w-56 h-56">
+      <div className="relative w-56 h-56" aria-hidden="true">
         {/* Arrow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-20 text-accent text-2xl">
           ▼
@@ -58,10 +58,10 @@ export function SpinWheel({ onWin }: SpinWheelProps) {
               const nextRad = (((angle + 360 / PRIZES.length) * Math.PI) / 180);
               const midRad = ((angle + 360 / PRIZES.length / 2) * Math.PI) / 180;
               const colors = [
-                "hsl(145, 80%, 35%)",
-                "hsl(280, 70%, 45%)",
-                "hsl(35, 95%, 45%)",
-                "hsl(260, 30%, 20%)",
+                "hsl(160, 65%, 38%)",
+                "hsl(260, 50%, 50%)",
+                "hsl(32, 90%, 48%)",
+                "hsl(240, 18%, 22%)",
               ];
 
               return (
@@ -69,7 +69,7 @@ export function SpinWheel({ onWin }: SpinWheelProps) {
                   <path
                     d={`M100,100 L${100 + 95 * Math.cos(rad)},${100 + 95 * Math.sin(rad)} A95,95 0 0,1 ${100 + 95 * Math.cos(nextRad)},${100 + 95 * Math.sin(nextRad)} Z`}
                     fill={colors[i % colors.length]}
-                    stroke="hsl(260, 25%, 14%)"
+                    stroke="hsl(240, 18%, 16%)"
                     strokeWidth="1"
                   />
                   <text
@@ -87,7 +87,7 @@ export function SpinWheel({ onWin }: SpinWheelProps) {
                 </g>
               );
             })}
-            <circle cx="100" cy="100" r="15" fill="hsl(260, 25%, 14%)" stroke="hsl(145, 80%, 45%)" strokeWidth="2" />
+            <circle cx="100" cy="100" r="15" fill="hsl(240, 18%, 16%)" stroke="hsl(160, 65%, 48%)" strokeWidth="2" />
           </svg>
         </motion.div>
       </div>
@@ -96,7 +96,8 @@ export function SpinWheel({ onWin }: SpinWheelProps) {
         whileTap={{ scale: 0.95 }}
         onClick={spin}
         disabled={spinning || !canSpin}
-        className={`px-8 py-3 rounded-full font-bold font-body text-lg transition-all ${
+        aria-label={spinning ? "Wheel is spinning" : !canSpin ? "Cooldown, please wait" : "Spin the wheel"}
+        className={`px-8 py-3 rounded-full font-bold font-body text-lg transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
           spinning || !canSpin
             ? "bg-muted text-muted-foreground cursor-not-allowed"
             : "bg-primary text-primary-foreground box-glow-green cursor-pointer"
@@ -110,6 +111,8 @@ export function SpinWheel({ onWin }: SpinWheelProps) {
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           className="text-xl font-bold text-accent font-body"
+          role="status"
+          aria-live="assertive"
         >
           🎉 Won {lastWin} coins!
         </motion.div>

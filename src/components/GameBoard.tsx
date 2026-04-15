@@ -22,6 +22,15 @@ const TILE_EMOJIS: Record<TileType, string> = {
   star: "⭐",
 };
 
+const TILE_LABELS: Record<TileType, string> = {
+  coins: "Coins",
+  bonus: "Bonus",
+  chest: "Chest",
+  monster: "Monster",
+  skull: "Skull penalty",
+  star: "Star reward",
+};
+
 const TILE_COLORS: Record<TileType, string> = {
   coins: "bg-accent/20 border-accent/40",
   bonus: "bg-primary/20 border-primary/40",
@@ -147,9 +156,17 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   }
 
   return (
-    <div className={`flex flex-col items-center gap-4 w-full ${isShaking ? "animate-shake" : ""}`}>
+    <div
+      className={`flex flex-col items-center gap-4 w-full ${isShaking ? "animate-shake" : ""}`}
+      role="region"
+      aria-label="Game board"
+    >
       {/* Path visualization */}
-      <div className="relative w-full max-w-md h-28 overflow-hidden rounded-2xl bg-card border border-border">
+      <div
+        className="relative w-full max-w-md h-28 overflow-hidden rounded-2xl bg-card border border-border"
+        role="list"
+        aria-label="Board tiles"
+      >
         {/* Scrolling path */}
         <div className="absolute inset-0 flex items-center">
           <AnimatePresence mode="popLayout">
@@ -158,6 +175,9 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
               return (
                 <motion.div
                   key={`${tile.id}-${tile.offset}`}
+                  role="listitem"
+                  aria-label={`${TILE_LABELS[tile.type]} tile: ${tile.value >= 0 ? "+" : ""}${tile.value} coins${isActive ? " (current position)" : ""}`}
+                  aria-current={isActive ? "true" : undefined}
                   initial={{ x: 60, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   exit={{ x: -60, opacity: 0 }}
@@ -165,7 +185,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
                     TILE_COLORS[tile.type]
                   } ${isActive ? "ring-2 ring-primary scale-110 z-10" : "opacity-70"}`}
                 >
-                  <span className="text-lg">{TILE_EMOJIS[tile.type]}</span>
+                  <span className="text-lg" aria-hidden="true">{TILE_EMOJIS[tile.type]}</span>
                   <span className={`text-[10px] ${tile.value >= 0 ? "text-primary" : "text-destructive"}`}>
                     {tile.value >= 0 ? `+${tile.value}` : tile.value}
                   </span>
@@ -181,6 +201,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
             <motion.div
               key={p.id}
               className="absolute left-1/2 top-1/2 z-30 rounded-full pointer-events-none"
+              aria-hidden="true"
               initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
               animate={{
                 x: p.x * 2.5,
@@ -205,10 +226,11 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
           className="absolute left-1/2 -translate-x-1/2 -top-1 z-20"
           animate={monsterControls}
           initial={{ y: 0, scale: 1, rotate: 0 }}
+          aria-hidden="true"
         >
           <motion.img
             src={monster.image}
-            alt={monster.name}
+            alt={`${monster.name} on the board`}
             className="w-12 h-12 drop-shadow-lg"
             animate={isRolling ? {} : { y: [0, -5, 0] }}
             transition={isRolling ? {} : { repeat: Infinity, duration: 1.5 }}
@@ -224,8 +246,11 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             className="flex items-center gap-2 rounded-full bg-card px-4 py-2 border border-border"
+            role="status"
+            aria-live="polite"
+            aria-label={`Moved ${lastResult.steps} steps. ${lastResult.tile.value >= 0 ? "Gained" : "Lost"} ${Math.abs(lastResult.tile.value)} coins.`}
           >
-            <span className="text-lg">{TILE_EMOJIS[lastResult.tile.type]}</span>
+            <span className="text-lg" aria-hidden="true">{TILE_EMOJIS[lastResult.tile.type]}</span>
             <span className="font-body font-bold text-sm text-foreground">
               Moved {lastResult.steps} steps!
             </span>
@@ -243,7 +268,8 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
           whileHover={{ scale: 1.05 }}
           onClick={handleRoll}
           disabled={isRolling || rolls <= 0}
-          className={`relative w-24 h-24 rounded-2xl border-4 flex items-center justify-center font-display text-3xl transition-all cursor-pointer ${
+          aria-label={rolls <= 0 ? "No rolls remaining" : isRolling ? "Rolling dice..." : `Roll dice, range 1 to ${activeDiceMax}`}
+          className={`relative w-24 h-24 rounded-2xl border-4 flex items-center justify-center font-display text-3xl transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
             rolls <= 0
               ? "border-muted bg-muted/50 text-muted-foreground cursor-not-allowed"
               : "border-primary bg-card text-foreground box-glow-green"
@@ -254,11 +280,12 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
               animate={{ rotate: [0, 360] }}
               transition={{ repeat: Infinity, duration: 0.3 }}
               className="text-4xl"
+              aria-hidden="true"
             >
               🎲
             </motion.span>
           ) : (
-            <span className="text-4xl">🎲</span>
+            <span className="text-4xl" aria-hidden="true">🎲</span>
           )}
           {diceValue && isRolling && (
             <motion.span
@@ -266,13 +293,14 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
               initial={{ scale: 1.5 }}
               animate={{ scale: 1 }}
               className="absolute -top-3 -right-3 bg-primary text-primary-foreground text-sm font-bold rounded-full w-8 h-8 flex items-center justify-center"
+              aria-hidden="true"
             >
               {diceValue}
             </motion.span>
           )}
         </motion.button>
 
-        <div className="flex items-center gap-2 text-sm font-body">
+        <div className="flex items-center gap-2 text-sm font-body" aria-label={`${rolls} rolls remaining, dice range 1 to ${activeDiceMax}`}>
           <span className="text-muted-foreground">Rolls left:</span>
           <span className={`font-extrabold ${rolls > 0 ? "text-primary" : "text-destructive"}`}>
             {rolls}

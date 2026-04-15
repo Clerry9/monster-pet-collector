@@ -22,7 +22,7 @@
     --secondary-foreground: 45 20% 95%;
 
     --muted: 240 15% 22%;
-    --muted-foreground: 240 10% 58%;
+    --muted-foreground: 240 8% 65%;
 
     --accent: 32 90% 58%;
     --accent-foreground: 240 20% 10%;
@@ -63,6 +63,36 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+  }
+
+  /* Visible focus rings for keyboard navigation */
+  *:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Screen reader only utility */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+
+/* Reduced motion: disable all animations and transitions */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

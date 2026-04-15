@@ -22,8 +22,13 @@ export function CoinCounter({ coins }: CoinCounterProps) {
   }, [coins, prevCoins]);
 
   return (
-    <div className="relative flex items-center gap-2 rounded-full bg-card px-5 py-2.5 box-glow-orange">
-      <span className="text-2xl">🪙</span>
+    <div
+      className="relative flex items-center gap-2 rounded-full bg-card px-5 py-2.5 box-glow-orange"
+      role="status"
+      aria-label={`${coins.toLocaleString()} coins`}
+      aria-live="polite"
+    >
+      <span className="text-2xl" aria-hidden="true">🪙</span>
       <motion.span
         key={coins}
         initial={{ scale: 1.3 }}
@@ -39,6 +44,7 @@ export function CoinCounter({ coins }: CoinCounterProps) {
             animate={{ opacity: 0, y: -30 }}
             exit={{ opacity: 0 }}
             className="absolute -top-2 right-4 text-sm font-bold text-primary"
+            aria-hidden="true"
           >
             +{delta}
           </motion.span>
