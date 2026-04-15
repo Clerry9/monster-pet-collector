@@ -10,10 +10,10 @@ export function LevelProgressBar({ xp, level }: LevelProgressBarProps) {
   const { current, next, progress, xpInLevel, xpNeeded } = getLevelProgress(xp);
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-md" role="region" aria-label="Level progress">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-sm">{current.emoji}</span>
+          <span className="text-sm" aria-hidden="true">{current.emoji}</span>
           <span className="font-display text-xs text-foreground">
             Lv.{current.id} {current.name}
           </span>
@@ -29,7 +29,14 @@ export function LevelProgressBar({ xp, level }: LevelProgressBarProps) {
       </div>
 
       {/* Progress bar */}
-      <div className="relative h-3 rounded-full bg-card border border-border overflow-hidden">
+      <div
+        className="relative h-3 rounded-full bg-card border border-border overflow-hidden"
+        role="progressbar"
+        aria-valuenow={next ? xpInLevel : xpNeeded}
+        aria-valuemin={0}
+        aria-valuemax={next ? xpNeeded : xpNeeded}
+        aria-label={next ? `Level ${current.id} progress: ${xpInLevel} of ${xpNeeded} XP` : `Maximum level reached`}
+      >
         <motion.div
           className="absolute inset-y-0 left-0 rounded-full"
           style={{
@@ -49,7 +56,7 @@ export function LevelProgressBar({ xp, level }: LevelProgressBarProps) {
         </span>
         {next && (
           <span className="text-[10px] text-muted-foreground/50 font-body">
-            • Next: {next.emoji} {next.name}
+            • Next: <span aria-hidden="true">{next.emoji}</span> {next.name}
           </span>
         )}
       </div>
