@@ -45,6 +45,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
+  const [isShaking, setIsShaking] = useState(false);
   const monsterControls = useAnimation();
   const prevPositionRef = useRef(position);
 
@@ -62,13 +63,23 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
     }, 800);
   };
 
+  const triggerSkullEffect = () => {
+    // Screen shake
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 500);
+
+    // Haptic vibration on supported devices
+    if (navigator.vibrate) {
+      navigator.vibrate([50, 30, 80, 30, 50]);
+    }
+  };
+
   // Animate monster on position change
   useEffect(() => {
     if (position !== prevPositionRef.current) {
       const steps = ((position - prevPositionRef.current) % BOARD_TILES.length + BOARD_TILES.length) % BOARD_TILES.length;
       prevPositionRef.current = position;
 
-      // Hop animation sequence
       const hopSequence = async () => {
         for (let i = 0; i < Math.min(steps, 6); i++) {
           spawnParticles(4);
@@ -85,7 +96,6 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
             transition: { duration: 0.1, ease: "easeIn" },
           });
         }
-        // Landing burst
         spawnParticles(8);
         await monsterControls.start({
           y: [0, -14, 0, -5, 0],
@@ -97,6 +107,13 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       hopSequence();
     }
   }, [position, monsterControls]);
+
+  // Trigger skull effect when landing on skull tile
+  useEffect(() => {
+    if (lastResult && !isRolling && lastResult.tile.type === "skull") {
+      triggerSkullEffect();
+    }
+  }, [lastResult, isRolling]);
 
   const handleRoll = () => {
     if (isRolling || rolls <= 0) return;
