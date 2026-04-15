@@ -33,13 +33,48 @@ const TILE_COLORS: Record<TileType, string> = {
 export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
+  const monsterControls = useAnimation();
+  const prevPositionRef = useRef(position);
+
+  // Animate monster on position change
+  useEffect(() => {
+    if (position !== prevPositionRef.current) {
+      const steps = ((position - prevPositionRef.current) % BOARD_TILES.length + BOARD_TILES.length) % BOARD_TILES.length;
+      prevPositionRef.current = position;
+
+      // Hop animation sequence
+      const hopSequence = async () => {
+        for (let i = 0; i < Math.min(steps, 6); i++) {
+          await monsterControls.start({
+            y: -28,
+            x: [0, 6, -6, 0],
+            rotate: [0, -8, 8, 0],
+            scale: 1.15,
+            transition: { duration: 0.12, ease: "easeOut" },
+          });
+          await monsterControls.start({
+            y: 0,
+            scale: 1,
+            transition: { duration: 0.1, ease: "easeIn" },
+          });
+        }
+        // Landing bounce
+        await monsterControls.start({
+          y: [0, -14, 0, -5, 0],
+          scale: [1, 1.2, 0.9, 1.05, 1],
+          rotate: [0, 0, 0, 0, 0],
+          transition: { duration: 0.5, ease: "easeOut" },
+        });
+      };
+      hopSequence();
+    }
+  }, [position, monsterControls]);
 
   const handleRoll = () => {
     if (isRolling || rolls <= 0) return;
     setIsRolling(true);
     setDiceValue(null);
 
-    // Dice animation
     let count = 0;
     const interval = setInterval(() => {
       setDiceValue(Math.floor(Math.random() * activeDiceMax) + 1);
