@@ -13,14 +13,18 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { useGameState, BoardTile } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
+import { LinkAccount } from "@/components/LinkAccount";
+import { Link2 } from "lucide-react";
 
 type Tab = "board" | "monster" | "collection" | "shop" | "spin";
 
 const Index = () => {
   const game = useGameState();
   const daily = useDailyReward(game.addCoins);
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>("board");
+  const [showLink, setShowLink] = useState(false);
+  const isGuest = user?.is_anonymous === true;
   const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile } | null>(null);
 
   const handleRollDice = () => {
