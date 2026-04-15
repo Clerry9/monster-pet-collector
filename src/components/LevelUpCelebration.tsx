@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LevelTheme } from "@/data/levels";
+import { sfxLevelUp } from "@/lib/sfx";
 
 interface LevelUpCelebrationProps {
   level: LevelTheme | null;
