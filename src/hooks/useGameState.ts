@@ -163,19 +163,32 @@ export function useGameState() {
   const [state, setState] = useState<GameState>(loadLocalState);
   const [dbLoaded, setDbLoaded] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastUserIdRef = useRef<string | null>(null);
 
-  // Load from DB when user logs in
+  // Load from DB when user logs in (only when user ID actually changes)
   useEffect(() => {
-    if (!user) {
+    const userId = user?.id ?? null;
+    if (userId === lastUserIdRef.current) return;
+    lastUserIdRef.current = userId;
+
+    if (!userId) {
       setDbLoaded(false);
       return;
     }
 
     const loadFromDb = async () => {
+      // Flush any pending save first
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+        const currentState = loadLocalState();
+        await supabase.from("game_state").upsert(stateToDb(currentState, userId));
+      }
+
       const { data } = await supabase
         .from("game_state")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .single();
 
       if (data) {
@@ -185,7 +198,7 @@ export function useGameState() {
       } else {
         // First login — save current local state to DB
         const local = loadLocalState();
-        await supabase.from("game_state").upsert(stateToDb(local, user.id));
+        await supabase.from("game_state").upsert(stateToDb(local, userId));
         setState(local);
       }
       setDbLoaded(true);
