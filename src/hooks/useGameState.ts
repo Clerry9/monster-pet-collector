@@ -360,9 +360,19 @@ export function useGameState() {
     [state.unlockedMonsters, update]
   );
 
+  const setBetMultiplier = useCallback(
+    (mult: number) => {
+      const available = getAvailableBets(state.coins);
+      if (!available.includes(mult)) return;
+      update((s) => ({ ...s, betMultiplier: mult }));
+    },
+    [state.coins, update]
+  );
+
   const activeMonsterData = MONSTERS.find((m) => m.id === state.activeMonster)!;
   const activeMonsterTaps = state.monsterTaps[state.activeMonster] ?? 0;
   const activeEvolution = getMonsterEvolution(activeMonsterData, activeMonsterTaps);
+  const levelProgress = getLevelProgress(state.xp);
 
   return {
     ...state,
@@ -375,9 +385,11 @@ export function useGameState() {
     setActiveDiceTier,
     unlockMonster,
     setActiveMonster,
+    setBetMultiplier,
     activeMonsterData,
     activeMonsterTaps,
     activeEvolution,
     activeDiceTierData: DICE_TIERS.find((t) => t.id === state.activeDiceTier) ?? DICE_TIERS[0],
+    levelProgress,
   };
 }
