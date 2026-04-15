@@ -42,6 +42,7 @@ const Index = () => {
             <Gift size={20} />
           </button>
           <CoinCounter coins={game.coins} />
+        </div>
       </div>
 
       {/* Tabs */}
