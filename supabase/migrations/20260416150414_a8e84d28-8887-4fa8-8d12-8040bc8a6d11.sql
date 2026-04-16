@@ -1,0 +1,1 @@
+ALTER TABLE public.game_state ADD COLUMN collected_cards text[] NOT NULL DEFAULT ARRAY[]::text[];

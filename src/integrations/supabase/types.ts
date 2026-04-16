@@ -21,6 +21,7 @@ export type Database = {
           bet_multiplier: number
           cards_collected: number
           coins: number
+          collected_cards: string[]
           created_at: string
           id: string
           level: number
@@ -40,6 +41,7 @@ export type Database = {
           bet_multiplier?: number
           cards_collected?: number
           coins?: number
+          collected_cards?: string[]
           created_at?: string
           id?: string
           level?: number
@@ -59,6 +61,7 @@ export type Database = {
           bet_multiplier?: number
           cards_collected?: number
           coins?: number
+          collected_cards?: string[]
           created_at?: string
           id?: string
           level?: number
