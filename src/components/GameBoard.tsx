@@ -167,6 +167,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
         position={position}
         monster={monster}
         isMoving={isRolling}
+         movementResult={lastResult}
       />
 
       {/* Result display */}
