@@ -151,6 +151,49 @@ interface TileProps {
   playerPosition: number;
 }
 
+// Animated wave rings around islands
+function WaveRings() {
+  const ring1 = useRef<THREE.Mesh>(null);
+  const ring2 = useRef<THREE.Mesh>(null);
+  const ring3 = useRef<THREE.Mesh>(null);
+
+  useFrame((s) => {
+    const t = s.clock.elapsedTime;
+    if (ring1.current) {
+      const s1 = 1 + Math.sin(t * 1.5) * 0.08;
+      ring1.current.scale.set(s1, s1, 1);
+      (ring1.current.material as THREE.MeshStandardMaterial).opacity = 0.35 + Math.sin(t * 1.5) * 0.15;
+    }
+    if (ring2.current) {
+      const s2 = 1 + Math.sin(t * 1.5 + 2) * 0.1;
+      ring2.current.scale.set(s2, s2, 1);
+      (ring2.current.material as THREE.MeshStandardMaterial).opacity = 0.25 + Math.sin(t * 1.5 + 2) * 0.12;
+    }
+    if (ring3.current) {
+      const s3 = 1 + Math.sin(t * 1.2 + 4) * 0.12;
+      ring3.current.scale.set(s3, s3, 1);
+      (ring3.current.material as THREE.MeshStandardMaterial).opacity = 0.15 + Math.sin(t * 1.2 + 4) * 0.1;
+    }
+  });
+
+  return (
+    <group>
+      <mesh ref={ring1} position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.7, 0.85, 32]} />
+        <meshStandardMaterial color="#38bdf8" emissive="#0ea5e9" emissiveIntensity={0.3} transparent opacity={0.4} />
+      </mesh>
+      <mesh ref={ring2} position={[0, -0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.85, 0.98, 32]} />
+        <meshStandardMaterial color="#7dd3fc" emissive="#38bdf8" emissiveIntensity={0.2} transparent opacity={0.3} />
+      </mesh>
+      <mesh ref={ring3} position={[0, -0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.98, 1.12, 32]} />
+        <meshStandardMaterial color="#bae6fd" emissive="#7dd3fc" emissiveIntensity={0.1} transparent opacity={0.2} />
+      </mesh>
+    </group>
+  );
+}
+
 // Deterministic pseudo-random from index
 function seededRandom(seed: number) {
   const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
@@ -209,11 +252,15 @@ function Tile({ tile, position, isActive, index, playerPosition }: TileProps) {
 
   return (
     <group ref={islandRef} position={position}>
-      {/* Water splash ring */}
-      <mesh position={[0, -0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.72, 1.0, 32]} />
-        <meshStandardMaterial color="#0ea5e9" emissive="#0284c7" emissiveIntensity={0.2} transparent opacity={isNearby ? 0.45 : 0.12} />
-      </mesh>
+      {/* Animated wave rings */}
+      {isNearby && <WaveRings />}
+      {/* Static water ring for distant islands */}
+      {!isNearby && (
+        <mesh position={[0, -0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.72, 1.0, 32]} />
+          <meshStandardMaterial color="#0ea5e9" emissive="#0284c7" emissiveIntensity={0.2} transparent opacity={0.12} />
+        </mesh>
+      )}
 
       {/* Rock base */}
       <mesh position={[0, 0.12, 0]} castShadow>
@@ -440,14 +487,32 @@ function PathConnector({ points }: { points: THREE.Vector3[] }) {
 
 function Ocean() {
   const ref = useRef<THREE.Mesh>(null);
+  const geoRef = useRef<THREE.PlaneGeometry>(null);
+
   useFrame((s) => {
     if (!ref.current) return;
+    // Gentle overall bob
     ref.current.position.y = -0.2 + Math.sin(s.clock.elapsedTime * 0.5) * 0.02;
+
+    // Vertex-based waves
+    if (geoRef.current) {
+      const pos = geoRef.current.attributes.position;
+      const t = s.clock.elapsedTime;
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i);
+        const y = pos.getY(i);
+        const wave = Math.sin(x * 0.5 + t * 0.8) * 0.06 + Math.cos(y * 0.4 + t * 0.6) * 0.04;
+        pos.setZ(i, wave);
+      }
+      pos.needsUpdate = true;
+      geoRef.current.computeVertexNormals();
+    }
   });
+
   return (
     <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]} receiveShadow>
-      <planeGeometry args={[40, 40]} />
-      <meshStandardMaterial color="#0c4a6e" roughness={0.4} metalness={0.1} transparent opacity={0.85} />
+      <planeGeometry ref={geoRef} args={[40, 40, 60, 60]} />
+      <meshStandardMaterial color="#0c4a6e" roughness={0.3} metalness={0.15} transparent opacity={0.85} />
     </mesh>
   );
 }
