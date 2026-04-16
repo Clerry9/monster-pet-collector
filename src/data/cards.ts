@@ -1,5 +1,12 @@
 export type CardRarity = "common" | "rare" | "epic" | "legendary";
 
+export const TRADE_VALUES: Record<CardRarity, number> = {
+  common: 10,
+  rare: 30,
+  epic: 75,
+  legendary: 200,
+};
+
 export interface GameCard {
   id: string;
   name: string;
