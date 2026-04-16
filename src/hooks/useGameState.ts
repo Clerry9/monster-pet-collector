@@ -101,6 +101,7 @@ const DEFAULT_STATE: GameState = {
   activeDiceTier: "basic",
   totalSteps: 0,
   cardsCollected: 0,
+  collectedCards: [],
   monsterTaps: {},
   level: 1,
   xp: 0,
