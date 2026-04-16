@@ -152,6 +152,7 @@ function dbToState(row: any): GameState {
     activeDiceTier: row.active_dice_tier,
     totalSteps: row.total_steps,
     cardsCollected: row.cards_collected,
+    collectedCards: row.collected_cards ?? [],
     monsterTaps: row.monster_taps as Record<string, number>,
     level: row.level ?? 1,
     xp: row.xp ?? 0,
