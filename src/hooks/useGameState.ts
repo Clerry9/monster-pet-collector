@@ -35,7 +35,7 @@ export const DICE_PACKS: DicePack[] = [
   { id: "ultra", label: "Ultra Pack", rolls: 150, costCoins: 900, costReal: 699, emoji: "🔥" },
 ];
 
-export type TileType = "coins" | "bonus" | "monster" | "chest" | "skull" | "star";
+export type TileType = "coins" | "bonus" | "food" | "chest" | "skull" | "star";
 
 export interface BoardTile {
   id: number;
@@ -51,7 +51,7 @@ function generateBoard(length: number): BoardTile[] {
     { type: "coins", weight: 40, minVal: 5, maxVal: 30 },
     { type: "bonus", weight: 15, minVal: 2, maxVal: 5 },
     { type: "chest", weight: 10, minVal: 20, maxVal: 100 },
-    { type: "monster", weight: 15, minVal: 10, maxVal: 50 },
+    { type: "food", weight: 15, minVal: 10, maxVal: 50 },
     { type: "skull", weight: 10, minVal: -10, maxVal: -5 },
     { type: "star", weight: 10, minVal: 50, maxVal: 200 },
   ];
@@ -265,17 +265,7 @@ export function useGameState() {
     [update]
   );
 
-  const tapMonster = useCallback(() => {
-    const monster = MONSTERS.find((m) => m.id === state.activeMonster);
-    if (!monster) return;
-    const currentTaps = state.monsterTaps[monster.id] ?? 0;
-    const evo = getMonsterEvolution(monster, currentTaps + 1);
-    update((s) => ({
-      ...s,
-      coins: s.coins + evo.coinsPerTap,
-      monsterTaps: { ...s.monsterTaps, [monster.id]: (s.monsterTaps[monster.id] ?? 0) + 1 },
-    }));
-  }, [state.activeMonster, state.monsterTaps, update]);
+  // Monster XP is now gained from "food" tiles during rollDice, no more tapping
 
   const rollDice = useCallback((): { steps: number; tile: BoardTile; card?: GameCard } | null => {
     if (state.rolls <= 0) return null;
