@@ -1,6 +1,6 @@
-import { useRef, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Text, Float, MeshWobbleMaterial } from "@react-three/drei";
+import { useRef, useMemo, useState, useEffect } from "react";
+import { Canvas, useFrame, useLoader } from "@react-three/fiber";
+import { OrbitControls, Text, Float, MeshWobbleMaterial, Billboard } from "@react-three/drei";
 import * as THREE from "three";
 import { BOARD_TILES, BoardTile, TileType } from "@/hooks/useGameState";
 import { Monster } from "@/data/monsters";
