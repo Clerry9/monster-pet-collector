@@ -33,8 +33,9 @@ const Index = () => {
   const [showLink, setShowLink] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
   const isGuest = user?.is_anonymous === true;
-  const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile } | null>(null);
+  const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile; card?: GameCard } | null>(null);
   const [levelUpData, setLevelUpData] = useState<ReturnType<typeof getLevelForXp> | null>(null);
+  const [drawnCard, setDrawnCard] = useState<GameCard | null>(null);
   const prevLevelRef = useRef(game.level);
 
   // Start background music on mount
@@ -53,7 +54,13 @@ const Index = () => {
 
   const handleRollDice = () => {
     const result = game.rollDice();
-    if (result) setLastResult(result);
+    if (result) {
+      setLastResult(result);
+      if (result.card) {
+        setDrawnCard(result.card);
+        setTimeout(() => setDrawnCard(null), 3000);
+      }
+    }
   };
 
   return (
