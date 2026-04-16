@@ -411,7 +411,7 @@ function MonsterTrail({ positions }: { positions: THREE.Vector3[] }) {
   );
 }
 
-// --- Monster Pawn (moves tile-by-tile) ---
+// --- Monster Pawn (sprite-based, hops tile-by-tile) ---
 
 interface MonsterPawnProps {
   pathPoints: THREE.Vector3[];
@@ -424,18 +424,54 @@ interface MonsterPawnProps {
 function MonsterPawn({ pathPoints, position, monster, isMoving, trailPosRef }: MonsterPawnProps) {
   const groupRef = useRef<THREE.Group>(null);
   const currentPos = useRef(pathPoints[position]?.clone() || new THREE.Vector3());
+  const prevPosition = useRef(position);
+  const hopPhase = useRef(0);
+  const isHopping = useRef(false);
+  const texture = useLoader(THREE.TextureLoader, monster.image);
 
-  useFrame((state) => {
+  // Detect position change and trigger hop
+  useEffect(() => {
+    if (position !== prevPosition.current) {
+      isHopping.current = true;
+      hopPhase.current = 0;
+      prevPosition.current = position;
+    }
+  }, [position]);
+
+  useFrame((state, delta) => {
     if (!groupRef.current) return;
     const target = pathPoints[position] || pathPoints[0];
-    // Smooth lerp to target tile center
-    currentPos.current.lerp(target, 0.08);
+
+    // Smoother lerp speed
+    const lerpSpeed = isHopping.current ? 0.12 : 0.06;
+    currentPos.current.lerp(target, lerpSpeed);
+
+    // Hop animation
+    let hopY = 0;
+    let hopScale = 1;
+    let hopRotZ = 0;
+    if (isHopping.current) {
+      hopPhase.current += delta * 6;
+      hopY = Math.sin(hopPhase.current) * 0.4;
+      hopScale = 1 + Math.sin(hopPhase.current * 2) * 0.08;
+      hopRotZ = Math.sin(hopPhase.current * 1.5) * 0.15;
+      if (hopPhase.current > Math.PI) {
+        isHopping.current = false;
+        hopPhase.current = 0;
+      }
+    }
+
+    // Idle bob
+    const idleBob = Math.sin(state.clock.elapsedTime * 2) * 0.06;
+    const idleScale = 1 + Math.sin(state.clock.elapsedTime * 1.5) * 0.03;
+
     groupRef.current.position.set(
       currentPos.current.x,
-      currentPos.current.y + 0.85 + Math.sin(state.clock.elapsedTime * 2) * 0.12,
+      currentPos.current.y + 1.1 + hopY + idleBob,
       currentPos.current.z
     );
-    groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.2;
+    groupRef.current.scale.setScalar(hopScale * idleScale);
+    groupRef.current.rotation.z = hopRotZ;
 
     // Feed trail
     trailPosRef.current = [new THREE.Vector3(currentPos.current.x, currentPos.current.y, currentPos.current.z)];
@@ -443,30 +479,35 @@ function MonsterPawn({ pathPoints, position, monster, isMoving, trailPosRef }: M
 
   return (
     <group ref={groupRef}>
-      <mesh castShadow>
-        <sphereGeometry args={[0.3, 16, 16]} />
-        <MeshWobbleMaterial
-          color={monster.rarity === "legendary" ? "#a855f7" : monster.rarity === "epic" ? "#3b82f6" : monster.rarity === "rare" ? "#22d3ee" : "#22c55e"}
-          factor={isMoving ? 0.4 : 0.1}
-          speed={isMoving ? 4 : 1}
-          roughness={0.2}
-          metalness={0.3}
-        />
-      </mesh>
-      {/* Eyes */}
-      <mesh position={[-0.1, 0.08, 0.24]}><sphereGeometry args={[0.07, 8, 8]} /><meshStandardMaterial color="#ffffff" /></mesh>
-      <mesh position={[0.1, 0.08, 0.24]}><sphereGeometry args={[0.07, 8, 8]} /><meshStandardMaterial color="#ffffff" /></mesh>
-      <mesh position={[-0.1, 0.08, 0.28]}><sphereGeometry args={[0.035, 8, 8]} /><meshStandardMaterial color="#111" /></mesh>
-      <mesh position={[0.1, 0.08, 0.28]}><sphereGeometry args={[0.035, 8, 8]} /><meshStandardMaterial color="#111" /></mesh>
-      {/* Shadow */}
-      <mesh position={[0, -0.55, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.22, 16]} />
-        <meshStandardMaterial color="#000000" transparent opacity={0.25} />
+      {/* Monster sprite using actual image */}
+      <Billboard follow lockX={false} lockY={false} lockZ={false}>
+        <mesh>
+          <planeGeometry args={[0.8, 0.8]} />
+          <meshBasicMaterial map={texture} transparent alphaTest={0.1} side={THREE.DoubleSide} />
+        </mesh>
+      </Billboard>
+      {/* Glow behind */}
+      <Billboard>
+        <mesh position={[0, 0, -0.05]}>
+          <circleGeometry args={[0.45, 24]} />
+          <meshBasicMaterial
+            color={monster.rarity === "legendary" ? "#a855f7" : monster.rarity === "epic" ? "#3b82f6" : monster.rarity === "rare" ? "#22d3ee" : "#22c55e"}
+            transparent
+            opacity={0.25}
+          />
+        </mesh>
+      </Billboard>
+      {/* Shadow on ground */}
+      <mesh position={[0, -0.8, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.25, 16]} />
+        <meshStandardMaterial color="#000000" transparent opacity={0.3} />
       </mesh>
       {/* Name */}
-      <Text position={[0, 0.5, 0]} fontSize={0.13} color="#ffffff" anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="#000000">
-        {monster.name}
-      </Text>
+      <Billboard>
+        <Text position={[0, 0.55, 0]} fontSize={0.13} color="#ffffff" anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="#000000">
+          {monster.name}
+        </Text>
+      </Billboard>
     </group>
   );
 }
