@@ -7,6 +7,7 @@ import { CoinCounter } from "@/components/CoinCounter";
 import { GameBoard } from "@/components/GameBoard";
 import { MonsterDisplay } from "@/components/MonsterDisplay";
 import { MonsterCollection } from "@/components/MonsterCollection";
+import { CardCollection } from "@/components/CardCollection";
 import { SpinWheel } from "@/components/SpinWheel";
 import { DiceShop } from "@/components/DiceShop";
 import { GameTabs } from "@/components/GameTabs";
@@ -20,8 +21,9 @@ import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
 import { LinkAccount } from "@/components/LinkAccount";
 import { Link2 } from "lucide-react";
+import { GameCard } from "@/data/cards";
 
-type Tab = "board" | "monster" | "collection" | "shop" | "spin";
+type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin";
 
 const Index = () => {
   const game = useGameState();
@@ -31,8 +33,9 @@ const Index = () => {
   const [showLink, setShowLink] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
   const isGuest = user?.is_anonymous === true;
-  const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile } | null>(null);
+  const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile; card?: GameCard } | null>(null);
   const [levelUpData, setLevelUpData] = useState<ReturnType<typeof getLevelForXp> | null>(null);
+  const [drawnCard, setDrawnCard] = useState<GameCard | null>(null);
   const prevLevelRef = useRef(game.level);
 
   // Start background music on mount
@@ -51,7 +54,13 @@ const Index = () => {
 
   const handleRollDice = () => {
     const result = game.rollDice();
-    if (result) setLastResult(result);
+    if (result) {
+      setLastResult(result);
+      if (result.card) {
+        setDrawnCard(result.card);
+        setTimeout(() => setDrawnCard(null), 3000);
+      }
+    }
   };
 
   return (
@@ -121,6 +130,25 @@ const Index = () => {
       {/* Tabs */}
       <GameTabs active={tab} onTabChange={setTab} />
 
+      {/* Card drawn notification */}
+      <AnimatePresence>
+        {drawnCard && (
+          <motion.div
+            initial={{ opacity: 0, y: -30, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.8 }}
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-card border-2 border-accent rounded-xl px-4 py-3 flex items-center gap-3 shadow-lg"
+          >
+            <span className="text-3xl">{drawnCard.emoji}</span>
+            <div>
+              <div className="text-xs font-bold text-accent">New Card!</div>
+              <div className="text-sm font-bold font-body text-foreground">{drawnCard.name}</div>
+              <div className="text-[10px] text-muted-foreground">{drawnCard.rarity}</div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Content */}
       <div className="w-full max-w-md flex-1 flex items-start justify-center py-6 overflow-y-auto">
         <AnimatePresence mode="wait">
@@ -160,6 +188,21 @@ const Index = () => {
                 monster={game.activeMonsterData}
                 taps={game.activeMonsterTaps}
                 onTap={game.tapMonster}
+              />
+            </motion.div>
+          )}
+
+          {tab === "cards" && (
+            <motion.div
+              key="cards"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              className="w-full"
+            >
+              <CardCollection
+                collectedCards={game.collectedCards}
+                coins={game.coins}
               />
             </motion.div>
           )}

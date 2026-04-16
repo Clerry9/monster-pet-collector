@@ -3,6 +3,7 @@ import { MONSTERS, getMonsterEvolution } from "@/data/monsters";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getLevelForXp, getLevelProgress, getAvailableBets } from "@/data/levels";
+import { drawRandomCard, GameCard, CARD_SETS } from "@/data/cards";
 
 export interface DiceTier {
   id: string;
@@ -83,6 +84,7 @@ export interface GameState {
   activeDiceTier: string;
   totalSteps: number;
   cardsCollected: number;
+  collectedCards: string[];
   monsterTaps: Record<string, number>;
   level: number;
   xp: number;
@@ -99,6 +101,7 @@ const DEFAULT_STATE: GameState = {
   activeDiceTier: "basic",
   totalSteps: 0,
   cardsCollected: 0,
+  collectedCards: [],
   monsterTaps: {},
   level: 1,
   xp: 0,
@@ -122,6 +125,7 @@ function loadLocalState(): GameState {
         activeDiceTier: p.activeDiceTier ?? "basic",
         totalSteps: p.totalSteps ?? 0,
         cardsCollected: p.cardsCollected ?? 0,
+        collectedCards: p.collectedCards ?? [],
         monsterTaps: p.monsterTaps ?? {},
         level: p.level ?? 1,
         xp: p.xp ?? 0,
@@ -148,6 +152,7 @@ function dbToState(row: any): GameState {
     activeDiceTier: row.active_dice_tier,
     totalSteps: row.total_steps,
     cardsCollected: row.cards_collected,
+    collectedCards: row.collected_cards ?? [],
     monsterTaps: row.monster_taps as Record<string, number>,
     level: row.level ?? 1,
     xp: row.xp ?? 0,
@@ -167,6 +172,7 @@ function stateToDb(state: GameState, userId: string) {
     active_dice_tier: state.activeDiceTier,
     total_steps: state.totalSteps,
     cards_collected: state.cardsCollected,
+    collected_cards: state.collectedCards,
     monster_taps: state.monsterTaps,
     level: state.level,
     xp: state.xp,
@@ -271,37 +277,75 @@ export function useGameState() {
     }));
   }, [state.activeMonster, state.monsterTaps, update]);
 
-  const rollDice = useCallback((): { steps: number; tile: BoardTile } | null => {
+  const rollDice = useCallback((): { steps: number; tile: BoardTile; card?: GameCard } | null => {
     if (state.rolls <= 0) return null;
     const tier = DICE_TIERS.find((t) => t.id === state.activeDiceTier) ?? DICE_TIERS[0];
     const steps = Math.floor(Math.random() * tier.maxRoll) + 1;
     const newPosition = (state.position + steps) % BOARD_TILES.length;
     const tile = BOARD_TILES[newPosition];
 
-    // Apply level theme modifier and bet multiplier
     const currentLevel = getLevelForXp(state.xp);
     const modifiedValue = currentLevel.tileModifier(tile.type, tile.value);
     const finalValue = Math.round(modifiedValue * state.betMultiplier);
     const xpGain = Math.max(1, Math.round(steps * state.betMultiplier));
-
-    // Create a modified tile for display
     const modifiedTile = { ...tile, value: finalValue };
+
+    // Draw a card on chest or star tiles
+    const drawnCard = (tile.type === "chest" || tile.type === "star") ? drawRandomCard() : undefined;
 
     update((s) => {
       const newXp = s.xp + xpGain;
       const newLevel = getLevelForXp(newXp);
+      let newCollectedCards = s.collectedCards;
+      let newUnlockedMonsters = s.unlockedMonsters;
+      let bonusCoins = 0;
+
+      if (drawnCard) {
+        // Add card if not already collected
+        if (!s.collectedCards.includes(drawnCard.id)) {
+          newCollectedCards = [...s.collectedCards, drawnCard.id];
+
+          // Apply card reward
+          if (drawnCard.reward.type === "coins" && drawnCard.reward.amount) {
+            bonusCoins += drawnCard.reward.amount;
+          } else if (drawnCard.reward.type === "monster" && drawnCard.reward.monsterId) {
+            if (!s.unlockedMonsters.includes(drawnCard.reward.monsterId)) {
+              newUnlockedMonsters = [...s.unlockedMonsters, drawnCard.reward.monsterId];
+            }
+          }
+
+          // Check for completed sets
+          for (const set of CARD_SETS) {
+            const allSetCards = set.cards.map((c) => c.id);
+            const hadAllBefore = allSetCards.every((id) => s.collectedCards.includes(id));
+            const hasAllNow = allSetCards.every((id) => newCollectedCards.includes(id));
+            if (!hadAllBefore && hasAllNow) {
+              if (set.setBonus.type === "coins" && set.setBonus.amount) {
+                bonusCoins += set.setBonus.amount;
+              } else if (set.setBonus.type === "monster" && set.setBonus.monsterId) {
+                if (!newUnlockedMonsters.includes(set.setBonus.monsterId)) {
+                  newUnlockedMonsters = [...newUnlockedMonsters, set.setBonus.monsterId];
+                }
+              }
+            }
+          }
+        }
+      }
+
       return {
         ...s,
         rolls: s.rolls - 1,
         position: newPosition,
         totalSteps: s.totalSteps + steps,
-        coins: Math.max(0, s.coins + finalValue),
-        cardsCollected: tile.type === "chest" || tile.type === "star" ? s.cardsCollected + 1 : s.cardsCollected,
+        coins: Math.max(0, s.coins + finalValue + bonusCoins),
+        cardsCollected: drawnCard && !s.collectedCards.includes(drawnCard.id) ? s.cardsCollected + 1 : s.cardsCollected,
+        collectedCards: newCollectedCards,
+        unlockedMonsters: newUnlockedMonsters,
         xp: newXp,
         level: newLevel.id,
       };
     });
-    return { steps, tile: modifiedTile };
+    return { steps, tile: modifiedTile, card: drawnCard };
   }, [state.rolls, state.position, state.activeDiceTier, state.betMultiplier, state.xp, update]);
 
   const buyDicePack = useCallback(
