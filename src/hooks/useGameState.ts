@@ -84,6 +84,7 @@ export interface GameState {
   activeDiceTier: string;
   totalSteps: number;
   cardsCollected: number;
+  collectedCards: string[];
   monsterTaps: Record<string, number>;
   level: number;
   xp: number;
