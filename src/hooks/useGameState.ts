@@ -172,6 +172,7 @@ function stateToDb(state: GameState, userId: string) {
     active_dice_tier: state.activeDiceTier,
     total_steps: state.totalSteps,
     cards_collected: state.cardsCollected,
+    collected_cards: state.collectedCards,
     monster_taps: state.monsterTaps,
     level: state.level,
     xp: state.xp,
