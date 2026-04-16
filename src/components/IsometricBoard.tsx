@@ -487,14 +487,32 @@ function PathConnector({ points }: { points: THREE.Vector3[] }) {
 
 function Ocean() {
   const ref = useRef<THREE.Mesh>(null);
+  const geoRef = useRef<THREE.PlaneGeometry>(null);
+
   useFrame((s) => {
     if (!ref.current) return;
+    // Gentle overall bob
     ref.current.position.y = -0.2 + Math.sin(s.clock.elapsedTime * 0.5) * 0.02;
+
+    // Vertex-based waves
+    if (geoRef.current) {
+      const pos = geoRef.current.attributes.position;
+      const t = s.clock.elapsedTime;
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i);
+        const y = pos.getY(i);
+        const wave = Math.sin(x * 0.5 + t * 0.8) * 0.06 + Math.cos(y * 0.4 + t * 0.6) * 0.04;
+        pos.setZ(i, wave);
+      }
+      pos.needsUpdate = true;
+      geoRef.current.computeVertexNormals();
+    }
   });
+
   return (
     <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]} receiveShadow>
-      <planeGeometry args={[40, 40]} />
-      <meshStandardMaterial color="#0c4a6e" roughness={0.4} metalness={0.1} transparent opacity={0.85} />
+      <planeGeometry ref={geoRef} args={[40, 40, 60, 60]} />
+      <meshStandardMaterial color="#0c4a6e" roughness={0.3} metalness={0.15} transparent opacity={0.85} />
     </mesh>
   );
 }
