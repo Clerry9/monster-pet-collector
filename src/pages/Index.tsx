@@ -192,7 +192,20 @@ const Index = () => {
             </motion.div>
           )}
 
-          {tab === "shop" && (
+          {tab === "cards" && (
+            <motion.div
+              key="cards"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              className="w-full"
+            >
+              <CardCollection
+                collectedCards={game.collectedCards}
+                coins={game.coins}
+              />
+            </motion.div>
+          )}
             <motion.div
               key="shop"
               initial={{ opacity: 0, x: -50 }}
