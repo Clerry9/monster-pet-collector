@@ -18,10 +18,10 @@ function generatePath(tileCount: number): THREE.Vector3[] {
   const points: THREE.Vector3[] = [];
   for (let i = 0; i < tileCount; i++) {
     const angle = (i / tileCount) * Math.PI * 2.5;
-    const radius = 3 + i * 0.25;
-    const x = Math.cos(angle) * radius * 0.6;
-    const z = Math.sin(angle) * radius * 0.6;
-    const y = i * 0.08;
+    const radius = 4 + i * 0.35;
+    const x = Math.cos(angle) * radius * 0.65;
+    const z = Math.sin(angle) * radius * 0.65;
+    const y = i * 0.09;
     points.push(new THREE.Vector3(x, y, z));
   }
   return points;
