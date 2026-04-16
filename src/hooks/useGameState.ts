@@ -274,11 +274,20 @@ export function useGameState() {
     const newPosition = (state.position + steps) % BOARD_TILES.length;
     const tile = BOARD_TILES[newPosition];
 
+    // Apply monster coin bonus
+    const activeMonster = MONSTERS.find((m) => m.id === state.activeMonster);
+    const monsterXp = state.monsterTaps[state.activeMonster] ?? 0;
+    const monsterEvo = activeMonster ? getMonsterEvolution(activeMonster, monsterXp) : null;
+    const monsterBonus = monsterEvo ? 1 + monsterEvo.coinBonus / 100 : 1;
+
     const currentLevel = getLevelForXp(state.xp);
     const modifiedValue = currentLevel.tileModifier(tile.type, tile.value);
-    const finalValue = Math.round(modifiedValue * state.betMultiplier);
+    const finalValue = Math.round(modifiedValue * state.betMultiplier * monsterBonus);
     const xpGain = Math.max(1, Math.round(steps * state.betMultiplier));
     const modifiedTile = { ...tile, value: finalValue };
+
+    // Food tiles give monster XP instead of coins
+    const monsterXpGain = tile.type === "food" ? tile.value : 0;
 
     // Draw a card on chest or star tiles
     const drawnCard = (tile.type === "chest" || tile.type === "star") ? drawRandomCard() : undefined;
