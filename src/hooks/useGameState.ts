@@ -3,6 +3,7 @@ import { MONSTERS, getMonsterEvolution } from "@/data/monsters";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getLevelForXp, getLevelProgress, getAvailableBets } from "@/data/levels";
+import { drawRandomCard, GameCard, CARD_SETS } from "@/data/cards";
 
 export interface DiceTier {
   id: string;
