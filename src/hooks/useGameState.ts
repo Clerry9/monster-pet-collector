@@ -438,7 +438,6 @@ export function useGameState() {
     ...state,
     addCoins,
     addRolls,
-    tapMonster,
     rollDice,
     buyDicePack,
     unlockDiceTier,

@@ -9,7 +9,7 @@ const TILE_ACCENT: Record<TileType, string> = {
   coins: "#fbbf24",
   bonus: "#60a5fa",
   chest: "#f59e0b",
-  monster: "#c084fc",
+  food: "#c084fc",
   skull: "#f87171",
   star: "#facc15",
 };
@@ -136,7 +136,7 @@ function TileIcon({ type, isActive }: { type: TileType; isActive: boolean }) {
     case "star": return <PulsingStar isActive={isActive} />;
     case "bonus": return <LightningBolt isActive={isActive} />;
     case "skull": return <SkullIcon isActive={isActive} />;
-    case "monster": return <MonsterIcon isActive={isActive} />;
+    case "food": return <MonsterIcon isActive={isActive} />;
     default: return null;
   }
 }
