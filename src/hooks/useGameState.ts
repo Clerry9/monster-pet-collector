@@ -301,11 +301,12 @@ export function useGameState() {
       let bonusCoins = 0;
 
       if (drawnCard) {
-        // Add card if not already collected
-        if (!s.collectedCards.includes(drawnCard.id)) {
-          newCollectedCards = [...s.collectedCards, drawnCard.id];
+        // Always add card (duplicates allowed for trading)
+        newCollectedCards = [...s.collectedCards, drawnCard.id];
+        const isNew = !s.collectedCards.includes(drawnCard.id);
 
-          // Apply card reward
+        if (isNew) {
+          // Apply card reward only for first-time collection
           if (drawnCard.reward.type === "coins" && drawnCard.reward.amount) {
             bonusCoins += drawnCard.reward.amount;
           } else if (drawnCard.reward.type === "monster" && drawnCard.reward.monsterId) {
