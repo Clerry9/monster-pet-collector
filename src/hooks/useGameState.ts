@@ -35,7 +35,7 @@ export const DICE_PACKS: DicePack[] = [
   { id: "ultra", label: "Ultra Pack", rolls: 150, costCoins: 900, costReal: 699, emoji: "🔥" },
 ];
 
-export type TileType = "coins" | "bonus" | "monster" | "chest" | "skull" | "star";
+export type TileType = "coins" | "bonus" | "food" | "chest" | "skull" | "star";
 
 export interface BoardTile {
   id: number;
@@ -51,7 +51,7 @@ function generateBoard(length: number): BoardTile[] {
     { type: "coins", weight: 40, minVal: 5, maxVal: 30 },
     { type: "bonus", weight: 15, minVal: 2, maxVal: 5 },
     { type: "chest", weight: 10, minVal: 20, maxVal: 100 },
-    { type: "monster", weight: 15, minVal: 10, maxVal: 50 },
+    { type: "food", weight: 15, minVal: 10, maxVal: 50 },
     { type: "skull", weight: 10, minVal: -10, maxVal: -5 },
     { type: "star", weight: 10, minVal: 50, maxVal: 200 },
   ];
@@ -265,17 +265,7 @@ export function useGameState() {
     [update]
   );
 
-  const tapMonster = useCallback(() => {
-    const monster = MONSTERS.find((m) => m.id === state.activeMonster);
-    if (!monster) return;
-    const currentTaps = state.monsterTaps[monster.id] ?? 0;
-    const evo = getMonsterEvolution(monster, currentTaps + 1);
-    update((s) => ({
-      ...s,
-      coins: s.coins + evo.coinsPerTap,
-      monsterTaps: { ...s.monsterTaps, [monster.id]: (s.monsterTaps[monster.id] ?? 0) + 1 },
-    }));
-  }, [state.activeMonster, state.monsterTaps, update]);
+  // Monster XP is now gained from "food" tiles during rollDice, no more tapping
 
   const rollDice = useCallback((): { steps: number; tile: BoardTile; card?: GameCard } | null => {
     if (state.rolls <= 0) return null;
@@ -284,11 +274,20 @@ export function useGameState() {
     const newPosition = (state.position + steps) % BOARD_TILES.length;
     const tile = BOARD_TILES[newPosition];
 
+    // Apply monster coin bonus
+    const activeMonster = MONSTERS.find((m) => m.id === state.activeMonster);
+    const monsterXp = state.monsterTaps[state.activeMonster] ?? 0;
+    const monsterEvo = activeMonster ? getMonsterEvolution(activeMonster, monsterXp) : null;
+    const monsterBonus = monsterEvo ? 1 + monsterEvo.coinBonus / 100 : 1;
+
     const currentLevel = getLevelForXp(state.xp);
     const modifiedValue = currentLevel.tileModifier(tile.type, tile.value);
-    const finalValue = Math.round(modifiedValue * state.betMultiplier);
+    const finalValue = Math.round(modifiedValue * state.betMultiplier * monsterBonus);
     const xpGain = Math.max(1, Math.round(steps * state.betMultiplier));
     const modifiedTile = { ...tile, value: finalValue };
+
+    // Food tiles give monster XP instead of coins
+    const monsterXpGain = tile.type === "food" ? tile.value : 0;
 
     // Draw a card on chest or star tiles
     const drawnCard = (tile.type === "chest" || tile.type === "star") ? drawRandomCard() : undefined;
@@ -333,15 +332,22 @@ export function useGameState() {
         }
       }
 
+      // Food tiles give monster XP instead of player coins
+      const coinGain = tile.type === "food" ? 0 : finalValue;
+      const newMonsterTaps = monsterXpGain > 0
+        ? { ...s.monsterTaps, [s.activeMonster]: (s.monsterTaps[s.activeMonster] ?? 0) + monsterXpGain }
+        : s.monsterTaps;
+
       return {
         ...s,
         rolls: s.rolls - 1,
         position: newPosition,
         totalSteps: s.totalSteps + steps,
-        coins: Math.max(0, s.coins + finalValue + bonusCoins),
+        coins: Math.max(0, s.coins + coinGain + bonusCoins),
         cardsCollected: drawnCard && !s.collectedCards.includes(drawnCard.id) ? s.cardsCollected + 1 : s.cardsCollected,
         collectedCards: newCollectedCards,
         unlockedMonsters: newUnlockedMonsters,
+        monsterTaps: newMonsterTaps,
         xp: newXp,
         level: newLevel.id,
       };
@@ -448,7 +454,6 @@ export function useGameState() {
     ...state,
     addCoins,
     addRolls,
-    tapMonster,
     rollDice,
     buyDicePack,
     unlockDiceTier,

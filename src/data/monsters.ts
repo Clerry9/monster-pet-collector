@@ -8,8 +8,8 @@ import monster6 from "@/assets/monster-6.png";
 export interface MonsterEvolution {
   level: number;
   name: string;
-  coinsPerTap: number;
-  tapsRequired: number; // cumulative taps to reach this level
+  coinBonus: number; // passive % coin bonus from all tiles
+  xpRequired: number; // cumulative XP to reach this level
   description: string;
 }
 
@@ -20,7 +20,7 @@ export interface Monster {
   cost: number;
   rarity: "common" | "rare" | "epic" | "legendary";
   description: string;
-  coinsPerTap: number;
+  coinBonus: number; // base bonus
   evolutions: MonsterEvolution[];
 }
 
@@ -32,12 +32,12 @@ export const MONSTERS: Monster[] = [
     cost: 0,
     rarity: "common",
     description: "A friendly little green guy. Your starter monster!",
-    coinsPerTap: 1,
+    coinBonus: 0,
     evolutions: [
-      { level: 1, name: "Gobby", coinsPerTap: 1, tapsRequired: 0, description: "A friendly little green guy." },
-      { level: 2, name: "Goblin Scout", coinsPerTap: 3, tapsRequired: 50, description: "Learned to find hidden coins!" },
-      { level: 3, name: "Goblin Chief", coinsPerTap: 6, tapsRequired: 200, description: "Rules a tribe of coin collectors." },
-      { level: 4, name: "Goblin King", coinsPerTap: 12, tapsRequired: 500, description: "The supreme ruler of all goblins!" },
+      { level: 1, name: "Gobby", coinBonus: 0, xpRequired: 0, description: "A friendly little green guy." },
+      { level: 2, name: "Goblin Scout", coinBonus: 10, xpRequired: 50, description: "Finds 10% more coins on every tile!" },
+      { level: 3, name: "Goblin Chief", coinBonus: 25, xpRequired: 200, description: "Rules a tribe — 25% coin bonus." },
+      { level: 4, name: "Goblin King", coinBonus: 50, xpRequired: 500, description: "The supreme ruler — 50% coin bonus!" },
     ],
   },
   {
@@ -47,12 +47,12 @@ export const MONSTERS: Monster[] = [
     cost: 500,
     rarity: "epic",
     description: "A terrifying multi-eyed beast dripping with slime.",
-    coinsPerTap: 5,
+    coinBonus: 5,
     evolutions: [
-      { level: 1, name: "Vexor", coinsPerTap: 5, tapsRequired: 0, description: "A terrifying multi-eyed beast." },
-      { level: 2, name: "Vexor Prime", coinsPerTap: 10, tapsRequired: 100, description: "Extra eyes mean extra coins!" },
-      { level: 3, name: "Vexor Overlord", coinsPerTap: 20, tapsRequired: 400, description: "Slime that turns to gold." },
-      { level: 4, name: "Vexor Titan", coinsPerTap: 40, tapsRequired: 1000, description: "An unstoppable coin machine!" },
+      { level: 1, name: "Vexor", coinBonus: 5, xpRequired: 0, description: "A terrifying multi-eyed beast." },
+      { level: 2, name: "Vexor Prime", coinBonus: 15, xpRequired: 100, description: "Extra eyes spot 15% more coins!" },
+      { level: 3, name: "Vexor Overlord", coinBonus: 35, xpRequired: 400, description: "Slime attracts gold — 35% bonus." },
+      { level: 4, name: "Vexor Titan", coinBonus: 60, xpRequired: 1000, description: "Unstoppable — 60% coin bonus!" },
     ],
   },
   {
@@ -62,12 +62,12 @@ export const MONSTERS: Monster[] = [
     cost: 200,
     rarity: "rare",
     description: "The cutest fluffy monster with tiny angel wings.",
-    coinsPerTap: 3,
+    coinBonus: 3,
     evolutions: [
-      { level: 1, name: "Fluffina", coinsPerTap: 3, tapsRequired: 0, description: "Tiny angel wings and big dreams." },
-      { level: 2, name: "Fluffina Angel", coinsPerTap: 7, tapsRequired: 75, description: "Wings grew bigger and shinier!" },
-      { level: 3, name: "Fluffina Seraph", coinsPerTap: 14, tapsRequired: 300, description: "Heavenly coin powers unlocked." },
-      { level: 4, name: "Fluffina Divine", coinsPerTap: 28, tapsRequired: 750, description: "A true divine coin goddess!" },
+      { level: 1, name: "Fluffina", coinBonus: 3, xpRequired: 0, description: "Tiny angel wings and big dreams." },
+      { level: 2, name: "Fluffina Angel", coinBonus: 12, xpRequired: 75, description: "Wings shimmer — 12% coin bonus!" },
+      { level: 3, name: "Fluffina Seraph", coinBonus: 28, xpRequired: 300, description: "Heavenly aura — 28% coin bonus." },
+      { level: 4, name: "Fluffina Divine", coinBonus: 55, xpRequired: 750, description: "Divine blessing — 55% coin bonus!" },
     ],
   },
   {
@@ -77,12 +77,12 @@ export const MONSTERS: Monster[] = [
     cost: 800,
     rarity: "epic",
     description: "One giant eye, many tentacles, zero manners.",
-    coinsPerTap: 7,
+    coinBonus: 7,
     evolutions: [
-      { level: 1, name: "Cyclops Jr.", coinsPerTap: 7, tapsRequired: 0, description: "One eye, many tentacles." },
-      { level: 2, name: "Cyclops Warrior", coinsPerTap: 15, tapsRequired: 120, description: "Tentacles grab coins everywhere!" },
-      { level: 3, name: "Cyclops Elder", coinsPerTap: 30, tapsRequired: 500, description: "Ancient wisdom = ancient wealth." },
-      { level: 4, name: "Cyclops Demigod", coinsPerTap: 55, tapsRequired: 1200, description: "Power beyond comprehension!" },
+      { level: 1, name: "Cyclops Jr.", coinBonus: 7, xpRequired: 0, description: "One eye, many tentacles." },
+      { level: 2, name: "Cyclops Warrior", coinBonus: 20, xpRequired: 120, description: "Tentacles grab 20% more coins!" },
+      { level: 3, name: "Cyclops Elder", coinBonus: 40, xpRequired: 500, description: "Ancient wisdom — 40% bonus." },
+      { level: 4, name: "Cyclops Demigod", coinBonus: 70, xpRequired: 1200, description: "Godlike — 70% coin bonus!" },
     ],
   },
   {
@@ -92,12 +92,12 @@ export const MONSTERS: Monster[] = [
     cost: 300,
     rarity: "rare",
     description: "A baby dragon who still can't breathe fire.",
-    coinsPerTap: 4,
+    coinBonus: 4,
     evolutions: [
-      { level: 1, name: "Drako", coinsPerTap: 4, tapsRequired: 0, description: "A baby dragon, can't breathe fire yet." },
-      { level: 2, name: "Drako Flame", coinsPerTap: 9, tapsRequired: 80, description: "First spark! Burns coins into gold." },
-      { level: 3, name: "Drako Inferno", coinsPerTap: 18, tapsRequired: 350, description: "A blazing furnace of fortune." },
-      { level: 4, name: "Drako Ancient", coinsPerTap: 35, tapsRequired: 900, description: "Ancient dragon hoarding mountains of gold!" },
+      { level: 1, name: "Drako", coinBonus: 4, xpRequired: 0, description: "A baby dragon, can't breathe fire yet." },
+      { level: 2, name: "Drako Flame", coinBonus: 14, xpRequired: 80, description: "First spark! 14% more coins." },
+      { level: 3, name: "Drako Inferno", coinBonus: 30, xpRequired: 350, description: "Blazing fortune — 30% bonus." },
+      { level: 4, name: "Drako Ancient", coinBonus: 55, xpRequired: 900, description: "Ancient dragon — 55% coin bonus!" },
     ],
   },
   {
@@ -107,27 +107,27 @@ export const MONSTERS: Monster[] = [
     cost: 2000,
     rarity: "legendary",
     description: "Born from pure darkness. The ultimate monster.",
-    coinsPerTap: 15,
+    coinBonus: 15,
     evolutions: [
-      { level: 1, name: "Shadow Fiend", coinsPerTap: 15, tapsRequired: 0, description: "Born from pure darkness." },
-      { level: 2, name: "Shadow Lord", coinsPerTap: 30, tapsRequired: 150, description: "Darkness consumes all coins nearby!" },
-      { level: 3, name: "Shadow Emperor", coinsPerTap: 60, tapsRequired: 600, description: "Entire economies tremble before it." },
-      { level: 4, name: "Shadow God", coinsPerTap: 120, tapsRequired: 1500, description: "Ultimate power. Ultimate coins." },
+      { level: 1, name: "Shadow Fiend", coinBonus: 15, xpRequired: 0, description: "Born from pure darkness." },
+      { level: 2, name: "Shadow Lord", coinBonus: 35, xpRequired: 150, description: "Darkness devours — 35% bonus!" },
+      { level: 3, name: "Shadow Emperor", coinBonus: 65, xpRequired: 600, description: "Economies tremble — 65% bonus." },
+      { level: 4, name: "Shadow God", coinBonus: 100, xpRequired: 1500, description: "Ultimate power — 100% coin bonus!" },
     ],
   },
 ];
 
-export function getMonsterEvolution(monster: Monster, taps: number): MonsterEvolution {
+export function getMonsterEvolution(monster: Monster, xp: number): MonsterEvolution {
   let current = monster.evolutions[0];
   for (const evo of monster.evolutions) {
-    if (taps >= evo.tapsRequired) current = evo;
+    if (xp >= evo.xpRequired) current = evo;
   }
   return current;
 }
 
-export function getNextEvolution(monster: Monster, taps: number): MonsterEvolution | null {
+export function getNextEvolution(monster: Monster, xp: number): MonsterEvolution | null {
   for (const evo of monster.evolutions) {
-    if (taps < evo.tapsRequired) return evo;
+    if (xp < evo.xpRequired) return evo;
   }
   return null;
 }

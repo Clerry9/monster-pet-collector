@@ -18,7 +18,7 @@ const TILE_EMOJIS: Record<TileType, string> = {
   coins: "🪙",
   bonus: "⚡",
   chest: "🎁",
-  monster: "👾",
+  food: "🍖",
   skull: "💀",
   star: "⭐",
 };
@@ -27,7 +27,7 @@ const TILE_LABELS: Record<TileType, string> = {
   coins: "Coins",
   bonus: "Bonus",
   chest: "Chest",
-  monster: "Monster",
+  food: "Monster Food",
   skull: "Skull penalty",
   star: "Star reward",
 };
@@ -36,7 +36,7 @@ const TILE_COLORS: Record<TileType, string> = {
   coins: "bg-accent/20 border-accent/40",
   bonus: "bg-primary/20 border-primary/40",
   chest: "bg-secondary/20 border-secondary/40",
-  monster: "bg-destructive/20 border-destructive/40",
+  food: "bg-purple-500/20 border-purple-500/40",
   skull: "bg-destructive/30 border-destructive/50",
   star: "bg-accent/30 border-accent/60",
 };

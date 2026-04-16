@@ -170,8 +170,7 @@ const Index = () => {
             >
               <MonsterDisplay
                 monster={game.activeMonsterData}
-                taps={game.activeMonsterTaps}
-                onTap={game.tapMonster}
+                monsterXp={game.monsterTaps[game.activeMonster] ?? 0}
               />
             </motion.div>
           )}
