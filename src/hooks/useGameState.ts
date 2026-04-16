@@ -332,15 +332,22 @@ export function useGameState() {
         }
       }
 
+      // Food tiles give monster XP instead of player coins
+      const coinGain = tile.type === "food" ? 0 : finalValue;
+      const newMonsterTaps = monsterXpGain > 0
+        ? { ...s.monsterTaps, [s.activeMonster]: (s.monsterTaps[s.activeMonster] ?? 0) + monsterXpGain }
+        : s.monsterTaps;
+
       return {
         ...s,
         rolls: s.rolls - 1,
         position: newPosition,
         totalSteps: s.totalSteps + steps,
-        coins: Math.max(0, s.coins + finalValue + bonusCoins),
+        coins: Math.max(0, s.coins + coinGain + bonusCoins),
         cardsCollected: drawnCard && !s.collectedCards.includes(drawnCard.id) ? s.cardsCollected + 1 : s.cardsCollected,
         collectedCards: newCollectedCards,
         unlockedMonsters: newUnlockedMonsters,
+        monsterTaps: newMonsterTaps,
         xp: newXp,
         level: newLevel.id,
       };
