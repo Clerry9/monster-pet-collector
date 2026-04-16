@@ -7,6 +7,7 @@ import { CoinCounter } from "@/components/CoinCounter";
 import { GameBoard } from "@/components/GameBoard";
 import { MonsterDisplay } from "@/components/MonsterDisplay";
 import { MonsterCollection } from "@/components/MonsterCollection";
+import { CardCollection } from "@/components/CardCollection";
 import { SpinWheel } from "@/components/SpinWheel";
 import { DiceShop } from "@/components/DiceShop";
 import { GameTabs } from "@/components/GameTabs";
@@ -20,8 +21,9 @@ import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
 import { LinkAccount } from "@/components/LinkAccount";
 import { Link2 } from "lucide-react";
+import { GameCard } from "@/data/cards";
 
-type Tab = "board" | "monster" | "collection" | "shop" | "spin";
+type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin";
 
 const Index = () => {
   const game = useGameState();
