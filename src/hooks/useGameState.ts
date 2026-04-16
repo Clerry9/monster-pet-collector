@@ -125,6 +125,7 @@ function loadLocalState(): GameState {
         activeDiceTier: p.activeDiceTier ?? "basic",
         totalSteps: p.totalSteps ?? 0,
         cardsCollected: p.cardsCollected ?? 0,
+        collectedCards: p.collectedCards ?? [],
         monsterTaps: p.monsterTaps ?? {},
         level: p.level ?? 1,
         xp: p.xp ?? 0,
