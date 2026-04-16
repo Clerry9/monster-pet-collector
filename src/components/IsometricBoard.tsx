@@ -641,7 +641,7 @@ function FloatingParticles() {
 
 // --- Main scene ---
 
-function IsometricBoardScene({ position, monster, isMoving }: { position: number; monster: Monster; isMoving: boolean }) {
+function IsometricBoardScene({ position, monster, isMoving, movementResult }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null }) {
   const pathPoints = useMemo(() => generatePath(BOARD_TILES.length), []);
   const currentTilePos = pathPoints[position] || pathPoints[0];
   const trailPosRef = useRef<THREE.Vector3[]>([]);
@@ -662,7 +662,7 @@ function IsometricBoardScene({ position, monster, isMoving }: { position: number
       ))}
 
       <MonsterTrail positions={trailPosRef.current} />
-      <MonsterPawn pathPoints={pathPoints} position={position} monster={monster} movementResult={null} trailPosRef={trailPosRef} />
+      <MonsterPawn pathPoints={pathPoints} position={position} monster={monster} movementResult={movementResult} trailPosRef={trailPosRef} />
 
       <OrbitControls
         target={[currentTilePos.x, currentTilePos.y + 1, currentTilePos.z]}
