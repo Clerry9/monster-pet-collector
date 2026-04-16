@@ -34,10 +34,10 @@ function SpinningCoin({ isActive }: { isActive: boolean }) {
   useFrame((s) => {
     if (!ref.current) return;
     ref.current.rotation.y = s.clock.elapsedTime * (isActive ? 4 : 1.5);
-    ref.current.position.y = 0.95 + Math.sin(s.clock.elapsedTime * 2) * 0.05;
+    ref.current.position.y = 1.1 + Math.sin(s.clock.elapsedTime * 2) * 0.05;
   });
   return (
-    <mesh ref={ref} position={[0, 0.95, 0]}>
+    <mesh ref={ref} position={[0, 1.1, 0]}>
       <cylinderGeometry args={[0.12, 0.12, 0.03, 24]} />
       <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.6} metalness={0.8} roughness={0.1} />
     </mesh>
@@ -49,11 +49,11 @@ function GlowingChest({ isActive }: { isActive: boolean }) {
   const lidRef = useRef<THREE.Mesh>(null);
   useFrame((s) => {
     if (!groupRef.current) return;
-    groupRef.current.position.y = 0.85 + Math.sin(s.clock.elapsedTime * 1.5) * 0.03;
+    groupRef.current.position.y = 1.0 + Math.sin(s.clock.elapsedTime * 1.5) * 0.03;
     if (lidRef.current && isActive) lidRef.current.rotation.x = -Math.sin(s.clock.elapsedTime * 2) * 0.3;
   });
   return (
-    <group ref={groupRef} position={[0, 0.85, 0]}>
+    <group ref={groupRef} position={[0, 1.0, 0]}>
       <mesh><boxGeometry args={[0.18, 0.12, 0.14]} /><meshStandardMaterial color="#92400e" roughness={0.4} metalness={0.2} /></mesh>
       <mesh ref={lidRef} position={[0, 0.08, 0]}>
         <boxGeometry args={[0.2, 0.05, 0.15]} />
@@ -71,10 +71,10 @@ function PulsingStar({ isActive }: { isActive: boolean }) {
     const sc = 1 + Math.sin(s.clock.elapsedTime * 3) * 0.15;
     ref.current.scale.set(sc, sc, sc);
     ref.current.rotation.y = s.clock.elapsedTime * 1.2;
-    ref.current.position.y = 0.95 + Math.sin(s.clock.elapsedTime * 2) * 0.08;
+    ref.current.position.y = 1.1 + Math.sin(s.clock.elapsedTime * 2) * 0.08;
   });
   return (
-    <mesh ref={ref} position={[0, 0.95, 0]}>
+    <mesh ref={ref} position={[0, 1.1, 0]}>
       <octahedronGeometry args={[0.11, 0]} />
       <meshStandardMaterial color="#eab308" emissive="#facc15" emissiveIntensity={isActive ? 1.2 : 0.5} metalness={0.7} roughness={0.1} />
     </mesh>
@@ -85,11 +85,11 @@ function LightningBolt({ isActive }: { isActive: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
   useFrame((s) => {
     if (!ref.current) return;
-    ref.current.position.y = 0.95 + Math.sin(s.clock.elapsedTime * 3) * 0.06;
+    ref.current.position.y = 1.1 + Math.sin(s.clock.elapsedTime * 3) * 0.06;
     (ref.current.material as THREE.MeshStandardMaterial).emissiveIntensity = isActive ? 0.6 + Math.sin(s.clock.elapsedTime * 8) * 0.4 : 0.3;
   });
   return (
-    <mesh ref={ref} position={[0, 0.95, 0]} rotation={[0, 0, 0.1]}>
+    <mesh ref={ref} position={[0, 1.1, 0]} rotation={[0, 0, 0.1]}>
       <coneGeometry args={[0.07, 0.2, 4]} />
       <meshStandardMaterial color="#60a5fa" emissive="#3b82f6" emissiveIntensity={0.3} metalness={0.5} roughness={0.2} />
     </mesh>
@@ -100,11 +100,11 @@ function SkullIcon({ isActive }: { isActive: boolean }) {
   const ref = useRef<THREE.Group>(null);
   useFrame((s) => {
     if (!ref.current) return;
-    ref.current.position.y = 0.9 + Math.sin(s.clock.elapsedTime * 1.8) * 0.04;
+    ref.current.position.y = 1.05 + Math.sin(s.clock.elapsedTime * 1.8) * 0.04;
     ref.current.rotation.y = Math.sin(s.clock.elapsedTime * 0.8) * 0.3;
   });
   return (
-    <group ref={ref} position={[0, 0.9, 0]}>
+    <group ref={ref} position={[0, 1.05, 0]}>
       <mesh><sphereGeometry args={[0.1, 12, 12]} /><meshStandardMaterial color="#fecaca" emissive="#ef4444" emissiveIntensity={isActive ? 0.6 : 0.15} roughness={0.5} /></mesh>
       <mesh position={[-0.035, 0.025, 0.08]}><sphereGeometry args={[0.025, 8, 8]} /><meshStandardMaterial color="#111" /></mesh>
       <mesh position={[0.035, 0.025, 0.08]}><sphereGeometry args={[0.025, 8, 8]} /><meshStandardMaterial color="#111" /></mesh>
@@ -119,10 +119,10 @@ function MonsterIcon({ isActive }: { isActive: boolean }) {
     const w = isActive ? 0.15 : 0.05;
     ref.current.scale.x = 1 + Math.sin(s.clock.elapsedTime * 3) * w;
     ref.current.scale.z = 1 + Math.cos(s.clock.elapsedTime * 3) * w;
-    ref.current.position.y = 0.9 + Math.sin(s.clock.elapsedTime * 2) * 0.05;
+    ref.current.position.y = 1.05 + Math.sin(s.clock.elapsedTime * 2) * 0.05;
   });
   return (
-    <mesh ref={ref} position={[0, 0.9, 0]}>
+    <mesh ref={ref} position={[0, 1.05, 0]}>
       <dodecahedronGeometry args={[0.1, 0]} />
       <meshStandardMaterial color="#c084fc" emissive="#a855f7" emissiveIntensity={isActive ? 0.8 : 0.3} metalness={0.4} roughness={0.2} />
     </mesh>
