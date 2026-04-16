@@ -206,6 +206,8 @@ const Index = () => {
               />
             </motion.div>
           )}
+
+          {tab === "shop" && (
             <motion.div
               key="shop"
               initial={{ opacity: 0, x: -50 }}
