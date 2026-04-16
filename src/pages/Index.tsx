@@ -59,7 +59,6 @@ const Index = () => {
       setLastResult(result);
       if (result.card) {
         setDrawnCard(result.card);
-        setTimeout(() => setDrawnCard(null), 3000);
       }
     }
   };
