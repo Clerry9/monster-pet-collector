@@ -359,7 +359,7 @@ interface IsometricBoardProps {
 
 export function IsometricBoard({ position, monster, isMoving }: IsometricBoardProps) {
   return (
-    <div className="w-full h-64 rounded-2xl overflow-hidden border border-border bg-card" role="region" aria-label="3D Game board">
+    <div className="w-full h-[400px] rounded-2xl overflow-hidden border border-border bg-card" role="region" aria-label="3D Game board">
       <Canvas
         shadows
         camera={{
