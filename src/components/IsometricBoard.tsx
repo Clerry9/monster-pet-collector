@@ -417,53 +417,102 @@ interface MonsterPawnProps {
   pathPoints: THREE.Vector3[];
   position: number;
   monster: Monster;
-  isMoving: boolean;
+  movementResult: { steps: number; tile: BoardTile } | null;
   trailPosRef: React.MutableRefObject<THREE.Vector3[]>;
 }
 
-function MonsterPawn({ pathPoints, position, monster, isMoving, trailPosRef }: MonsterPawnProps) {
+function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRef }: MonsterPawnProps) {
   const groupRef = useRef<THREE.Group>(null);
   const currentPos = useRef(pathPoints[position]?.clone() || new THREE.Vector3());
-  const prevPosition = useRef(position);
-  const hopPhase = useRef(0);
-  const isHopping = useRef(false);
+  const scheduledPosition = useRef(position);
+  const queuedTiles = useRef<number[]>([]);
+  const activeTile = useRef<number | null>(null);
+  const stepStart = useRef(pathPoints[position]?.clone() || new THREE.Vector3());
+  const stepEnd = useRef(pathPoints[position]?.clone() || new THREE.Vector3());
+  const stepProgress = useRef(1);
+  const stepDuration = useRef(0.1);
   const texture = useLoader(THREE.TextureLoader, monster.image);
 
-  // Detect position change and trigger hop
   useEffect(() => {
-    if (position !== prevPosition.current) {
-      isHopping.current = true;
-      hopPhase.current = 0;
-      prevPosition.current = position;
-    }
+    if (!movementResult || movementResult.steps <= 0) return;
+
+    const startIndex = scheduledPosition.current;
+    const nextTiles = Array.from({ length: movementResult.steps }, (_, index) => (
+      (startIndex + index + 1) % pathPoints.length
+    ));
+
+    queuedTiles.current.push(...nextTiles);
+    scheduledPosition.current = position;
+    stepDuration.current = THREE.MathUtils.clamp(0.16 - movementResult.steps * 0.0025, 0.055, 0.12);
+  }, [movementResult, pathPoints, position]);
+
+  useEffect(() => {
+    if (movementResult || activeTile.current !== null || queuedTiles.current.length > 0) return;
+
+    const settledPoint = pathPoints[position] || pathPoints[0];
+    currentPos.current.copy(settledPoint);
+    stepStart.current.copy(settledPoint);
+    stepEnd.current.copy(settledPoint);
+    scheduledPosition.current = position;
+  }, [movementResult, pathPoints, position]);
+
+  const startNextStep = () => {
+    if (activeTile.current !== null || queuedTiles.current.length === 0) return;
+
+    const nextTile = queuedTiles.current.shift();
+    if (nextTile === undefined) return;
+
+    activeTile.current = nextTile;
+    stepStart.current.copy(currentPos.current);
+    stepEnd.current.copy(pathPoints[nextTile] || pathPoints[0]);
+    stepProgress.current = 0;
+  };
+
+  useEffect(() => {
+    startNextStep();
+  }, [movementResult]);
+
+  useEffect(() => {
+    texture.colorSpace = THREE.SRGBColorSpace;
+  }, [texture]);
+
+  useEffect(() => {
+    scheduledPosition.current = position;
   }, [position]);
+
+  useEffect(() => {
+    if (!pathPoints.length) {
+      currentPos.current.set(0, 0, 0);
+    }
+  }, [pathPoints.length]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
-    const target = pathPoints[position] || pathPoints[0];
+    startNextStep();
 
-    // Smoother lerp speed
-    const lerpSpeed = isHopping.current ? 0.12 : 0.06;
-    currentPos.current.lerp(target, lerpSpeed);
-
-    // Hop animation
     let hopY = 0;
     let hopScale = 1;
     let hopRotZ = 0;
-    if (isHopping.current) {
-      hopPhase.current += delta * 6;
-      hopY = Math.sin(hopPhase.current) * 0.4;
-      hopScale = 1 + Math.sin(hopPhase.current * 2) * 0.08;
-      hopRotZ = Math.sin(hopPhase.current * 1.5) * 0.15;
-      if (hopPhase.current > Math.PI) {
-        isHopping.current = false;
-        hopPhase.current = 0;
+
+    if (activeTile.current !== null) {
+      stepProgress.current = Math.min(1, stepProgress.current + delta / stepDuration.current);
+      const easedProgress = THREE.MathUtils.smootherstep(stepProgress.current, 0, 1);
+      currentPos.current.lerpVectors(stepStart.current, stepEnd.current, easedProgress);
+
+      const jumpPhase = Math.sin(stepProgress.current * Math.PI);
+      hopY = jumpPhase * 0.42;
+      hopScale = 1 + jumpPhase * 0.08;
+      hopRotZ = Math.sin(stepProgress.current * Math.PI * 2) * 0.08;
+
+      if (stepProgress.current >= 1) {
+        currentPos.current.copy(stepEnd.current);
+        activeTile.current = null;
       }
     }
 
-    // Idle bob
-    const idleBob = Math.sin(state.clock.elapsedTime * 2) * 0.06;
-    const idleScale = 1 + Math.sin(state.clock.elapsedTime * 1.5) * 0.03;
+    const isAnimating = activeTile.current !== null || queuedTiles.current.length > 0;
+    const idleBob = isAnimating ? 0 : Math.sin(state.clock.elapsedTime * 2) * 0.06;
+    const idleScale = isAnimating ? 1 : 1 + Math.sin(state.clock.elapsedTime * 1.5) * 0.03;
 
     groupRef.current.position.set(
       currentPos.current.x,
@@ -592,7 +641,7 @@ function FloatingParticles() {
 
 // --- Main scene ---
 
-function IsometricBoardScene({ position, monster, isMoving }: { position: number; monster: Monster; isMoving: boolean }) {
+function IsometricBoardScene({ position, monster, isMoving, movementResult }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null }) {
   const pathPoints = useMemo(() => generatePath(BOARD_TILES.length), []);
   const currentTilePos = pathPoints[position] || pathPoints[0];
   const trailPosRef = useRef<THREE.Vector3[]>([]);
@@ -613,7 +662,7 @@ function IsometricBoardScene({ position, monster, isMoving }: { position: number
       ))}
 
       <MonsterTrail positions={trailPosRef.current} />
-      <MonsterPawn pathPoints={pathPoints} position={position} monster={monster} isMoving={isMoving} trailPosRef={trailPosRef} />
+      <MonsterPawn pathPoints={pathPoints} position={position} monster={monster} movementResult={movementResult} trailPosRef={trailPosRef} />
 
       <OrbitControls
         target={[currentTilePos.x, currentTilePos.y + 1, currentTilePos.z]}
@@ -629,13 +678,13 @@ function IsometricBoardScene({ position, monster, isMoving }: { position: number
   );
 }
 
-export function IsometricBoard({ position, monster, isMoving }: { position: number; monster: Monster; isMoving: boolean }) {
+export function IsometricBoard({ position, monster, isMoving, movementResult }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null }) {
   return (
     <div className="w-full h-[400px] rounded-2xl overflow-hidden border border-border bg-card" role="region" aria-label="3D Game board">
       <Canvas shadows camera={{ position: [6, 5, 6], fov: 45, near: 0.1, far: 100 }} gl={{ antialias: true, alpha: false }}>
         <color attach="background" args={["#0c1929"]} />
         <fog attach="fog" args={["#0c1929", 12, 28]} />
-        <IsometricBoardScene position={position} monster={monster} isMoving={isMoving} />
+        <IsometricBoardScene position={position} monster={monster} isMoving={isMoving} movementResult={movementResult} />
       </Canvas>
     </div>
   );
