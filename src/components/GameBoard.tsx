@@ -162,82 +162,12 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       role="region"
       aria-label="Game board"
     >
-      {/* Path visualization */}
-      <div
-        className="relative w-full max-w-md h-28 overflow-hidden rounded-2xl bg-card border border-border"
-        role="list"
-        aria-label="Board tiles"
-      >
-        {/* Scrolling path */}
-        <div className="absolute inset-0 flex items-center">
-          <AnimatePresence mode="popLayout">
-            {visibleTiles.map((tile) => {
-              const isActive = tile.offset === 0;
-              return (
-                <motion.div
-                  key={`${tile.id}-${tile.offset}`}
-                  role="listitem"
-                  aria-label={`${TILE_LABELS[tile.type]} tile: ${tile.value >= 0 ? "+" : ""}${tile.value} coins${isActive ? " (current position)" : ""}`}
-                  aria-current={isActive ? "true" : undefined}
-                  initial={{ x: 60, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: -60, opacity: 0 }}
-                  className={`flex-shrink-0 w-14 h-14 mx-1 rounded-xl border-2 flex flex-col items-center justify-center text-xs font-bold transition-all ${
-                    TILE_COLORS[tile.type]
-                  } ${isActive ? "ring-2 ring-primary scale-110 z-10" : "opacity-70"}`}
-                >
-                  <span className="text-lg" aria-hidden="true">{TILE_EMOJIS[tile.type]}</span>
-                  <span className={`text-[10px] ${tile.value >= 0 ? "text-primary" : "text-destructive"}`}>
-                    {tile.value >= 0 ? `+${tile.value}` : tile.value}
-                  </span>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
-
-        {/* Particles */}
-        <AnimatePresence>
-          {particles.map((p) => (
-            <motion.div
-              key={p.id}
-              className="absolute left-1/2 top-1/2 z-30 rounded-full pointer-events-none"
-              aria-hidden="true"
-              initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-              animate={{
-                x: p.x * 2.5,
-                y: p.y * 3 - 30,
-                opacity: 0,
-                scale: 0,
-              }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.7, ease: "easeOut" }}
-              style={{
-                width: p.size,
-                height: p.size,
-                backgroundColor: p.color,
-                boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
-              }}
-            />
-          ))}
-        </AnimatePresence>
-
-        {/* Monster on current tile */}
-        <motion.div
-          className="absolute left-1/2 -translate-x-1/2 -top-1 z-20"
-          animate={monsterControls}
-          initial={{ y: 0, scale: 1, rotate: 0 }}
-          aria-hidden="true"
-        >
-          <motion.img
-            src={monster.image}
-            alt={`${monster.name} on the board`}
-            className="w-12 h-12 drop-shadow-lg"
-            animate={isRolling ? {} : { y: [0, -5, 0] }}
-            transition={isRolling ? {} : { repeat: Infinity, duration: 1.5 }}
-          />
-        </motion.div>
-      </div>
+      {/* 3D Isometric Board */}
+      <IsometricBoard
+        position={position}
+        monster={monster}
+        isMoving={isRolling}
+      />
 
       {/* Result display */}
       <AnimatePresence>
