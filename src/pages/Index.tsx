@@ -16,6 +16,7 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { LevelProgressBar } from "@/components/LevelProgressBar";
 import { BetSelector } from "@/components/BetSelector";
 import { LevelUpCelebration } from "@/components/LevelUpCelebration";
+import { CardReveal } from "@/components/CardReveal";
 import { useGameState, BoardTile } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
@@ -58,7 +59,6 @@ const Index = () => {
       setLastResult(result);
       if (result.card) {
         setDrawnCard(result.card);
-        setTimeout(() => setDrawnCard(null), 3000);
       }
     }
   };
@@ -130,24 +130,8 @@ const Index = () => {
       {/* Tabs */}
       <GameTabs active={tab} onTabChange={setTab} />
 
-      {/* Card drawn notification */}
-      <AnimatePresence>
-        {drawnCard && (
-          <motion.div
-            initial={{ opacity: 0, y: -30, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.8 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-card border-2 border-accent rounded-xl px-4 py-3 flex items-center gap-3 shadow-lg"
-          >
-            <span className="text-3xl">{drawnCard.emoji}</span>
-            <div>
-              <div className="text-xs font-bold text-accent">New Card!</div>
-              <div className="text-sm font-bold font-body text-foreground">{drawnCard.name}</div>
-              <div className="text-[10px] text-muted-foreground">{drawnCard.rarity}</div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Card pack reveal animation */}
+      <CardReveal card={drawnCard} onComplete={() => setDrawnCard(null)} />
 
       {/* Content */}
       <div className="w-full max-w-md flex-1 flex items-start justify-center py-6 overflow-y-auto">
