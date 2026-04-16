@@ -3,7 +3,7 @@ import { MONSTERS, getMonsterEvolution } from "@/data/monsters";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getLevelForXp, getLevelProgress, getAvailableBets } from "@/data/levels";
-import { drawRandomCard, GameCard, CARD_SETS } from "@/data/cards";
+import { drawRandomCard, GameCard, CARD_SETS, TRADE_VALUES } from "@/data/cards";
 
 export interface DiceTier {
   id: string;
@@ -301,11 +301,12 @@ export function useGameState() {
       let bonusCoins = 0;
 
       if (drawnCard) {
-        // Add card if not already collected
-        if (!s.collectedCards.includes(drawnCard.id)) {
-          newCollectedCards = [...s.collectedCards, drawnCard.id];
+        // Always add card (duplicates allowed for trading)
+        newCollectedCards = [...s.collectedCards, drawnCard.id];
+        const isNew = !s.collectedCards.includes(drawnCard.id);
 
-          // Apply card reward
+        if (isNew) {
+          // Apply card reward only for first-time collection
           if (drawnCard.reward.type === "coins" && drawnCard.reward.amount) {
             bonusCoins += drawnCard.reward.amount;
           } else if (drawnCard.reward.type === "monster" && drawnCard.reward.monsterId) {
@@ -413,6 +414,31 @@ export function useGameState() {
     [state.coins, update]
   );
 
+  const tradeCard = useCallback(
+    (cardId: string) => {
+      // Count how many of this card we have
+      const count = state.collectedCards.filter((id) => id === cardId).length;
+      if (count < 2) return false; // Need at least 2 (keep 1, trade 1)
+
+      // Find the card to get its rarity
+      const allCards = CARD_SETS.flatMap((s) => s.cards);
+      const card = allCards.find((c) => c.id === cardId);
+      if (!card) return false;
+
+      const tradeValue = TRADE_VALUES[card.rarity];
+
+      update((s) => {
+        // Remove one instance of the card
+        const idx = s.collectedCards.indexOf(cardId);
+        const newCards = [...s.collectedCards];
+        newCards.splice(idx, 1);
+        return { ...s, collectedCards: newCards, coins: s.coins + tradeValue };
+      });
+      return true;
+    },
+    [state.collectedCards, update]
+  );
+
   const activeMonsterData = MONSTERS.find((m) => m.id === state.activeMonster)!;
   const activeMonsterTaps = state.monsterTaps[state.activeMonster] ?? 0;
   const activeEvolution = getMonsterEvolution(activeMonsterData, activeMonsterTaps);
@@ -430,6 +456,7 @@ export function useGameState() {
     unlockMonster,
     setActiveMonster,
     setBetMultiplier,
+    tradeCard,
     activeMonsterData,
     activeMonsterTaps,
     activeEvolution,
