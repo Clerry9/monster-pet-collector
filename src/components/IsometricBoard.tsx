@@ -209,11 +209,15 @@ function Tile({ tile, position, isActive, index, playerPosition }: TileProps) {
 
   return (
     <group ref={islandRef} position={position}>
-      {/* Water splash ring */}
-      <mesh position={[0, -0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.72, 1.0, 32]} />
-        <meshStandardMaterial color="#0ea5e9" emissive="#0284c7" emissiveIntensity={0.2} transparent opacity={isNearby ? 0.45 : 0.12} />
-      </mesh>
+      {/* Animated wave rings */}
+      {isNearby && <WaveRings />}
+      {/* Static water ring for distant islands */}
+      {!isNearby && (
+        <mesh position={[0, -0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.72, 1.0, 32]} />
+          <meshStandardMaterial color="#0ea5e9" emissive="#0284c7" emissiveIntensity={0.2} transparent opacity={0.12} />
+        </mesh>
+      )}
 
       {/* Rock base */}
       <mesh position={[0, 0.12, 0]} castShadow>
