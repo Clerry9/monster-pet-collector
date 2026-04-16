@@ -456,6 +456,7 @@ export function useGameState() {
     unlockMonster,
     setActiveMonster,
     setBetMultiplier,
+    tradeCard,
     activeMonsterData,
     activeMonsterTaps,
     activeEvolution,
