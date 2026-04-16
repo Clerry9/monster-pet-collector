@@ -14,18 +14,8 @@ const TILE_COLORS_3D: Record<TileType, string> = {
   star: "#eab308",
 };
 
-const TILE_EMOJIS_3D: Record<TileType, string> = {
-  coins: "🪙",
-  bonus: "⚡",
-  chest: "🎁",
-  monster: "👾",
-  skull: "💀",
-  star: "⭐",
-};
-
 function generatePath(tileCount: number): THREE.Vector3[] {
   const points: THREE.Vector3[] = [];
-  const spacing = 1.6;
   for (let i = 0; i < tileCount; i++) {
     const angle = (i / tileCount) * Math.PI * 2.5;
     const radius = 3 + i * 0.25;
@@ -36,6 +26,140 @@ function generatePath(tileCount: number): THREE.Vector3[] {
   }
   return points;
 }
+
+// --- Animated tile icons ---
+
+function SpinningCoin({ isActive }: { isActive: boolean }) {
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    if (!ref.current) return;
+    ref.current.rotation.y = state.clock.elapsedTime * (isActive ? 4 : 1.5);
+    ref.current.position.y = 0.65 + Math.sin(state.clock.elapsedTime * 2) * 0.05;
+  });
+  return (
+    <mesh ref={ref} position={[0, 0.65, 0]}>
+      <cylinderGeometry args={[0.15, 0.15, 0.04, 24]} />
+      <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.6} metalness={0.8} roughness={0.1} />
+    </mesh>
+  );
+}
+
+function GlowingChest({ isActive }: { isActive: boolean }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const lidRef = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    groupRef.current.position.y = 0.55 + Math.sin(state.clock.elapsedTime * 1.5) * 0.03;
+    if (lidRef.current && isActive) {
+      lidRef.current.rotation.x = -Math.sin(state.clock.elapsedTime * 2) * 0.3;
+    }
+  });
+  return (
+    <group ref={groupRef} position={[0, 0.55, 0]}>
+      <mesh>
+        <boxGeometry args={[0.22, 0.14, 0.16]} />
+        <meshStandardMaterial color="#92400e" roughness={0.4} metalness={0.2} />
+      </mesh>
+      <mesh ref={lidRef} position={[0, 0.09, 0]}>
+        <boxGeometry args={[0.24, 0.06, 0.18]} />
+        <meshStandardMaterial color="#b45309" emissive="#f59e0b" emissiveIntensity={isActive ? 0.8 : 0.2} roughness={0.3} metalness={0.3} />
+      </mesh>
+      {isActive && (
+        <pointLight position={[0, 0.2, 0]} intensity={1.5} color="#fbbf24" distance={1.5} />
+      )}
+    </group>
+  );
+}
+
+function PulsingStar({ isActive }: { isActive: boolean }) {
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    if (!ref.current) return;
+    const s = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.15;
+    ref.current.scale.set(s, s, s);
+    ref.current.rotation.y = state.clock.elapsedTime * 1.2;
+    ref.current.rotation.z = Math.sin(state.clock.elapsedTime) * 0.2;
+    ref.current.position.y = 0.7 + Math.sin(state.clock.elapsedTime * 2) * 0.08;
+  });
+  return (
+    <mesh ref={ref} position={[0, 0.7, 0]}>
+      <octahedronGeometry args={[0.14, 0]} />
+      <meshStandardMaterial color="#eab308" emissive="#facc15" emissiveIntensity={isActive ? 1.2 : 0.5} metalness={0.7} roughness={0.1} />
+    </mesh>
+  );
+}
+
+function LightningBolt({ isActive }: { isActive: boolean }) {
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    if (!ref.current) return;
+    ref.current.position.y = 0.65 + Math.sin(state.clock.elapsedTime * 3) * 0.06;
+    const flash = isActive ? 0.6 + Math.sin(state.clock.elapsedTime * 8) * 0.4 : 0.3;
+    (ref.current.material as THREE.MeshStandardMaterial).emissiveIntensity = flash;
+  });
+  return (
+    <mesh ref={ref} position={[0, 0.65, 0]} rotation={[0, 0, 0.1]}>
+      <coneGeometry args={[0.08, 0.25, 4]} />
+      <meshStandardMaterial color="#60a5fa" emissive="#3b82f6" emissiveIntensity={0.3} metalness={0.5} roughness={0.2} />
+    </mesh>
+  );
+}
+
+function SkullIcon({ isActive }: { isActive: boolean }) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    if (!ref.current) return;
+    ref.current.position.y = 0.65 + Math.sin(state.clock.elapsedTime * 1.8) * 0.04;
+    ref.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.8) * 0.3;
+  });
+  return (
+    <group ref={ref} position={[0, 0.65, 0]}>
+      <mesh>
+        <sphereGeometry args={[0.13, 12, 12]} />
+        <meshStandardMaterial color="#fecaca" emissive="#ef4444" emissiveIntensity={isActive ? 0.6 : 0.15} roughness={0.5} />
+      </mesh>
+      <mesh position={[-0.045, 0.03, 0.1]}>
+        <sphereGeometry args={[0.03, 8, 8]} />
+        <meshStandardMaterial color="#111" />
+      </mesh>
+      <mesh position={[0.045, 0.03, 0.1]}>
+        <sphereGeometry args={[0.03, 8, 8]} />
+        <meshStandardMaterial color="#111" />
+      </mesh>
+    </group>
+  );
+}
+
+function MonsterIcon({ isActive }: { isActive: boolean }) {
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    if (!ref.current) return;
+    const wobble = isActive ? 0.15 : 0.05;
+    ref.current.scale.x = 1 + Math.sin(state.clock.elapsedTime * 3) * wobble;
+    ref.current.scale.z = 1 + Math.cos(state.clock.elapsedTime * 3) * wobble;
+    ref.current.position.y = 0.65 + Math.sin(state.clock.elapsedTime * 2) * 0.05;
+  });
+  return (
+    <mesh ref={ref} position={[0, 0.65, 0]}>
+      <dodecahedronGeometry args={[0.13, 0]} />
+      <meshStandardMaterial color="#c084fc" emissive="#a855f7" emissiveIntensity={isActive ? 0.8 : 0.3} metalness={0.4} roughness={0.2} />
+    </mesh>
+  );
+}
+
+function TileIcon({ type, isActive }: { type: TileType; isActive: boolean }) {
+  switch (type) {
+    case "coins": return <SpinningCoin isActive={isActive} />;
+    case "chest": return <GlowingChest isActive={isActive} />;
+    case "star": return <PulsingStar isActive={isActive} />;
+    case "bonus": return <LightningBolt isActive={isActive} />;
+    case "skull": return <SkullIcon isActive={isActive} />;
+    case "monster": return <MonsterIcon isActive={isActive} />;
+    default: return null;
+  }
+}
+
+// --- Tile ---
 
 interface TileProps {
   tile: BoardTile;
@@ -58,34 +182,21 @@ function Tile({ tile, position, isActive, index, playerPosition }: TileProps) {
       meshRef.current.scale.y = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.1;
     }
     if (glowRef.current && isActive) {
-      (glowRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = 
+      (glowRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
         0.5 + Math.sin(state.clock.elapsedTime * 4) * 0.3;
     }
   });
 
   return (
     <group position={position}>
-      {/* Glow ring for active tile */}
       {isActive && (
         <mesh ref={glowRef} position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.5, 0.7, 32]} />
-          <meshStandardMaterial
-            color={color}
-            emissive={color}
-            emissiveIntensity={0.8}
-            transparent
-            opacity={0.6}
-          />
+          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.8} transparent opacity={0.6} />
         </mesh>
       )}
 
-      {/* Tile base */}
-      <mesh
-        ref={meshRef}
-        castShadow
-        receiveShadow
-        position={[0, 0.2, 0]}
-      >
+      <mesh ref={meshRef} castShadow receiveShadow position={[0, 0.2, 0]}>
         <cylinderGeometry args={[0.45, 0.5, 0.4, 6]} />
         <meshStandardMaterial
           color={color}
@@ -98,7 +209,6 @@ function Tile({ tile, position, isActive, index, playerPosition }: TileProps) {
         />
       </mesh>
 
-      {/* Top face */}
       <mesh position={[0, 0.42, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.42, 6]} />
         <meshStandardMaterial
@@ -110,24 +220,13 @@ function Tile({ tile, position, isActive, index, playerPosition }: TileProps) {
         />
       </mesh>
 
-      {/* Emoji label */}
-      {isNearby && (
-        <Text
-          position={[0, 0.55, 0]}
-          rotation={[-Math.PI / 4, 0, 0]}
-          fontSize={0.3}
-          anchorX="center"
-          anchorY="middle"
-        >
-          {TILE_EMOJIS_3D[tile.type]}
-        </Text>
-      )}
+      {/* 3D animated icon */}
+      {isNearby && <TileIcon type={tile.type} isActive={isActive} />}
 
-      {/* Value text */}
       {isActive && (
         <Float speed={2} floatIntensity={0.3}>
           <Text
-            position={[0, 1, 0]}
+            position={[0, 1.1, 0]}
             fontSize={0.2}
             color={tile.value >= 0 ? "#22c55e" : "#ef4444"}
             anchorX="center"
@@ -143,6 +242,8 @@ function Tile({ tile, position, isActive, index, playerPosition }: TileProps) {
   );
 }
 
+// --- Monster Pawn ---
+
 interface MonsterPawnProps {
   position: THREE.Vector3;
   targetPosition: THREE.Vector3;
@@ -156,19 +257,14 @@ function MonsterPawn({ position, targetPosition, monster, isMoving }: MonsterPaw
 
   useFrame((state) => {
     if (!groupRef.current) return;
-    
-    // Smooth movement toward target
     currentPos.current.lerp(targetPosition, 0.06);
     groupRef.current.position.copy(currentPos.current);
     groupRef.current.position.y = currentPos.current.y + 0.8 + Math.sin(state.clock.elapsedTime * 2) * 0.15;
-    
-    // Gentle rotation
     groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.2;
   });
 
   return (
     <group ref={groupRef} position={position}>
-      {/* Monster body - stylized sphere */}
       <mesh castShadow>
         <sphereGeometry args={[0.35, 16, 16]} />
         <MeshWobbleMaterial
@@ -179,46 +275,22 @@ function MonsterPawn({ position, targetPosition, monster, isMoving }: MonsterPaw
           metalness={0.3}
         />
       </mesh>
-
-      {/* Eyes */}
-      <mesh position={[-0.12, 0.1, 0.28]}>
-        <sphereGeometry args={[0.08, 8, 8]} />
-        <meshStandardMaterial color="#ffffff" />
-      </mesh>
-      <mesh position={[0.12, 0.1, 0.28]}>
-        <sphereGeometry args={[0.08, 8, 8]} />
-        <meshStandardMaterial color="#ffffff" />
-      </mesh>
-      <mesh position={[-0.12, 0.1, 0.32]}>
-        <sphereGeometry args={[0.04, 8, 8]} />
-        <meshStandardMaterial color="#111111" />
-      </mesh>
-      <mesh position={[0.12, 0.1, 0.32]}>
-        <sphereGeometry args={[0.04, 8, 8]} />
-        <meshStandardMaterial color="#111111" />
-      </mesh>
-
-      {/* Shadow underneath */}
+      <mesh position={[-0.12, 0.1, 0.28]}><sphereGeometry args={[0.08, 8, 8]} /><meshStandardMaterial color="#ffffff" /></mesh>
+      <mesh position={[0.12, 0.1, 0.28]}><sphereGeometry args={[0.08, 8, 8]} /><meshStandardMaterial color="#ffffff" /></mesh>
+      <mesh position={[-0.12, 0.1, 0.32]}><sphereGeometry args={[0.04, 8, 8]} /><meshStandardMaterial color="#111111" /></mesh>
+      <mesh position={[0.12, 0.1, 0.32]}><sphereGeometry args={[0.04, 8, 8]} /><meshStandardMaterial color="#111111" /></mesh>
       <mesh position={[0, -0.6, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.25, 16]} />
         <meshStandardMaterial color="#000000" transparent opacity={0.3} />
       </mesh>
-
-      {/* Name tag */}
-      <Text
-        position={[0, 0.6, 0]}
-        fontSize={0.15}
-        color="#ffffff"
-        anchorX="center"
-        anchorY="middle"
-        outlineWidth={0.02}
-        outlineColor="#000000"
-      >
+      <Text position={[0, 0.6, 0]} fontSize={0.15} color="#ffffff" anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="#000000">
         {monster.name}
       </Text>
     </group>
   );
 }
+
+// --- Scene helpers ---
 
 function PathConnector({ points }: { points: THREE.Vector3[] }) {
   const lineGeometry = useMemo(() => {
@@ -239,11 +311,7 @@ function Ground() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>
       <planeGeometry args={[30, 30]} />
-      <meshStandardMaterial
-        color="#1a1a2e"
-        roughness={0.8}
-        metalness={0.1}
-      />
+      <meshStandardMaterial color="#1a1a2e" roughness={0.8} metalness={0.1} />
     </mesh>
   );
 }
@@ -275,44 +343,23 @@ function FloatingParticles() {
   return (
     <points ref={particlesRef}>
       <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={count}
-          array={positions}
-          itemSize={3}
-        />
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
       </bufferGeometry>
-      <pointsMaterial
-        size={0.05}
-        color="#a78bfa"
-        transparent
-        opacity={0.6}
-        sizeAttenuation
-      />
+      <pointsMaterial size={0.05} color="#a78bfa" transparent opacity={0.6} sizeAttenuation />
     </points>
   );
 }
 
-interface IsometricBoardSceneProps {
-  position: number;
-  monster: Monster;
-  isMoving: boolean;
-}
+// --- Main scene & export ---
 
-function IsometricBoardScene({ position, monster, isMoving }: IsometricBoardSceneProps) {
+function IsometricBoardScene({ position, monster, isMoving }: { position: number; monster: Monster; isMoving: boolean }) {
   const pathPoints = useMemo(() => generatePath(BOARD_TILES.length), []);
   const currentTilePos = pathPoints[position] || pathPoints[0];
-  const cameraTarget = useRef(new THREE.Vector3());
 
   return (
     <>
       <ambientLight intensity={0.4} />
-      <directionalLight
-        position={[8, 12, 8]}
-        intensity={1}
-        castShadow
-        shadow-mapSize={[1024, 1024]}
-      />
+      <directionalLight position={[8, 12, 8]} intensity={1} castShadow shadow-mapSize={[1024, 1024]} />
       <pointLight position={[currentTilePos.x, currentTilePos.y + 3, currentTilePos.z]} intensity={0.8} color="#a78bfa" distance={6} />
 
       <Ground />
@@ -320,22 +367,10 @@ function IsometricBoardScene({ position, monster, isMoving }: IsometricBoardScen
       <PathConnector points={pathPoints} />
 
       {BOARD_TILES.map((tile, index) => (
-        <Tile
-          key={tile.id}
-          tile={tile}
-          position={pathPoints[index]}
-          isActive={index === position}
-          index={index}
-          playerPosition={position}
-        />
+        <Tile key={tile.id} tile={tile} position={pathPoints[index]} isActive={index === position} index={index} playerPosition={position} />
       ))}
 
-      <MonsterPawn
-        position={pathPoints[position] || pathPoints[0]}
-        targetPosition={pathPoints[position] || pathPoints[0]}
-        monster={monster}
-        isMoving={isMoving}
-      />
+      <MonsterPawn position={pathPoints[position] || pathPoints[0]} targetPosition={pathPoints[position] || pathPoints[0]} monster={monster} isMoving={isMoving} />
 
       <OrbitControls
         target={[currentTilePos.x, currentTilePos.y + 1, currentTilePos.z]}
@@ -351,25 +386,10 @@ function IsometricBoardScene({ position, monster, isMoving }: IsometricBoardScen
   );
 }
 
-interface IsometricBoardProps {
-  position: number;
-  monster: Monster;
-  isMoving: boolean;
-}
-
-export function IsometricBoard({ position, monster, isMoving }: IsometricBoardProps) {
+export function IsometricBoard({ position, monster, isMoving }: { position: number; monster: Monster; isMoving: boolean }) {
   return (
     <div className="w-full h-[400px] rounded-2xl overflow-hidden border border-border bg-card" role="region" aria-label="3D Game board">
-      <Canvas
-        shadows
-        camera={{
-          position: [6, 5, 6],
-          fov: 45,
-          near: 0.1,
-          far: 100,
-        }}
-        gl={{ antialias: true, alpha: false }}
-      >
+      <Canvas shadows camera={{ position: [6, 5, 6], fov: 45, near: 0.1, far: 100 }} gl={{ antialias: true, alpha: false }}>
         <color attach="background" args={["#0f172a"]} />
         <fog attach="fog" args={["#0f172a", 10, 25]} />
         <IsometricBoardScene position={position} monster={monster} isMoving={isMoving} />
