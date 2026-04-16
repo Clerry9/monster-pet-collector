@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Gift, LogOut, Volume2, VolumeX } from "lucide-react";
+import { toast } from "sonner";
 import { isMuted, setMuted, startBgm, stopBgm } from "@/lib/sfx";
 import { getLevelForXp } from "@/data/levels";
 import { CoinCounter } from "@/components/CoinCounter";
@@ -59,6 +60,13 @@ const Index = () => {
       setLastResult(result);
       if (result.card) {
         setDrawnCard(result.card);
+      }
+      if (result.monsterLevelUp) {
+        const { name, level, coinBonus } = result.monsterLevelUp;
+        toast(`🍖 ${name} evolved!`, {
+          description: `Level ${level} reached! Now grants +${coinBonus}% coins on all tiles.`,
+          duration: 4000,
+        });
       }
     }
   };

@@ -267,7 +267,7 @@ export function useGameState() {
 
   // Monster XP is now gained from "food" tiles during rollDice, no more tapping
 
-  const rollDice = useCallback((): { steps: number; tile: BoardTile; card?: GameCard } | null => {
+  const rollDice = useCallback((): { steps: number; tile: BoardTile; card?: GameCard; monsterLevelUp?: { name: string; level: number; coinBonus: number } } | null => {
     if (state.rolls <= 0) return null;
     const tier = DICE_TIERS.find((t) => t.id === state.activeDiceTier) ?? DICE_TIERS[0];
     const steps = Math.floor(Math.random() * tier.maxRoll) + 1;
@@ -288,6 +288,16 @@ export function useGameState() {
 
     // Food tiles give monster XP instead of coins
     const monsterXpGain = tile.type === "food" ? tile.value : 0;
+
+    // Check if monster will level up
+    let monsterLevelUp: { name: string; level: number; coinBonus: number } | undefined;
+    if (monsterXpGain > 0 && activeMonster) {
+      const oldEvo = getMonsterEvolution(activeMonster, monsterXp);
+      const newEvo = getMonsterEvolution(activeMonster, monsterXp + monsterXpGain);
+      if (newEvo.level > oldEvo.level) {
+        monsterLevelUp = { name: newEvo.name, level: newEvo.level, coinBonus: newEvo.coinBonus };
+      }
+    }
 
     // Draw a card on chest or star tiles
     const drawnCard = (tile.type === "chest" || tile.type === "star") ? drawRandomCard() : undefined;
@@ -352,7 +362,7 @@ export function useGameState() {
         level: newLevel.id,
       };
     });
-    return { steps, tile: modifiedTile, card: drawnCard };
+    return { steps, tile: modifiedTile, card: drawnCard, monsterLevelUp };
   }, [state.rolls, state.position, state.activeDiceTier, state.betMultiplier, state.xp, update]);
 
   const buyDicePack = useCallback(
