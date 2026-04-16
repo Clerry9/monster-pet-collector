@@ -151,6 +151,49 @@ interface TileProps {
   playerPosition: number;
 }
 
+// Animated wave rings around islands
+function WaveRings() {
+  const ring1 = useRef<THREE.Mesh>(null);
+  const ring2 = useRef<THREE.Mesh>(null);
+  const ring3 = useRef<THREE.Mesh>(null);
+
+  useFrame((s) => {
+    const t = s.clock.elapsedTime;
+    if (ring1.current) {
+      const s1 = 1 + Math.sin(t * 1.5) * 0.08;
+      ring1.current.scale.set(s1, s1, 1);
+      (ring1.current.material as THREE.MeshStandardMaterial).opacity = 0.35 + Math.sin(t * 1.5) * 0.15;
+    }
+    if (ring2.current) {
+      const s2 = 1 + Math.sin(t * 1.5 + 2) * 0.1;
+      ring2.current.scale.set(s2, s2, 1);
+      (ring2.current.material as THREE.MeshStandardMaterial).opacity = 0.25 + Math.sin(t * 1.5 + 2) * 0.12;
+    }
+    if (ring3.current) {
+      const s3 = 1 + Math.sin(t * 1.2 + 4) * 0.12;
+      ring3.current.scale.set(s3, s3, 1);
+      (ring3.current.material as THREE.MeshStandardMaterial).opacity = 0.15 + Math.sin(t * 1.2 + 4) * 0.1;
+    }
+  });
+
+  return (
+    <group>
+      <mesh ref={ring1} position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.7, 0.85, 32]} />
+        <meshStandardMaterial color="#38bdf8" emissive="#0ea5e9" emissiveIntensity={0.3} transparent opacity={0.4} />
+      </mesh>
+      <mesh ref={ring2} position={[0, -0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.85, 0.98, 32]} />
+        <meshStandardMaterial color="#7dd3fc" emissive="#38bdf8" emissiveIntensity={0.2} transparent opacity={0.3} />
+      </mesh>
+      <mesh ref={ring3} position={[0, -0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.98, 1.12, 32]} />
+        <meshStandardMaterial color="#bae6fd" emissive="#7dd3fc" emissiveIntensity={0.1} transparent opacity={0.2} />
+      </mesh>
+    </group>
+  );
+}
+
 // Deterministic pseudo-random from index
 function seededRandom(seed: number) {
   const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
