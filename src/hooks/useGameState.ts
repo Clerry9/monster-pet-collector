@@ -414,6 +414,31 @@ export function useGameState() {
     [state.coins, update]
   );
 
+  const tradeCard = useCallback(
+    (cardId: string) => {
+      // Count how many of this card we have
+      const count = state.collectedCards.filter((id) => id === cardId).length;
+      if (count < 2) return false; // Need at least 2 (keep 1, trade 1)
+
+      // Find the card to get its rarity
+      const allCards = CARD_SETS.flatMap((s) => s.cards);
+      const card = allCards.find((c) => c.id === cardId);
+      if (!card) return false;
+
+      const tradeValue = TRADE_VALUES[card.rarity];
+
+      update((s) => {
+        // Remove one instance of the card
+        const idx = s.collectedCards.indexOf(cardId);
+        const newCards = [...s.collectedCards];
+        newCards.splice(idx, 1);
+        return { ...s, collectedCards: newCards, coins: s.coins + tradeValue };
+      });
+      return true;
+    },
+    [state.collectedCards, update]
+  );
+
   const activeMonsterData = MONSTERS.find((m) => m.id === state.activeMonster)!;
   const activeMonsterTaps = state.monsterTaps[state.activeMonster] ?? 0;
   const activeEvolution = getMonsterEvolution(activeMonsterData, activeMonsterTaps);
