@@ -187,6 +187,7 @@ const Index = () => {
               <CardCollection
                 collectedCards={game.collectedCards}
                 coins={game.coins}
+                onTradeCard={game.tradeCard}
               />
             </motion.div>
           )}
