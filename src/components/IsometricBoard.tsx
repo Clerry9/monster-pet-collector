@@ -404,7 +404,7 @@ function MonsterTrail({ positions }: { positions: THREE.Vector3[] }) {
   return (
     <points ref={trailRef}>
       <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={MAX_TRAIL} array={trailPositions} itemSize={3} />
+        <bufferAttribute attach="attributes-position" args={[trailPositions, 3]} />
       </bufferGeometry>
       <pointsMaterial size={0.08} color="#a78bfa" transparent opacity={0.5} sizeAttenuation />
     </points>
@@ -599,9 +599,13 @@ function Ocean() {
     }
   });
 
+  const geometry = useMemo(() => new THREE.PlaneGeometry(40, 40, 60, 60), []);
+  useEffect(() => {
+    geoRef.current = geometry;
+  }, [geometry]);
+
   return (
-    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]} receiveShadow>
-      <planeGeometry ref={geoRef} args={[40, 40, 60, 60]} />
+    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]} receiveShadow geometry={geometry}>
       <meshStandardMaterial color="#0c4a6e" roughness={0.3} metalness={0.15} transparent opacity={0.85} />
     </mesh>
   );
@@ -632,7 +636,7 @@ function FloatingParticles() {
   return (
     <points ref={particlesRef}>
       <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
       <pointsMaterial size={0.04} color="#e0e7ff" transparent opacity={0.5} sizeAttenuation />
     </points>
