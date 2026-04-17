@@ -577,7 +577,7 @@ function PathConnector({ points }: { points: THREE.Vector3[] }) {
 
 function Ocean() {
   const ref = useRef<THREE.Mesh>(null);
-  const geoRef = useRef<THREE.PlaneGeometry>(null);
+  const geoRef = useRef<THREE.PlaneGeometry | null>(null);
 
   useFrame((s) => {
     if (!ref.current) return;
