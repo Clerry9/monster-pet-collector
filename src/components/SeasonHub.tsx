@@ -112,9 +112,9 @@ export function SeasonHub({
         </div>
       </motion.div>
 
-      {/* Symbol counter + play button */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="panel-wood p-3 flex flex-col items-center justify-center">
+      {/* Symbol counter */}
+      <div className="panel-wood p-3 flex items-center justify-between">
+        <div>
           <div className="text-[10px] font-display text-cream/80">SYMBOLS</div>
           <div className="font-display text-3xl text-cream-light flex items-center gap-1.5">
             <span aria-hidden>{season.symbol}</span>
@@ -126,15 +126,36 @@ export function SeasonHub({
             </div>
           )}
         </div>
+        <div className="text-right text-[10px] font-display text-cream/70">
+          🪙 {coins.toLocaleString()}
+          <div className="opacity-70">🎲 {rolls} rolls</div>
+        </div>
+      </div>
+
+      {/* Two mini-game choices */}
+      <div className="grid grid-cols-2 gap-2">
         <motion.button
           whileTap={{ scale: 0.96 }}
           onClick={handleStartMiniGame}
           disabled={rolls < MINI_GAME_COST}
-          className="btn-press rounded-2xl font-display text-base flex flex-col items-center justify-center gap-1 disabled:opacity-50"
+          className="btn-press rounded-2xl font-display text-sm flex flex-col items-center justify-center gap-1 py-3 disabled:opacity-50"
         >
-          <Play size={20} />
-          PLAY MINI-GAME
-          <span className="text-[9px] opacity-80">Costs {MINI_GAME_COST} roll</span>
+          <Play size={18} />
+          MATCH-3
+          <span className="text-[9px] opacity-80">{MINI_GAME_COST} roll • 5×5</span>
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.96 }}
+          onClick={() => {
+            if (rolls < MINI_GAME_COST) { toast.error("You need at least 1 roll to play"); return; }
+            setJackGameOpen(true);
+          }}
+          disabled={rolls < MINI_GAME_COST}
+          className="rounded-2xl font-display text-sm flex flex-col items-center justify-center gap-1 py-3 border-2 border-wood-dark bg-gradient-to-br from-gold to-candy-red text-cream-light disabled:opacity-50 active:translate-y-0.5"
+        >
+          <Gift size={18} />
+          JACK-IN-BOX
+          <span className="text-[9px] opacity-90">{MINI_GAME_COST} roll • Memory</span>
         </motion.button>
       </div>
 
@@ -190,15 +211,30 @@ export function SeasonHub({
         </div>
       </div>
 
+      {/* Leaderboard */}
+      <SeasonLeaderboard season={season} seasonInstanceId={progress.seasonInstanceId} />
+
       <AnimatePresence>
         {miniGameOpen && (
           <MiniGame
             season={season}
             costRolls={MINI_GAME_COST}
             hasRolls={rolls >= MINI_GAME_COST}
+            coins={coins}
             onSpendRoll={handleSpendRoll}
             onFinish={handleMiniGameFinish}
             onClose={() => setMiniGameOpen(false)}
+            onBuyStreakSaver={onBuyStreakSaver}
+          />
+        )}
+        {jackGameOpen && (
+          <MiniGameJack
+            season={season}
+            costRolls={MINI_GAME_COST}
+            hasRolls={rolls >= MINI_GAME_COST}
+            onSpendRoll={handleSpendRoll}
+            onFinish={(s) => handleMiniGameFinish(s, 0)}
+            onClose={() => setJackGameOpen(false)}
           />
         )}
       </AnimatePresence>
