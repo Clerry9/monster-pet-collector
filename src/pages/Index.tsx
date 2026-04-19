@@ -470,11 +470,18 @@ const Index = () => {
                 rolls={game.rolls}
                 coins={game.coins}
                 islandStars={game.islandStars}
+                playerLevel={game.level}
                 onPlayMiniGame={handlePlayMiniGame}
                 onAwardSymbols={season.addSymbols}
                 onAwardStars={game.addStars}
                 onClaimTier={handleClaimTier}
                 onBuyStreakSaver={handleBuyStreakSaver}
+                onAddCoins={game.addCoins}
+                onSpendCoins={(n) => {
+                  if (game.coins < n) return false;
+                  game.addCoins(-n);
+                  return true;
+                }}
               />
             </motion.div>
           )}
