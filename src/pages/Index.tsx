@@ -55,6 +55,18 @@ const Index = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
 
+  // Season rotation notice
+  const seasonNotice = useSeasonNotice(season.seasonInstanceId);
+  const [rotationModalOpen, setRotationModalOpen] = useState(false);
+
+  // Show rotation celebration on first launch of a new season (after tutorial)
+  useEffect(() => {
+    if (mainTutorial.completed && seasonNotice.isNew) {
+      const t = window.setTimeout(() => setRotationModalOpen(true), 800);
+      return () => window.clearTimeout(t);
+    }
+  }, [mainTutorial.completed, seasonNotice.isNew]);
+
   // Auto-open coachmarks on first launch (after a brief delay so UI is laid out)
   useEffect(() => {
     if (!mainTutorial.completed) {
