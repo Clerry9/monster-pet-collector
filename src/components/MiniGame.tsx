@@ -278,6 +278,7 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
                 <p>• 5×5 board — bigger matches, more chances!</p>
                 <p>• Each cleared <span className="text-base align-middle">{season.symbol}</span> = 1 special symbol.</p>
                 <p>• Bonus: +1 symbol per {SCORE_BONUS_PER} score.</p>
+                <p>• <strong className="text-candy-red">WIN:</strong> reach {LOSE_THRESHOLD} score OR collect {SYMBOL_WIN_THRESHOLD} {season.symbol} before time runs out!</p>
                 <p>• Costs <strong>{costRolls} roll</strong> to play.</p>
               </div>
               <motion.button
@@ -373,14 +374,28 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
               animate={{ opacity: 1, y: 0 }}
               className="space-y-3 text-center"
             >
-              <Trophy className="mx-auto text-gold" size={40} />
-              <div className="bg-cream/95 rounded-xl border-2 border-wood-dark p-3 text-wood-dark space-y-1">
-                <p className="font-display text-base">Final Score: {score}</p>
-                <p className="font-display text-2xl text-candy-red">
-                  +{symbolsEarned} {season.symbol}
-                </p>
-                <p className="text-[11px]">added to your season progress</p>
-              </div>
+              {didWin ? (
+                <>
+                  <Trophy className="mx-auto text-gold" size={40} />
+                  <div className="bg-cream/95 rounded-xl border-2 border-wood-dark p-3 text-wood-dark space-y-1">
+                    <p className="font-display text-base text-candy-red">VICTORY!</p>
+                    <p className="font-display text-sm">Final Score: {score}</p>
+                    <p className="font-display text-2xl text-candy-red">
+                      +{symbolsEarned} {season.symbol}
+                    </p>
+                    <p className="text-[11px]">added to your season progress</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Frown className="mx-auto text-destructive" size={40} />
+                  <div className="bg-cream/95 rounded-xl border-2 border-destructive p-3 text-wood-dark space-y-1">
+                    <p className="font-display text-base text-destructive">GAME OVER</p>
+                    <p className="font-display text-sm">Final Score: {score} / {LOSE_THRESHOLD}</p>
+                    <p className="text-[11px]">Hit {LOSE_THRESHOLD} score or collect {SYMBOL_WIN_THRESHOLD} {season.symbol} to win!</p>
+                  </div>
+                </>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
