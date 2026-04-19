@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, X, Trophy } from "lucide-react";
+import { Play, X, Trophy, Lightbulb } from "lucide-react";
 import { Season } from "@/data/seasons";
 import { sfxCoinGain, sfxLevelUp } from "@/lib/sfx";
+import { useTutorial } from "@/hooks/useTutorial";
 
 interface MiniGameProps {
   season: Season;
