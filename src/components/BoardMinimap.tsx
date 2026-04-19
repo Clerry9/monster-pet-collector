@@ -67,7 +67,7 @@ export function BoardMinimap({ levelId, tileCount, position, accentColor = "hsl(
     const path = pts.map((p, i) => {
       const [nx, nz] = norm(p[0], p[1]);
       return `${i === 0 ? "M" : "L"}${nx.toFixed(2)},${nz.toFixed(2)}`;
-    }).join(" ") + " Z";
+    }).join(" ");
     const cur = pts[position] ?? pts[0];
     const [cx, cy] = norm(cur[0], cur[1]);
     return { d: path, dot: { cx, cy } };
