@@ -261,7 +261,34 @@ export function useGameState() {
   );
 
   const addRolls = useCallback(
-    (amount: number) => update((s) => ({ ...s, rolls: s.rolls + amount })),
+    (amount: number) => update((s) => ({ ...s, rolls: Math.max(0, s.rolls + amount) })),
+    [update]
+  );
+
+  const grantCard = useCallback(
+    (cardId: string) => update((s) => ({
+      ...s,
+      collectedCards: [...s.collectedCards, cardId],
+      cardsCollected: s.cardsCollected + (s.collectedCards.includes(cardId) ? 0 : 1),
+    })),
+    [update]
+  );
+
+  const grantMonster = useCallback(
+    (id: string) => update((s) => (
+      s.unlockedMonsters.includes(id)
+        ? s
+        : { ...s, unlockedMonsters: [...s.unlockedMonsters, id] }
+    )),
+    [update]
+  );
+
+  const grantDiceTier = useCallback(
+    (tierId: string) => update((s) => (
+      s.unlockedDiceTiers.includes(tierId)
+        ? s
+        : { ...s, unlockedDiceTiers: [...s.unlockedDiceTiers, tierId] }
+    )),
     [update]
   );
 
@@ -472,6 +499,9 @@ export function useGameState() {
     setActiveMonster,
     setBetMultiplier,
     tradeCard,
+    grantCard,
+    grantMonster,
+    grantDiceTier,
     activeMonsterData,
     activeMonsterTaps,
     activeEvolution,

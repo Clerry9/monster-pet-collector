@@ -67,8 +67,20 @@ const fireCards: GameCard[] = [
   { id: "fire-5", name: "Inferno Crown", theme: "fire", rarity: "legendary", emoji: "👑", description: "Worn by the king of all fire creatures.", reward: { type: "coins", amount: 300 } },
 ];
 
-const cosmicCards: GameCard[] = [
-  { id: "cosmic-1", name: "Stardust", theme: "cosmic", rarity: "common", emoji: "✨", description: "Glittering particles from a dying star.", reward: { type: "coins", amount: 20 } },
+// Seasonal event cards — only obtainable via the rotating Season system.
+export const SEASON_CARDS: GameCard[] = [
+  { id: "season-frost-rare", name: "Frost Sigil", theme: "season", rarity: "rare", emoji: "❄️", description: "A glimmering sigil of the Frostfall season.", reward: { type: "coins", amount: 100 } },
+  { id: "season-frost-ultra", name: "Glacier Heart", theme: "season", rarity: "legendary", emoji: "🧊", description: "The frozen core of an ancient glacier — Frostfall ultra-rare.", reward: { type: "coins", amount: 500 } },
+  { id: "season-ember-rare", name: "Ember Mark", theme: "season", rarity: "rare", emoji: "🔥", description: "A burning brand of the Emberfest season.", reward: { type: "coins", amount: 100 } },
+  { id: "season-ember-ultra", name: "Forge Crown", theme: "season", rarity: "legendary", emoji: "👑", description: "Worn by the master of the Emberfest forges.", reward: { type: "coins", amount: 500 } },
+  { id: "season-star-rare", name: "Starlight Charm", theme: "season", rarity: "rare", emoji: "⭐", description: "A charm woven from cosmic light — Starbound rare.", reward: { type: "coins", amount: 100 } },
+  { id: "season-star-ultra", name: "Astral Relic", theme: "season", rarity: "legendary", emoji: "🪐", description: "Forged in the heart of a dying star.", reward: { type: "coins", amount: 500 } },
+  { id: "season-bloom-rare", name: "Petal Sigil", theme: "season", rarity: "rare", emoji: "🌸", description: "The first bloom of the Bloomtide season.", reward: { type: "coins", amount: 100 } },
+  { id: "season-bloom-ultra", name: "Eternal Bloom", theme: "season", rarity: "legendary", emoji: "🌷", description: "A blossom that never withers — Bloomtide ultra-rare.", reward: { type: "coins", amount: 500 } },
+];
+
+
+  const cosmicCards: GameCard[] = [
   { id: "cosmic-2", name: "Moon Shard", theme: "cosmic", rarity: "rare", emoji: "🌙", description: "A fragment of a shattered moon.", reward: { type: "coins", amount: 55 } },
   { id: "cosmic-3", name: "Nebula Core", theme: "cosmic", rarity: "rare", emoji: "🌌", description: "The compressed heart of a nebula.", reward: { type: "coins", amount: 60 } },
   { id: "cosmic-4", name: "Alien Artifact", theme: "cosmic", rarity: "epic", emoji: "🛸", description: "Technology beyond human understanding.", reward: { type: "coins", amount: 130 } },
@@ -118,7 +130,11 @@ export const CARD_SETS: CardSet[] = [
   },
 ];
 
-export const ALL_CARDS: GameCard[] = CARD_SETS.flatMap((s) => s.cards);
+// All cards including seasonal — used for collection display & rarity lookup
+export const ALL_CARDS: GameCard[] = [...CARD_SETS.flatMap((s) => s.cards), ...SEASON_CARDS];
+
+// Pool used by random board draws — excludes seasonal cards (they only drop via the Season hub)
+const DRAWABLE_CARDS: GameCard[] = CARD_SETS.flatMap((s) => s.cards);
 
 // Get a random card based on rarity weights
 export function drawRandomCard(): GameCard {
@@ -141,8 +157,8 @@ export function drawRandomCard(): GameCard {
     }
   }
 
-  const pool = ALL_CARDS.filter((c) => c.rarity === selectedRarity);
-  if (pool.length === 0) return ALL_CARDS[Math.floor(Math.random() * ALL_CARDS.length)];
+  const pool = DRAWABLE_CARDS.filter((c) => c.rarity === selectedRarity);
+  if (pool.length === 0) return DRAWABLE_CARDS[Math.floor(Math.random() * DRAWABLE_CARDS.length)];
   return pool[Math.floor(Math.random() * pool.length)];
 }
 

@@ -108,6 +108,37 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Handle Season Pass purchase
+        if (priceExternalId === 'season_pass_one_time' || customData.packId === 'season_pass') {
+          const seasonInstanceId = customData.seasonInstanceId;
+          if (seasonInstanceId) {
+            // Upsert the season_progress row with pass_purchased = true
+            const { data: existing } = await supabase
+              .from('season_progress')
+              .select('*')
+              .eq('user_id', userId)
+              .eq('season_id', seasonInstanceId)
+              .maybeSingle();
+
+            if (existing) {
+              await supabase
+                .from('season_progress')
+                .update({ pass_purchased: true })
+                .eq('user_id', userId)
+                .eq('season_id', seasonInstanceId);
+            } else {
+              await supabase.from('season_progress').insert({
+                user_id: userId,
+                season_id: seasonInstanceId,
+                pass_purchased: true,
+              });
+            }
+            console.log(`Season pass granted: user=${userId}, season=${seasonInstanceId}`);
+          } else {
+            console.warn('Season pass purchase had no seasonInstanceId in customData');
+          }
+        }
+
         console.log(`Purchase fulfilled: user=${userId}, pack=${packInfo?.packId}, rolls=${rollsToGrant}`);
         break;
       }

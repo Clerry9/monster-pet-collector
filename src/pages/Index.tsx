@@ -23,14 +23,18 @@ import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
 import { LinkAccount } from "@/components/LinkAccount";
 import { Link2 } from "lucide-react";
-import { GameCard } from "@/data/cards";
+import { GameCard, ALL_CARDS } from "@/data/cards";
+import { SeasonReward } from "@/data/seasons";
 import { SpecialPacks } from "@/components/SpecialPacks";
+import { SeasonHub } from "@/components/SeasonHub";
+import { useSeason } from "@/hooks/useSeason";
 
-type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials";
+type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season";
 
 const Index = () => {
   const game = useGameState();
   const daily = useDailyReward(game.addCoins);
+  const season = useSeason();
   const { user, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>("board");
   const [showLink, setShowLink] = useState(false);
@@ -70,6 +74,31 @@ const Index = () => {
         });
       }
     }
+  };
+
+  // Mini-game costs 1 roll to play
+  const handlePlayMiniGame = (): boolean => {
+    if (game.rolls < 1) return false;
+    game.addRolls(-1);
+    return true;
+  };
+
+  // Battle pass tier claim — applies the reward to game state
+  const handleClaimTier = (tier: number, reward: SeasonReward) => {
+    const r = reward.premium ?? reward.free;
+    if (!r) return;
+    if (r.type === "coins") game.addCoins(r.amount ?? 0);
+    else if (r.type === "rolls") game.addRolls(r.amount ?? 0);
+    else if (r.type === "symbols") season.addSymbols(r.amount ?? 0);
+    else if (r.type === "card" && r.id) {
+      game.grantCard(r.id);
+      season.markCardUnlocked(r.id);
+      const card = ALL_CARDS.find((c) => c.id === r.id);
+      if (card) setDrawnCard(card);
+    } else if (r.type === "monster" && r.id) game.grantMonster(r.id);
+    else if (r.type === "dice" && r.id) game.grantDiceTier(r.id);
+    season.claimTier(tier);
+    toast.success(`Claimed: ${r.label}`);
   };
 
   return (
@@ -268,6 +297,26 @@ const Index = () => {
               className="w-full"
             >
               <SpecialPacks />
+            </motion.div>
+          )}
+
+          {tab === "season" && (
+            <motion.div
+              key="season"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              className="w-full"
+            >
+              <SeasonHub
+                season={season.season}
+                progress={season.progress}
+                msRemaining={season.msRemaining}
+                rolls={game.rolls}
+                onPlayMiniGame={handlePlayMiniGame}
+                onAwardSymbols={season.addSymbols}
+                onClaimTier={handleClaimTier}
+              />
             </motion.div>
           )}
 
