@@ -6,27 +6,36 @@ function generatePath2D(tileCount: number, levelId: number) {
   const shape = ((levelId - 1) % 8) + 1;
   const pts: [number, number][] = [];
   for (let i = 0; i < tileCount; i++) {
-    const t = i / tileCount;
+    const t = i / Math.max(1, tileCount - 1);
     let x = 0, z = 0;
     switch (shape) {
-      case 1: { const a = t * Math.PI * 2.5; const r = (4 + i * 0.35) * 0.65; x = Math.cos(a) * r; z = Math.sin(a) * r; break; }
-      case 2: { const a = t * Math.PI * 2; const r = 4.5; x = Math.sin(a * 2) * r * 0.7; z = Math.sin(a) * r; break; }
-      case 3: { const row = i; x = (row % 2 === 0 ? 1 : -1) * (3 + (i % 5) * 0.2); z = -row * 0.45 + 6; break; }
-      case 4: { const a = -t * Math.PI * 2.5; const r = (8 - i * 0.22) * 0.65; x = Math.cos(a) * r; z = Math.sin(a) * r; break; }
+      case 1: { x = -8 + t * 16; z = Math.sin(t * Math.PI * 4) * 3.2; break; }
+      case 2: {
+        const a = -Math.PI + t * Math.PI * 2;
+        const denom = 1 + Math.sin(a) * Math.sin(a);
+        const r = 5.5;
+        x = (r * Math.cos(a)) / denom + t * 4 - 2;
+        z = (r * Math.sin(a) * Math.cos(a)) / denom;
+        break;
+      }
+      case 3: {
+        const seg = 6; const s = Math.floor(t * seg); const f = t * seg - s;
+        const dir = s % 2 === 0 ? 1 : -1;
+        x = dir * (4 - f * 8); z = -t * 14 + 7; break;
+      }
+      case 4: { x = -8 + t * 16; z = Math.sin(t * Math.PI * 6) * 2.4 + Math.cos(t * Math.PI * 2) * 1.2; break; }
       case 5: {
-        const seg = Math.floor(t * 4); const f = (t * 4) - seg;
-        const corners: [number, number][] = [[0, 6], [6, 0], [0, -6], [-6, 0]];
-        const [x1, z1] = corners[seg]; const [x2, z2] = corners[(seg + 1) % 4];
-        x = x1 + (x2 - x1) * f; z = z1 + (z2 - z1) * f; break;
+        const seg = 4; const s = Math.floor(t * seg); const f = t * seg - s;
+        const dir = s % 2 === 0 ? 1 : -1;
+        x = dir * (5 - f * 10); z = -7 + t * 14; break;
       }
-      case 6: { const a = t * Math.PI * 3; x = Math.sin(a) * 4.5; z = -t * 12 + 6; break; }
+      case 6: { const a = t * Math.PI * 4; x = Math.sin(a) * 4.5; z = Math.sin(a * 2) * 3 + (-7 + t * 14) * 0.4; break; }
       case 7: {
-        const half = i < tileCount / 2;
-        const a = (half ? t * 2 : (t - 0.5) * 2) * Math.PI;
-        const r = half ? 5.5 : 3.2;
-        x = Math.cos(a) * r; z = Math.sin(a) * r * (half ? 1 : -1); break;
+        const seg = 8; const s = Math.floor(t * seg); const f = t * seg - s;
+        const dir = s % 2 === 0 ? 1 : -1;
+        x = dir * (3.5 - f * 7); z = -t * 12 + 6 + Math.sin(t * Math.PI * 3) * 0.8; break;
       }
-      case 8: { const a = t * Math.PI * 2; const r = 4 + Math.sin(t * Math.PI) * 2; x = Math.cos(a) * r * 0.7; z = Math.sin(a) * r * 0.7; break; }
+      case 8: { x = -8 + t * 16; z = Math.sin(t * Math.PI * 3) * 3.2; break; }
     }
     pts.push([x, z]);
   }
@@ -58,7 +67,7 @@ export function BoardMinimap({ levelId, tileCount, position, accentColor = "hsl(
     const path = pts.map((p, i) => {
       const [nx, nz] = norm(p[0], p[1]);
       return `${i === 0 ? "M" : "L"}${nx.toFixed(2)},${nz.toFixed(2)}`;
-    }).join(" ") + " Z";
+    }).join(" ");
     const cur = pts[position] ?? pts[0];
     const [cx, cy] = norm(cur[0], cur[1]);
     return { d: path, dot: { cx, cy } };

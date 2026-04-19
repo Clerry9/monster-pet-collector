@@ -165,69 +165,72 @@ function generatePath(tileCount: number, levelId: number = 1): THREE.Vector3[] {
   const points: THREE.Vector3[] = [];
   const shape = ((levelId - 1) % 8) + 1;
   for (let i = 0; i < tileCount; i++) {
-    const t = i / tileCount;
+    const t = i / Math.max(1, tileCount - 1);
     let x = 0, y = 0, z = 0;
     switch (shape) {
-      case 1: { // Outward spiral (Goblin Forest)
-        const a = t * Math.PI * 2.5;
-        const r = (4 + i * 0.35) * 0.65;
-        x = Math.cos(a) * r; z = Math.sin(a) * r; y = i * 0.09;
+      case 1: { // Goblin Forest — gentle horizontal zigzag trail
+        const amp = 3.2;
+        x = -8 + t * 16;
+        z = Math.sin(t * Math.PI * 4) * amp;
+        y = i * 0.06;
         break;
       }
-      case 2: { // Figure-8 (Crystal Caves)
-        const a = t * Math.PI * 2;
-        const r = 4.5;
-        x = Math.sin(a * 2) * r * 0.7;
-        z = Math.sin(a) * r;
+      case 2: { // Crystal Caves — infinity / lemniscate trail (open ended along X)
+        const a = -Math.PI + t * Math.PI * 2; // -π..π
+        const denom = 1 + Math.sin(a) * Math.sin(a);
+        const r = 5.5;
+        x = (r * Math.cos(a)) / denom + t * 4 - 2; // drift so it doesn't close
+        z = (r * Math.sin(a) * Math.cos(a)) / denom;
         y = i * 0.07;
         break;
       }
-      case 3: { // Zigzag river going north (Lava Peaks)
-        const row = i;
-        x = (row % 2 === 0 ? 1 : -1) * (3 + (i % 5) * 0.2);
-        z = -row * 0.45 + 6;
+      case 3: { // Lava Peaks — sharp zigzag climbing north
+        const seg = 6;
+        const s = Math.floor(t * seg);
+        const f = t * seg - s;
+        const dir = s % 2 === 0 ? 1 : -1;
+        x = dir * (4 - f * 8);
+        z = -t * 14 + 7;
+        y = i * 0.13;
+        break;
+      }
+      case 4: { // Haunted Marsh — meander/serpentine trail
+        x = -8 + t * 16;
+        z = Math.sin(t * Math.PI * 6) * 2.4 + Math.cos(t * Math.PI * 2) * 1.2;
+        y = i * 0.05;
+        break;
+      }
+      case 5: { // Sky Citadel — wide zigzag bridge
+        const seg = 4;
+        const s = Math.floor(t * seg);
+        const f = t * seg - s;
+        const dir = s % 2 === 0 ? 1 : -1;
+        x = dir * (5 - f * 10);
+        z = -7 + t * 14;
+        y = i * 0.09 + Math.sin(t * Math.PI * 4) * 0.3;
+        break;
+      }
+      case 6: { // Dragon's Lair — figure-8 infinity drifting forward
+        const a = t * Math.PI * 4;
+        x = Math.sin(a) * 4.5;
+        z = Math.sin(a * 2) * 3 + (-7 + t * 14) * 0.4;
         y = i * 0.12;
         break;
       }
-      case 4: { // Inward spiral, reversed (Haunted Marsh)
-        const a = -t * Math.PI * 2.5;
-        const r = (8 - i * 0.22) * 0.65;
-        x = Math.cos(a) * r; z = Math.sin(a) * r; y = i * 0.08;
+      case 7: { // Void Realm — chaotic zigzag with vertical drift
+        const seg = 8;
+        const s = Math.floor(t * seg);
+        const f = t * seg - s;
+        const dir = s % 2 === 0 ? 1 : -1;
+        x = dir * (3.5 - f * 7);
+        z = -t * 12 + 6 + Math.sin(t * Math.PI * 3) * 0.8;
+        y = i * 0.08 + Math.sin(t * Math.PI * 5) * 0.4;
         break;
       }
-      case 5: { // Diamond/rhombus loop (Sky Citadel)
-        const seg = Math.floor(t * 4);
-        const f = (t * 4) - seg;
-        const corners = [[0, 6], [6, 0], [0, -6], [-6, 0]];
-        const [x1, z1] = corners[seg];
-        const [x2, z2] = corners[(seg + 1) % 4];
-        x = x1 + (x2 - x1) * f;
-        z = z1 + (z2 - z1) * f;
-        y = i * 0.1;
-        break;
-      }
-      case 6: { // S-curve climbing (Dragon's Lair)
-        const a = t * Math.PI * 3;
-        x = Math.sin(a) * 4.5;
-        z = -t * 12 + 6;
-        y = i * 0.14;
-        break;
-      }
-      case 7: { // Two concentric arcs (Void Realm)
-        const half = i < tileCount / 2;
-        const a = (half ? t * 2 : (t - 0.5) * 2) * Math.PI;
-        const r = half ? 5.5 : 3.2;
-        x = Math.cos(a) * r;
-        z = Math.sin(a) * r * (half ? 1 : -1);
-        y = i * 0.08;
-        break;
-      }
-      case 8: { // Ascending bridge to a peak (Celestial Plane)
-        const a = t * Math.PI * 2;
-        const r = 4 + Math.sin(t * Math.PI) * 2;
-        x = Math.cos(a) * r * 0.7;
-        z = Math.sin(a) * r * 0.7;
-        y = Math.sin(t * Math.PI) * 4 + i * 0.05;
+      case 8: { // Celestial Plane — ascending sinusoidal infinity trail
+        x = -8 + t * 16;
+        z = Math.sin(t * Math.PI * 3) * 3.2;
+        y = t * 5 + Math.sin(t * Math.PI * 6) * 0.4;
         break;
       }
     }
