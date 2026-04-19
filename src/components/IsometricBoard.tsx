@@ -723,6 +723,9 @@ interface MonsterPawnProps {
 
 function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRef, activeLift, monsterPosRef }: MonsterPawnProps) {
   const groupRef = useRef<THREE.Group>(null);
+  const bodyRef = useRef<THREE.Mesh>(null);
+  const leftFootRef = useRef<THREE.Mesh>(null);
+  const rightFootRef = useRef<THREE.Mesh>(null);
   const currentPos = useRef(pathPoints[position]?.clone() || new THREE.Vector3());
   const scheduledPosition = useRef(position);
   const queuedTiles = useRef<number[]>([]);
