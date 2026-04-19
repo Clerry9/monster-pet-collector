@@ -32,6 +32,7 @@ import { SeasonReward, formatTimeRemaining } from "@/data/seasons";
 import { SpecialPacks } from "@/components/SpecialPacks";
 import { RewardedAdButton } from "@/components/RewardedAdButton";
 import { StarPack } from "@/components/StarPack";
+import { AdBanner } from "@/components/AdBanner";
 import { SeasonHub } from "@/components/SeasonHub";
 import { useSeason } from "@/hooks/useSeason";
 import { useSeasonNotice } from "@/hooks/useSeasonNotice";
@@ -428,6 +429,9 @@ const Index = () => {
                 onUnlockTier={game.unlockDiceTier}
                 onSelectTier={game.setActiveDiceTier}
               />
+              <div className="flex justify-center pt-2">
+                <AdBanner />
+              </div>
             </motion.div>
           )}
 
