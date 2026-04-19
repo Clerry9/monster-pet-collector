@@ -14,18 +14,20 @@ interface MiniGameProps {
   onSpendRoll: () => void;
 }
 
-// 4x4 match-3-style: tap a tile, tap an adjacent tile to swap.
+// 5x5 match-3-style: tap a tile, tap an adjacent tile to swap.
 // Any horizontal/vertical run of 3+ matching emojis clears, scores, and
 // has a chance to drop the special symbol.
-const SIZE = 4;
-const ROUND_SECONDS = 30;
+const SIZE = 5;
+const ROUND_SECONDS = 45;
+const SYMBOL_DROP_RATE = 0.18; // chance a refilled tile becomes the special symbol
+const SCORE_BONUS_PER = 120;   // +1 symbol per N score
 
 type Cell = { id: number; emoji: string };
 
 function randomBoard(palette: string[], symbol: string, idStart = 0): Cell[] {
   const cells: Cell[] = [];
-  // Mix palette + occasional special symbol seeds
-  const pool = [...palette, ...palette, ...palette, symbol]; // symbol is rarer
+  // Weight pool toward special symbol (~14% of starting tiles)
+  const pool = [...palette, ...palette, ...palette, symbol, symbol];
   for (let i = 0; i < SIZE * SIZE; i++) {
     cells.push({ id: idStart + i, emoji: pool[Math.floor(Math.random() * pool.length)] });
   }
@@ -116,8 +118,8 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
       working = working.map((cell, i) => {
         if (!matched.has(i)) return cell;
         const newEmoji = season.miniGameTiles[Math.floor(Math.random() * season.miniGameTiles.length)];
-        // 8% chance dropped tile spawns the special symbol
-        const finalEmoji = Math.random() < 0.08 ? season.symbol : newEmoji;
+        // Higher chance dropped tile spawns the special symbol
+        const finalEmoji = Math.random() < SYMBOL_DROP_RATE ? season.symbol : newEmoji;
         idCounter.current += 1;
         return { id: idCounter.current, emoji: finalEmoji };
       });
@@ -162,8 +164,8 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
   };
 
   const symbolsEarned = useMemo(() => {
-    // Final reward: cleared symbols + score-based bonus (1 per 200 score)
-    return symbolsCollected + Math.floor(score / 200);
+    // Final reward: cleared symbols + score-based bonus
+    return symbolsCollected + Math.floor(score / SCORE_BONUS_PER);
   }, [symbolsCollected, score]);
 
   return (
@@ -226,9 +228,10 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
                 </motion.div>
               )}
               <div className="bg-cream/95 rounded-xl border-2 border-wood-dark p-3 text-wood-dark text-xs space-y-1">
-                <p>• 30 seconds, swap adjacent tiles to make matches.</p>
+                <p>• {ROUND_SECONDS} seconds, swap adjacent tiles to make matches.</p>
+                <p>• 5×5 board — bigger matches, more chances!</p>
                 <p>• Each cleared <span className="text-base align-middle">{season.symbol}</span> = 1 special symbol.</p>
-                <p>• Bonus: +1 symbol per 200 score.</p>
+                <p>• Bonus: +1 symbol per {SCORE_BONUS_PER} score.</p>
                 <p>• Costs <strong>{costRolls} roll</strong> to play.</p>
               </div>
               <motion.button
@@ -250,7 +253,7 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
                 <span>⚡ {score}</span>
                 <span className="flex items-center gap-1">{season.symbol} {symbolsCollected}</span>
               </div>
-              <div className="grid grid-cols-4 gap-1.5 bg-wood-dark/50 p-2 rounded-xl border-2 border-wood-dark">
+              <div className="grid grid-cols-5 gap-1.5 bg-wood-dark/50 p-2 rounded-xl border-2 border-wood-dark">
                 {cells.map((cell, idx) => (
                   <motion.button
                     key={cell.id}
