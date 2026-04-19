@@ -1,50 +1,41 @@
 
-## Goal
-Re-skin the game to match the chunky, warm cartoon-casino vibe of the reference image — without copying any specific characters or branded art. Keep all gameplay logic intact.
 
-## Visual direction (inspired, not copied)
-- **Palette swap**: dark neon → warm cream/wood. Cream background `#F4DCB0`, wood-brown panels `#8B4A24`, gold accents `#F5B324`, candy-red CTA `#E63946`.
-- **Chunky pill UI**: top stats (coins, gems, rolls) become big golden pill badges with thick brown borders, bold drop shadows, and "+" buttons on the right.
-- **Wooden stage frame**: wrap the game board in a wood-grain panel with a curved gold "MONSTER MASH" banner on top (replacing the plain text title) and small character cutouts peeking from the sides (use existing monster emojis/sprites — no copyrighted characters).
-- **Big red PRESS button**: replace the small dice button with a large circular red 3D button labelled "PRESS" sitting on a grey base. Caption underneath: "HOLD FOR AUTOSPIN" (already wired to the 2-sec hold logic).
-- **Side rails**: convert the tab bar into two vertical rails of square golden icon tiles (left + right of board) with little timer/badge counters — reuses existing tab targets (Monster, Cards, Shop, Collection, Spin, Daily).
-- **Energy/bet bar**: bet selector restyled as a glowing pink "energy" pill `120/120` with a "BET ×N" gold pill beside it.
-- **Typography**: drop horror font `Creepster`, switch display to a chunky rounded font (`Luckiest Guy` from Google Fonts) for that cartoon-casino feel; keep `Nunito` for body.
-- **Decorative bits**: subtle confetti specks, soft radial glow behind the board, gold sparkles around the PRESS button.
+## Plan: Leaderboard, Streak Saver, Camera Fly-by, Bigger Board, Side Rails & New Mini-Game
 
-## What changes (file-by-file)
-1. **`src/index.css`** — swap the `:root` palette to the warm cream/wood/gold tokens, import `Luckiest Guy`, add new utility classes: `.panel-wood`, `.pill-gold`, `.btn-press` (red 3D), `.icon-tile-gold`, `.banner-gold`.
-2. **`tailwind.config.ts`** — extend with `boxShadow.chunky` (hard offset shadow for the cartoon pop), wood/gold/cream named colors so we can use them directly.
-3. **`src/pages/Index.tsx`** — restructure layout: top stat-pill row (coins / gems-or-rolls / level), curved gold banner with title, board wrapped in wood panel, side icon rails replacing horizontal `GameTabs` on board view (keep horizontal tabs as fallback for narrow widths).
-4. **`src/components/CoinCounter.tsx`** — restyle as the gold pill with "+" button.
-5. **`src/components/GameTabs.tsx`** — add a `variant="rail"` mode rendering vertical golden square icon tiles with badges.
-6. **`src/components/GameBoard.tsx`** — replace the dice square with the round red `btn-press` (keep all hold/auto-roll logic untouched), restyle the result toast as a wood-framed pill.
-7. **`src/components/BetSelector.tsx`** — restyle as the pink energy pill + gold "BET ×N" pill.
-8. **`src/components/LevelProgressBar.tsx`** — restyle as a thick gold-bordered XP bar with the level badge on the left (matches the "5/5" badge in the reference).
-9. **`src/components/IsometricBoard.tsx`** — recolor the 3D scene tiles/lighting to the warm palette so it sits inside the wood frame naturally (no geometry changes).
+### 1. Season Leaderboard with Podium (Top Symbol Earners)
+- **DB migration**: add `season_leaderboard` view (or materialized query) — pull top 20 from `season_progress` where `season_id = current`, ordered by `symbols DESC`. Plus add a `display_name` column to `profiles` if missing (fallback to "Player ####").
+- **RLS**: leaderboard read = `true` for authenticated users (only exposes username + symbol count, no sensitive data).
+- **Component** `src/components/SeasonLeaderboard.tsx`: shows golden podium for top 3 (animated rise-in, crown on #1) and a scrollable list (4–20). Highlights current user's row.
+- Tab into `SeasonHub` as a new section ("LEADERBOARD") below the battle pass track, plus a small button at top-right of hero banner.
 
-## Out of scope (to keep this focused)
-- No new characters/sprites — we keep the existing monsters (`MonsterDisplay`, `MONSTERS` data) since copying the reference's specific characters would be IP infringement.
-- No gameplay/logic changes.
-- No app-store/Capacitor changes.
+### 2. Streak Saver Power-Up (Mini-Game)
+- New shop item in `MiniGame.tsx`: 💎 "Streak Saver" — costs 500 coins, extends combo window from 2s → 4s for one game.
+- Add a small button above the play board during `phase === "playing"`. Pulses gold when combo is active. Consumes from `game.coins` via prop callback.
+- Wire `onBuyStreakSaver: () => boolean` from `SeasonHub` → `Index.tsx`.
 
-## ASCII layout sketch
-```text
-┌──────────────────────────────────────────┐
-│  [LV 5] ━━ XP ━━━━     🪙 12,340  +     │
-│                                          │
-│  ╭── ⭐ MONSTER MASH ⭐ ───╮              │
-│  │                          │   [icon]   │
-│ [icon]   3D BOARD INSIDE    │   [icon]   │
-│ [icon]    WOOD FRAME        │   [icon]   │
-│  │                          │   [icon]   │
-│  ╰──────────────────────────╯            │
-│                                          │
-│      ⚡ 120/120     BET ×10              │
-│                                          │
-│            ╭───────╮                     │
-│            │ PRESS │  ← big red button   │
-│            ╰───────╯                     │
-│         hold for autospin                │
-└──────────────────────────────────────────┘
-```
+### 3. Larger Game Window + Side Rails (image-inspired layout)
+- `IsometricBoard` height: `h-[400px]` → `h-[520px]` (mobile-friendly, using `min(70vh, 560px)`).
+- New `src/components/SideRails.tsx`: two vertical floating columns (left/right of the board on wider viewports, collapsible drawers on narrow). Show stacked icon-tiles for: Mini-Game, Daily Reward, Spin Wheel, Specials, Quests, Leaderboard, with countdown timers under each (mimicking the screenshot). Each opens its respective tab/modal.
+- Restructure `Index.tsx` board view: rails-left | board-center | rails-right. On <420px width, render rails as scrollable horizontal strips above/below the board.
+- Move bottom controls (BET, PRESS dice button) into a fixed lower zone, matching uploaded image's central blue dice button.
+
+### 4. Camera Fly-by Animation (Island Hop)
+- In `IsometricBoardScene`, replace the static `OrbitControls.target` with a `CameraRig` component using `useFrame` that smoothly lerps both `camera.position` and `lookAt` between `pathPoints[prevPos]` → `pathPoints[position]` over ~0.6s when position changes (cinematic swoop). 
+- Adds slight orbit arc (Y-axis offset peak) for fly-by feel. `OrbitControls` re-engages once arrival settles (gated by a `flying` ref).
+
+### 5. New Mini-Game Variant: "Jack-in-the-Box" Puzzle Piece Hunt
+- A second mini-game type (rotates with seasons or selectable). `src/components/MiniGameJack.tsx`: 3×3 grid of face-down puzzle pieces; tap to flip, find pairs of season symbols hidden behind. Each pair = 2 symbols. 8 flips total. Themed splash screen ("FIND THE 🎵 BEHIND PUZZLE PIECES") matching the uploaded reference.
+- `SeasonHub` shows two play buttons: "Match-3" (existing) and "Jack-in-the-Box" (new).
+
+### 6. End-to-End Test
+After implementation runs: the user manually verifies on mobile viewport per the test checklist (clear localStorage → coachmarks → rotation modal → Play Now → NEW badge clears → countdown pill → 3 rolls → season burst → mini-game combo → Buy Pass checkout opens).
+
+### Files to create/edit
+**Create**: `SeasonLeaderboard.tsx`, `SideRails.tsx`, `MiniGameJack.tsx`, migration for leaderboard read policy + `display_name`.
+**Edit**: `IsometricBoard.tsx` (camera rig, taller canvas), `MiniGame.tsx` (streak saver), `SeasonHub.tsx` (leaderboard slot, second mini-game), `Index.tsx` (side rails layout, streak-saver wiring).
+
+### Notes / Trade-offs
+- The full Coin Master rail of 12+ live-event icons is decorative-only in the screenshot; we'll use 6 functional ones tied to existing features.
+- Camera fly-by disables `autoRotate` during transit to avoid spin conflicts.
+- Leaderboard is read-only & anonymous-friendly: guest users see "Sign in to appear on the board" CTA in their own row slot.
+
