@@ -8,7 +8,6 @@ interface LevelUpCelebrationProps {
   onComplete: () => void;
 }
 
-// Generate confetti particles
 function generateConfetti(count: number) {
   const colors = [
     "hsl(45, 93%, 47%)",
@@ -33,12 +32,12 @@ function generateConfetti(count: number) {
 }
 
 export function LevelUpCelebration({ level, onComplete }: LevelUpCelebrationProps) {
-  const [confetti] = useState(() => generateConfetti(50));
+  const [confetti] = useState(() => generateConfetti(60));
 
   useEffect(() => {
     if (!level) return;
     sfxLevelUp();
-    const timer = setTimeout(onComplete, 3500);
+    const timer = setTimeout(onComplete, 4000);
     return () => clearTimeout(timer);
   }, [level, onComplete]);
 
@@ -46,15 +45,59 @@ export function LevelUpCelebration({ level, onComplete }: LevelUpCelebrationProp
     <AnimatePresence>
       {level && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto overflow-hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
           onClick={onComplete}
+          role="dialog"
+          aria-label={`Level ${level.id} ${level.name} reached`}
         >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60" />
+          {/* Full-screen themed splash background */}
+          <motion.div
+            className={`absolute inset-0 bg-gradient-to-br ${level.bgGradient}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ backgroundColor: "hsl(var(--background))" }}
+          />
+          <div className="absolute inset-0 bg-background/85" />
+
+          {/* Curtain wipe in */}
+          <motion.div
+            className="absolute inset-0 origin-top"
+            style={{ background: `linear-gradient(180deg, hsl(${level.accentColor} / 0.35), transparent 60%)` }}
+            initial={{ scaleY: 0 }}
+            animate={{ scaleY: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          />
+
+          {/* Radial glow */}
+          <motion.div
+            className="absolute inset-0"
+            style={{ background: `radial-gradient(circle at 50% 50%, hsl(${level.accentColor} / 0.35), transparent 60%)` }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: [0, 1, 0.7], scale: [0.5, 1.2, 1] }}
+            transition={{ duration: 1.2 }}
+          />
+
+          {/* Sun rays */}
+          {Array.from({ length: 12 }).map((_, i) => (
+            <motion.div
+              key={`ray-${i}`}
+              className="absolute top-1/2 left-1/2 origin-left"
+              style={{
+                width: "60vmax",
+                height: "8px",
+                background: `linear-gradient(90deg, hsl(${level.accentColor} / 0.5), transparent)`,
+                transform: `rotate(${i * 30}deg)`,
+              }}
+              initial={{ opacity: 0, scaleX: 0 }}
+              animate={{ opacity: [0, 0.6, 0.3], scaleX: 1 }}
+              transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
+            />
+          ))}
 
           {/* Confetti */}
           {confetti.map((p) => (
@@ -75,75 +118,77 @@ export function LevelUpCelebration({ level, onComplete }: LevelUpCelebrationProp
                 rotate: p.rotation + 720,
                 x: p.drift,
               }}
-              transition={{
-                duration: p.duration,
-                delay: p.delay,
-                ease: "easeIn",
-              }}
+              transition={{ duration: p.duration, delay: p.delay, ease: "easeIn" }}
             />
           ))}
 
           {/* Center card */}
           <motion.div
-            className="relative z-10 flex flex-col items-center gap-3 px-8 py-6 rounded-2xl border border-primary/30 bg-card/95 backdrop-blur-md shadow-2xl"
-            initial={{ scale: 0.3, opacity: 0, y: 40 }}
+            className="relative z-10 flex flex-col items-center gap-4 px-10 py-8 rounded-3xl border-2 border-primary/30 bg-card/95 backdrop-blur-md shadow-2xl mx-6"
+            initial={{ scale: 0.3, opacity: 0, y: 60 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.5, opacity: 0, y: -30 }}
-            transition={{ type: "spring", damping: 12, stiffness: 200 }}
+            transition={{ type: "spring", damping: 12, stiffness: 200, delay: 0.2 }}
           >
-            {/* Glow ring */}
             <motion.div
-              className="absolute inset-0 rounded-2xl"
-              style={{
-                boxShadow: `0 0 40px hsl(${level.accentColor} / 0.4), 0 0 80px hsl(${level.accentColor} / 0.2)`,
-              }}
+              className="absolute inset-0 rounded-3xl"
+              style={{ boxShadow: `0 0 60px hsl(${level.accentColor} / 0.5), 0 0 120px hsl(${level.accentColor} / 0.25)` }}
               animate={{ opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             />
 
+            <motion.div
+              className="font-display text-xs tracking-[0.4em] text-muted-foreground uppercase"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              Now Entering
+            </motion.div>
+
             <motion.span
-              className="text-5xl"
-              animate={{ scale: [1, 1.3, 1], rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 0.8, delay: 0.3 }}
+              className="text-7xl drop-shadow-lg"
+              animate={{ scale: [1, 1.3, 1], rotate: [0, 12, -12, 0] }}
+              transition={{ duration: 1, delay: 0.5 }}
             >
               {level.emoji}
             </motion.span>
 
             <motion.div
-              className="font-display text-lg text-accent tracking-wide uppercase"
+              className="font-display text-3xl text-foreground text-center"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              Level Up!
-            </motion.div>
-
-            <motion.div
-              className="font-display text-2xl text-foreground"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.6 }}
               style={{ color: `hsl(${level.accentColor})` }}
             >
-              Lv.{level.id} {level.name}
+              {level.name}
             </motion.div>
 
             <motion.div
-              className="text-xs font-body text-muted-foreground italic text-center max-w-[200px]"
+              className="font-display text-base text-accent tracking-widest uppercase"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.75 }}
+            >
+              Level {level.id}
+            </motion.div>
+
+            <motion.div
+              className="text-sm font-body text-muted-foreground italic text-center max-w-[260px]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.9 }}
             >
               {level.tileBonus}
             </motion.div>
 
             <motion.div
-              className="mt-1 text-[10px] text-muted-foreground/60 font-body"
+              className="mt-2 text-[10px] text-muted-foreground/60 font-body"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
+              transition={{ delay: 1.4 }}
             >
-              Tap to continue
+              Tap anywhere to continue
             </motion.div>
           </motion.div>
         </motion.div>
