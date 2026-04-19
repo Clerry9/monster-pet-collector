@@ -711,6 +711,7 @@ function MonsterTrail({ positions, theme }: { positions: THREE.Vector3[]; theme:
 // --- Monster Pawn ---
 
 interface MonsterPawnProps {
+  monsterPosRef?: React.MutableRefObject<THREE.Vector3>;
   pathPoints: THREE.Vector3[];
   position: number;
   monster: Monster;
@@ -719,7 +720,7 @@ interface MonsterPawnProps {
   activeLift: number;
 }
 
-function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRef, activeLift }: MonsterPawnProps) {
+function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRef, activeLift, monsterPosRef }: MonsterPawnProps) {
   const groupRef = useRef<THREE.Group>(null);
   const currentPos = useRef(pathPoints[position]?.clone() || new THREE.Vector3());
   const scheduledPosition = useRef(position);
@@ -806,6 +807,9 @@ function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRe
     groupRef.current.rotation.z = hopRotZ;
 
     trailPosRef.current = [new THREE.Vector3(currentPos.current.x, currentPos.current.y + liftRef.current, currentPos.current.z)];
+    if (monsterPosRef) {
+      monsterPosRef.current.set(currentPos.current.x, currentPos.current.y + liftRef.current, currentPos.current.z);
+    }
   });
 
   return (
@@ -934,20 +938,21 @@ function applySeasonTint(theme: LevelTheme3D, seasonAccent?: string, seasonGlow?
   };
 }
 
-// Camera rig — chase camera that tracks beside the monster as it moves between tiles.
-function CameraRig({ targetPos, isMoving }: { targetPos: THREE.Vector3; isMoving: boolean }) {
-  const lerpedTarget = useRef(targetPos.clone());
+// Camera rig — chase camera that tracks the monster's actual interpolated position each frame.
+function CameraRig({ monsterPosRef, isMoving }: { monsterPosRef: React.MutableRefObject<THREE.Vector3>; isMoving: boolean }) {
+  const lerpedTarget = useRef(monsterPosRef.current.clone());
   useFrame((state, delta) => {
-    // Always smoothly track the target (monster's tile)
-    const speed = isMoving ? Math.min(1, delta * 6) : Math.min(1, delta * 2.2);
-    lerpedTarget.current.lerp(targetPos, speed);
-    // Over-the-shoulder offset: sit beside and slightly above the monster
+    // Read the monster's live position every frame (not just on tile change)
+    const target = monsterPosRef.current;
+    const speed = isMoving ? Math.min(1, delta * 7) : Math.min(1, delta * 2.5);
+    lerpedTarget.current.lerp(target, speed);
+    // Beside-and-above offset, like an over-the-shoulder chase cam
     const desiredCam = new THREE.Vector3(
-      lerpedTarget.current.x + 5,
-      lerpedTarget.current.y + 4,
-      lerpedTarget.current.z + 5
+      lerpedTarget.current.x + 4.5,
+      lerpedTarget.current.y + 3.5,
+      lerpedTarget.current.z + 4.5
     );
-    state.camera.position.lerp(desiredCam, isMoving ? Math.min(1, delta * 4) : Math.min(1, delta * 1.5));
+    state.camera.position.lerp(desiredCam, isMoving ? Math.min(1, delta * 5) : Math.min(1, delta * 1.8));
     state.camera.lookAt(lerpedTarget.current);
   });
   return null;
@@ -957,11 +962,8 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
   const pathPoints = useMemo(() => generatePath(BOARD_TILES.length), []);
   const currentTilePos = pathPoints[position] || pathPoints[0];
   const trailPosRef = useRef<THREE.Vector3[]>([]);
+  const monsterPosRef = useRef<THREE.Vector3>(new THREE.Vector3(currentTilePos.x, currentTilePos.y + 1, currentTilePos.z));
   const theme = useMemo(() => applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow), [levelId, seasonAccent, seasonGlow]);
-  const targetVec = useMemo(
-    () => new THREE.Vector3(currentTilePos.x, currentTilePos.y + 1 + ACTIVE_LIFT_VALUE * 0.5, currentTilePos.z),
-    [currentTilePos.x, currentTilePos.y, currentTilePos.z]
-  );
 
   return (
     <>
@@ -979,15 +981,14 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
       ))}
 
       <MonsterTrail positions={trailPosRef.current} theme={theme} />
-      <MonsterPawn pathPoints={pathPoints} position={position} monster={monster} movementResult={movementResult} trailPosRef={trailPosRef} activeLift={ACTIVE_LIFT_VALUE} />
+      <MonsterPawn pathPoints={pathPoints} position={position} monster={monster} movementResult={movementResult} trailPosRef={trailPosRef} activeLift={ACTIVE_LIFT_VALUE} monsterPosRef={monsterPosRef} />
 
-      <CameraRig targetPos={targetVec} isMoving={isMoving} />
+      <CameraRig monsterPosRef={monsterPosRef} isMoving={isMoving} />
       <OrbitControls
-        target={[targetVec.x, targetVec.y, targetVec.z]}
         minDistance={3}
-        maxDistance={12}
+        maxDistance={14}
         minPolarAngle={Math.PI / 6}
-        maxPolarAngle={Math.PI / 2.5}
+        maxPolarAngle={Math.PI / 2.4}
         enablePan={false}
         autoRotate={false}
         enabled={!isMoving}

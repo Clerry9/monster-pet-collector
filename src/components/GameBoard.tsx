@@ -67,12 +67,14 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   const [isAutoRolling, setIsAutoRolling] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
   const [seasonBurstKey, setSeasonBurstKey] = useState(0);
+  const [showResult, setShowResult] = useState(false);
   const rollCounterRef = useRef(0);
   const monsterControls = useAnimation();
   const prevPositionRef = useRef(position);
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdRafRef = useRef<number | null>(null);
   const autoRollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRollingRef = useRef(false);
   const rollsRef = useRef(rolls);
   const isAutoRollingRef = useRef(false);
@@ -140,9 +142,17 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
     }
   }, [position, monsterControls]);
 
-  // Trigger effects when landing on a tile
+  // Trigger effects + show result banner AFTER the monster lands
   useEffect(() => {
-    if (lastResult && !isRolling) {
+    if (!lastResult || isRolling) {
+      setShowResult(false);
+      return;
+    }
+    // Delay banner until monster's hop animation finishes (~steps × 110ms + 250ms settle)
+    const landDelay = Math.min(lastResult.steps, 12) * 110 + 250;
+    if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
+    resultTimerRef.current = setTimeout(() => {
+      setShowResult(true);
       if (lastResult.tile.type === "skull") {
         triggerSkullEffect();
       } else if (lastResult.tile.value > 0) {
@@ -153,7 +163,8 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       if (seasonSymbol && rollCounterRef.current % 3 === 0) {
         setSeasonBurstKey((k) => k + 1);
       }
-    }
+    }, landDelay);
+    return () => { if (resultTimerRef.current) clearTimeout(resultTimerRef.current); };
   }, [lastResult, isRolling, seasonSymbol]);
 
   const performRoll = () => {
@@ -272,9 +283,9 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
         </AnimatePresence>
       </div>
 
-      {/* Result display */}
+      {/* Result display — only after monster lands */}
       <AnimatePresence>
-        {lastResult && !isRolling && (
+        {lastResult && showResult && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -333,6 +344,8 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
                 >
                   🎲
                 </motion.span>
+              ) : isAutoRolling ? (
+                <span className="leading-none text-candy-red">STOP</span>
               ) : (
                 <span className="leading-none">PRESS</span>
               )}
