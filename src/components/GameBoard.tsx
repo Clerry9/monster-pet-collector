@@ -303,18 +303,6 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
           </motion.div>
         )}
       </AnimatePresence>
-            role="status"
-            aria-live="polite"
-            aria-label={`Moved ${lastResult.steps} steps. ${lastResult.tile.value >= 0 ? "Gained" : "Lost"} ${Math.abs(lastResult.tile.value)} coins.`}
-          >
-            <span className="text-lg" aria-hidden="true">{TILE_EMOJIS[lastResult.tile.type]}</span>
-            <span className="font-display text-sm">+{lastResult.steps}</span>
-            <span className={`font-display ${lastResult.tile.value >= 0 ? "text-wood-dark" : "text-destructive"}`}>
-              {lastResult.tile.value >= 0 ? `+${lastResult.tile.value}` : lastResult.tile.value} 🪙
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* PRESS button */}
       <div className="flex flex-col items-center gap-2">
