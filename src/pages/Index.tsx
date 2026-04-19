@@ -31,6 +31,8 @@ import { SeasonReward } from "@/data/seasons";
 import { SpecialPacks } from "@/components/SpecialPacks";
 import { SeasonHub } from "@/components/SeasonHub";
 import { useSeason } from "@/hooks/useSeason";
+import { useSeasonNotice } from "@/hooks/useSeasonNotice";
+import { SeasonRotationModal } from "@/components/SeasonRotationModal";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season";
 
@@ -232,7 +234,11 @@ const Index = () => {
       </div>
 
       <div data-tutorial="tabs">
-        <GameTabs active={tab} onTabChange={setTab} />
+        <GameTabs
+          active={tab}
+          onTabChange={setTab}
+          newTabs={{ season: seasonNotice.isNew }}
+        />
       </div>
 
       <CardReveal card={drawnCard} onComplete={() => setDrawnCard(null)} />
@@ -260,6 +266,8 @@ const Index = () => {
                   onRollDice={handleRollDice}
                   activeDiceMax={game.activeDiceTierData.maxRoll}
                   levelId={getLevelForXp(game.xp).id}
+                  seasonAccent={`hsl(${season.season.palette.accent})`}
+                  seasonGlow={`hsl(${season.season.palette.glow})`}
                 />
               </div>
               <BetSelector
