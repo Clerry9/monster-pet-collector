@@ -75,6 +75,31 @@ const Index = () => {
     }
   };
 
+  // Mini-game costs 1 roll to play
+  const handlePlayMiniGame = (): boolean => {
+    if (game.rolls < 1) return false;
+    game.addRolls(-1);
+    return true;
+  };
+
+  // Battle pass tier claim — applies the reward to game state
+  const handleClaimTier = (tier: number, reward: import("@/data/seasons").SeasonReward) => {
+    const r = reward.premium ?? reward.free;
+    if (!r) return;
+    if (r.type === "coins") game.addCoins(r.amount ?? 0);
+    else if (r.type === "rolls") game.addRolls(r.amount ?? 0);
+    else if (r.type === "symbols") season.addSymbols(r.amount ?? 0);
+    else if (r.type === "card" && r.id) {
+      game.grantCard(r.id);
+      season.markCardUnlocked(r.id);
+      const card = (await import("@/data/cards")).ALL_CARDS.find((c) => c.id === r.id);
+      if (card) setDrawnCard(card);
+    } else if (r.type === "monster" && r.id) game.grantMonster(r.id);
+    else if (r.type === "dice" && r.id) game.grantDiceTier(r.id);
+    season.claimTier(tier);
+    toast.success(`Claimed: ${r.label}`);
+  };
+
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-3 py-4 overflow-hidden">
       <LinkAccount open={showLink} onClose={() => setShowLink(false)} />
