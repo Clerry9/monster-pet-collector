@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, X, Trophy, Lightbulb } from "lucide-react";
+import { Play, X, Trophy, Lightbulb, Zap } from "lucide-react";
 import { Season } from "@/data/seasons";
 import { sfxCoinGain, sfxLevelUp } from "@/lib/sfx";
 import { useTutorial } from "@/hooks/useTutorial";
@@ -12,7 +12,13 @@ interface MiniGameProps {
   costRolls: number;
   hasRolls: boolean;
   onSpendRoll: () => void;
+  coins: number;
+  onBuyStreakSaver: () => boolean;
 }
+
+const STREAK_SAVER_COST = 500;
+const STREAK_SAVER_WINDOW_MS = 4000;
+const DEFAULT_WINDOW_MS = 2000;
 
 // 5x5 match-3-style: tap a tile, tap an adjacent tile to swap.
 // Any horizontal/vertical run of 3+ matching emojis clears, scores, and
@@ -65,8 +71,9 @@ function findMatches(cells: Cell[]): Set<number> {
   return matched;
 }
 
-export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpendRoll }: MiniGameProps) {
+export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpendRoll, coins, onBuyStreakSaver }: MiniGameProps) {
   const miniTutorial = useTutorial("minigame");
+  const [streakSaver, setStreakSaver] = useState(false);
   const [phase, setPhase] = useState<"intro" | "playing" | "result">("intro");
   const [cells, setCells] = useState<Cell[]>([]);
   const [score, setScore] = useState(0);
@@ -112,6 +119,7 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
     setCombo(0);
     setComboFlash(null);
     lastMatchAtRef.current = 0;
+    setStreakSaver(false);
     setPhase("playing");
   };
 
@@ -141,7 +149,8 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
     if (total > 0) {
       // --- Streak combo: chained matches within 2s award bonus symbols ---
       const now = performance.now();
-      const isChain = now - lastMatchAtRef.current < 2000;
+      const chainWindow = streakSaver ? STREAK_SAVER_WINDOW_MS : DEFAULT_WINDOW_MS;
+      const isChain = now - lastMatchAtRef.current < chainWindow;
       const newCombo = isChain ? combo + 1 : 1;
       setCombo(newCombo);
       lastMatchAtRef.current = now;
@@ -161,7 +170,7 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
 
       // Reset combo after 2s of no chains
       if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
-      comboTimerRef.current = setTimeout(() => setCombo(0), 2100);
+      comboTimerRef.current = setTimeout(() => setCombo(0), chainWindow + 100);
     }
     return working;
   };
@@ -287,6 +296,25 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
                 <span>⚡ {score}</span>
                 <span className="flex items-center gap-1">{season.symbol} {symbolsCollected}</span>
               </div>
+              <motion.button
+                whileTap={{ scale: 0.94 }}
+                onClick={() => {
+                  if (streakSaver) return;
+                  if (coins < STREAK_SAVER_COST) return;
+                  if (onBuyStreakSaver()) setStreakSaver(true);
+                }}
+                disabled={streakSaver || coins < STREAK_SAVER_COST}
+                animate={combo > 1 && streakSaver ? { boxShadow: ["0 0 0 0 hsl(var(--gold)/0)", "0 0 0 4px hsl(var(--gold)/0.6)", "0 0 0 0 hsl(var(--gold)/0)"] } : undefined}
+                transition={{ duration: 1.2, repeat: Infinity }}
+                className={`w-full rounded-full border-2 border-wood-dark px-3 py-1.5 flex items-center justify-center gap-1.5 text-[11px] font-display ${
+                  streakSaver
+                    ? "bg-gradient-to-r from-gold to-candy-red text-cream-light"
+                    : "bg-cream/95 text-wood-dark disabled:opacity-50"
+                }`}
+              >
+                <Zap size={12} />
+                {streakSaver ? "STREAK SAVER ACTIVE — 4s combo window" : `STREAK SAVER — 500 🪙 (extends combo to 4s)`}
+              </motion.button>
               <div className="relative grid grid-cols-5 gap-1.5 bg-wood-dark/50 p-2 rounded-xl border-2 border-wood-dark">
                 {cells.map((cell, idx) => (
                   <motion.button
@@ -329,7 +357,7 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
               </div>
               {combo > 1 && (
                 <div className="text-center text-[10px] font-display text-gold">
-                  STREAK ×{combo} — chain matches within 2s for bonus {season.symbol}
+                  STREAK ×{combo} — chain matches within {streakSaver ? "4s" : "2s"} for bonus {season.symbol}
                 </div>
               )}
             </motion.div>

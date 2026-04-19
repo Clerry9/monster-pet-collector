@@ -15,6 +15,7 @@ import { CardCollection } from "@/components/CardCollection";
 import { SpinWheel } from "@/components/SpinWheel";
 import { DiceShop } from "@/components/DiceShop";
 import { GameTabs } from "@/components/GameTabs";
+import { SideRails } from "@/components/SideRails";
 import { DailyReward } from "@/components/DailyReward";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { LevelProgressBar } from "@/components/LevelProgressBar";
@@ -145,6 +146,17 @@ const Index = () => {
     return true;
   };
 
+  // Streak saver power-up: 500 coins → extends mini-game combo window for one game
+  const handleBuyStreakSaver = (): boolean => {
+    if (game.coins < 500) {
+      toast.error("Not enough coins (need 500)");
+      return false;
+    }
+    game.addCoins(-500);
+    toast.success("⚡ Streak Saver active!", { description: "Combo window extended to 4s" });
+    return true;
+  };
+
   // Battle pass tier claim — applies the reward to game state
   const handleClaimTier = (tier: number, reward: SeasonReward) => {
     const r = reward.premium ?? reward.free;
@@ -267,10 +279,20 @@ const Index = () => {
               className="w-full flex flex-col items-center gap-3"
             >
               <div
-                className="panel-wood p-3 w-full"
+                className="panel-wood p-3 w-full relative"
                 data-level={getLevelForXp(game.xp).id}
                 data-tutorial="board"
               >
+                <SideRails
+                  msRemaining={season.msRemaining}
+                  newEvent={seasonNotice.isNew}
+                  onOpenSeason={() => setTab("season")}
+                  onOpenSpin={() => setTab("spin")}
+                  onOpenDaily={daily.openModal}
+                  onOpenSpecials={() => setTab("specials")}
+                  onOpenCollection={() => setTab("collection")}
+                  onOpenCards={() => setTab("cards")}
+                />
                 <GameBoard
                   position={game.position}
                   monster={game.activeMonsterData}
@@ -398,9 +420,11 @@ const Index = () => {
                 progress={season.progress}
                 msRemaining={season.msRemaining}
                 rolls={game.rolls}
+                coins={game.coins}
                 onPlayMiniGame={handlePlayMiniGame}
                 onAwardSymbols={season.addSymbols}
                 onClaimTier={handleClaimTier}
+                onBuyStreakSaver={handleBuyStreakSaver}
               />
             </motion.div>
           )}

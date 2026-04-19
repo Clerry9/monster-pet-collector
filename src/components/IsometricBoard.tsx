@@ -934,11 +934,50 @@ function applySeasonTint(theme: LevelTheme3D, seasonAccent?: string, seasonGlow?
   };
 }
 
+// Cinematic camera rig — smoothly fly between island viewpoints when position changes.
+function CameraRig({ targetPos, flying }: { targetPos: THREE.Vector3; flying: React.MutableRefObject<boolean> }) {
+  const lerpedTarget = useRef(targetPos.clone());
+  const prevTarget = useRef(targetPos.clone());
+  const transitionT = useRef(1);
+
+  useEffect(() => {
+    prevTarget.current.copy(lerpedTarget.current);
+    transitionT.current = 0;
+    flying.current = true;
+  }, [targetPos.x, targetPos.y, targetPos.z, flying]);
+
+  useFrame((state, delta) => {
+    if (transitionT.current < 1) {
+      transitionT.current = Math.min(1, transitionT.current + delta / 0.6);
+      const t = THREE.MathUtils.smootherstep(transitionT.current, 0, 1);
+      lerpedTarget.current.lerpVectors(prevTarget.current, targetPos, t);
+      // arc up at midpoint for fly-by feel
+      const arcY = Math.sin(t * Math.PI) * 0.6;
+      const desiredCam = new THREE.Vector3(
+        lerpedTarget.current.x + 6,
+        lerpedTarget.current.y + 5 + arcY,
+        lerpedTarget.current.z + 6
+      );
+      state.camera.position.lerp(desiredCam, 0.12);
+      state.camera.lookAt(lerpedTarget.current);
+      if (transitionT.current >= 1) flying.current = false;
+    } else {
+      lerpedTarget.current.lerp(targetPos, 0.08);
+    }
+  });
+  return null;
+}
+
 function IsometricBoardScene({ position, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string }) {
   const pathPoints = useMemo(() => generatePath(BOARD_TILES.length), []);
   const currentTilePos = pathPoints[position] || pathPoints[0];
   const trailPosRef = useRef<THREE.Vector3[]>([]);
   const theme = useMemo(() => applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow), [levelId, seasonAccent, seasonGlow]);
+  const flyingRef = useRef(false);
+  const targetVec = useMemo(
+    () => new THREE.Vector3(currentTilePos.x, currentTilePos.y + 1 + ACTIVE_LIFT_VALUE * 0.5, currentTilePos.z),
+    [currentTilePos.x, currentTilePos.y, currentTilePos.z]
+  );
 
   return (
     <>
@@ -958,8 +997,9 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
       <MonsterTrail positions={trailPosRef.current} theme={theme} />
       <MonsterPawn pathPoints={pathPoints} position={position} monster={monster} movementResult={movementResult} trailPosRef={trailPosRef} activeLift={ACTIVE_LIFT_VALUE} />
 
+      <CameraRig targetPos={targetVec} flying={flyingRef} />
       <OrbitControls
-        target={[currentTilePos.x, currentTilePos.y + 1 + ACTIVE_LIFT_VALUE * 0.5, currentTilePos.z]}
+        target={[targetVec.x, targetVec.y, targetVec.z]}
         minDistance={3}
         maxDistance={12}
         minPolarAngle={Math.PI / 6}
@@ -967,6 +1007,7 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
         enablePan={false}
         autoRotate={!isMoving}
         autoRotateSpeed={0.3}
+        enabled={!isMoving}
       />
     </>
   );
@@ -975,7 +1016,12 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
 export function IsometricBoard({ position, monster, isMoving, movementResult, levelId = 1, seasonAccent, seasonGlow }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId?: number; seasonAccent?: string; seasonGlow?: string }) {
   const theme = applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow);
   return (
-    <div className="w-full h-[400px] rounded-2xl overflow-hidden border-4 border-wood-dark bg-cream shadow-chunky-sm" role="region" aria-label="3D Game board">
+    <div
+      className="w-full rounded-2xl overflow-hidden border-4 border-wood-dark bg-cream shadow-chunky-sm"
+      style={{ height: "min(70vh, 560px)", minHeight: 380 }}
+      role="region"
+      aria-label="3D Game board"
+    >
       <Canvas shadows camera={{ position: [6, 5, 6], fov: 45, near: 0.1, far: 100 }} gl={{ antialias: true, alpha: false }}>
         <color attach="background" args={[theme.bg]} />
         <fog attach="fog" args={[theme.fog, 12, 28]} />
