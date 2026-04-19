@@ -17,11 +17,14 @@ interface SeasonHubProps {
   rolls: number;
   coins: number;
   islandStars?: number;
+  playerLevel?: number;
   onPlayMiniGame: () => boolean;
   onAwardSymbols: (amount: number) => number;
   onAwardStars?: (amount: number) => void;
   onClaimTier: (tier: number, reward: SeasonReward) => void;
   onBuyStreakSaver: () => boolean;
+  onAddCoins?: (n: number) => void;
+  onSpendCoins?: (n: number) => boolean;
 }
 
 const MINI_GAME_COST = 1;
@@ -33,11 +36,14 @@ export function SeasonHub({
   rolls,
   coins,
   islandStars = 0,
+  playerLevel = 1,
   onPlayMiniGame,
   onAwardSymbols,
   onAwardStars,
   onClaimTier,
   onBuyStreakSaver,
+  onAddCoins,
+  onSpendCoins,
 }: SeasonHubProps) {
   const { user } = useAuth();
   const { openCheckout, loading } = usePaddleCheckout();
@@ -235,6 +241,9 @@ export function SeasonHub({
             onFinish={handleMiniGameFinish}
             onClose={() => setMiniGameOpen(false)}
             onBuyStreakSaver={onBuyStreakSaver}
+            playerLevel={playerLevel}
+            onAddCoins={onAddCoins}
+            onSpendCoins={onSpendCoins}
           />
         )}
         {jackGameOpen && (
