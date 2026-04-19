@@ -8,6 +8,8 @@ interface GameTabsProps {
   variant?: "bar" | "rail";
   /** Set of tab ids that should display a "NEW" badge. */
   newTabs?: Partial<Record<Tab, boolean>>;
+  /** Optional countdown labels shown next to the NEW badge per tab. */
+  countdowns?: Partial<Record<Tab, string>>;
 }
 
 const tabs: { id: Tab; label: string; emoji: string }[] = [
@@ -21,13 +23,14 @@ const tabs: { id: Tab; label: string; emoji: string }[] = [
   { id: "spin", label: "Spin", emoji: "🎰" },
 ];
 
-export function GameTabs({ active, onTabChange, variant = "bar", newTabs }: GameTabsProps) {
+export function GameTabs({ active, onTabChange, variant = "bar", newTabs, countdowns }: GameTabsProps) {
   if (variant === "rail") {
     return (
       <div className="flex flex-col gap-2" role="tablist" aria-label="Game sections">
         {tabs.map((tab) => {
           const isActive = active === tab.id;
           const isNew = !!newTabs?.[tab.id];
+          const countdown = countdowns?.[tab.id];
           return (
             <button
               key={tab.id}
@@ -42,6 +45,7 @@ export function GameTabs({ active, onTabChange, variant = "bar", newTabs }: Game
               <span className="text-xl leading-none" aria-hidden="true">{tab.emoji}</span>
               <span className="mt-0.5">{tab.label}</span>
               {isNew && <NewBadge />}
+              {countdown && <CountdownPill label={countdown} />}
             </button>
           );
         })}
@@ -57,6 +61,7 @@ export function GameTabs({ active, onTabChange, variant = "bar", newTabs }: Game
     >
       {tabs.map((tab) => {
         const isNew = !!newTabs?.[tab.id];
+        const countdown = countdowns?.[tab.id];
         return (
           <button
             key={tab.id}
@@ -80,6 +85,7 @@ export function GameTabs({ active, onTabChange, variant = "bar", newTabs }: Game
               <span aria-hidden="true">{tab.emoji} </span>{tab.label}
             </span>
             {isNew && <NewBadge />}
+            {countdown && <CountdownPill label={countdown} />}
           </button>
         );
       })}
@@ -97,6 +103,19 @@ function NewBadge() {
       aria-label="New"
     >
       NEW
+    </motion.span>
+  );
+}
+
+function CountdownPill({ label }: { label: string }) {
+  return (
+    <motion.span
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 px-1.5 py-[1px] rounded-full bg-wood-dark text-gold text-[8px] font-display tracking-wider border border-gold/60 shadow-md pointer-events-none whitespace-nowrap"
+      aria-label={`Time remaining: ${label}`}
+    >
+      ⏱ {label}
     </motion.span>
   );
 }
