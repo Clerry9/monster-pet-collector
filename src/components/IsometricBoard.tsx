@@ -922,11 +922,23 @@ function FloatingParticles({ theme }: { theme: LevelTheme3D }) {
 
 const ACTIVE_LIFT_VALUE = 0.85;
 
-function IsometricBoardScene({ position, monster, isMoving, movementResult, levelId }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number }) {
+function applySeasonTint(theme: LevelTheme3D, seasonAccent?: string, seasonGlow?: string): LevelTheme3D {
+  if (!seasonAccent && !seasonGlow) return theme;
+  return {
+    ...theme,
+    ringColor: seasonAccent ?? theme.ringColor,
+    oceanEmissive: seasonAccent ?? theme.oceanEmissive,
+    emissive: seasonGlow ?? seasonAccent ?? theme.emissive,
+    particle: seasonGlow ?? theme.particle,
+    directional: seasonGlow ?? theme.directional,
+  };
+}
+
+function IsometricBoardScene({ position, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string }) {
   const pathPoints = useMemo(() => generatePath(BOARD_TILES.length), []);
   const currentTilePos = pathPoints[position] || pathPoints[0];
   const trailPosRef = useRef<THREE.Vector3[]>([]);
-  const theme = getTheme(levelId);
+  const theme = useMemo(() => applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow), [levelId, seasonAccent, seasonGlow]);
 
   return (
     <>
@@ -960,14 +972,14 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
   );
 }
 
-export function IsometricBoard({ position, monster, isMoving, movementResult, levelId = 1 }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId?: number }) {
-  const theme = getTheme(levelId);
+export function IsometricBoard({ position, monster, isMoving, movementResult, levelId = 1, seasonAccent, seasonGlow }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId?: number; seasonAccent?: string; seasonGlow?: string }) {
+  const theme = applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow);
   return (
     <div className="w-full h-[400px] rounded-2xl overflow-hidden border-4 border-wood-dark bg-cream shadow-chunky-sm" role="region" aria-label="3D Game board">
       <Canvas shadows camera={{ position: [6, 5, 6], fov: 45, near: 0.1, far: 100 }} gl={{ antialias: true, alpha: false }}>
         <color attach="background" args={[theme.bg]} />
         <fog attach="fog" args={[theme.fog, 12, 28]} />
-        <IsometricBoardScene position={position} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} />
+        <IsometricBoardScene position={position} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} />
       </Canvas>
     </div>
   );
