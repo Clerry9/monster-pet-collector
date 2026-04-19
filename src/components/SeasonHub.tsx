@@ -243,6 +243,8 @@ function PassRow({ reward, progress, symbol, onClaim }: PassRowProps) {
           claimed={claimedPremium}
           available={reached && progress.passPurchased && reward.premium !== undefined}
           tier="premium"
+          reached={reached}
+          needsPass={!progress.passPurchased}
           onClaim={() => reward.premium && onClaim({ ...reward, free: undefined, tier: reward.tier + 1000 })}
         />
       </div>
@@ -257,6 +259,8 @@ function RewardSlot({
   available,
   tier,
   onClaim,
+  reached,
+  needsPass,
 }: {
   label: string;
   locked: boolean;
@@ -264,6 +268,8 @@ function RewardSlot({
   available: boolean;
   tier: "free" | "premium";
   onClaim: () => void;
+  reached?: boolean;
+  needsPass?: boolean;
 }) {
   const base =
     tier === "premium"
@@ -283,10 +289,22 @@ function RewardSlot({
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={onClaim}
+        animate={{ boxShadow: ["0 0 0 0 hsl(var(--gold)/0.0)", "0 0 0 4px hsl(var(--gold)/0.4)", "0 0 0 0 hsl(var(--gold)/0.0)"] }}
+        transition={{ duration: 1.4, repeat: Infinity }}
         className={`rounded-md border-2 ${base} px-2 py-1 text-[10px] font-display text-wood-dark hover:brightness-105 active:translate-y-0.5 transition`}
       >
         {label}
       </motion.button>
+    );
+  }
+
+  // Premium reward, tier reached but no pass → show enticing CTA
+  if (tier === "premium" && reached && needsPass) {
+    return (
+      <div className={`rounded-md border-2 ${base} px-2 py-1 flex items-center justify-center gap-1 text-[10px] font-display text-wood-dark relative overflow-hidden`}>
+        <Crown size={10} className="text-gold-deep" />
+        <span className="truncate">{label}</span>
+      </div>
     );
   }
 
