@@ -129,6 +129,12 @@ const Index = () => {
       if (result.card) {
         setDrawnCard(result.card);
       }
+      if (result.islandStarEarned) {
+        toast("⭐ Island Star!", {
+          description: `${game.islandStars + 1}/5 to a free card flip`,
+          duration: 1800,
+        });
+      }
       if (result.monsterLevelUp) {
         const { name, level, coinBonus } = result.monsterLevelUp;
         toast(`🍖 ${name} evolved!`, {
@@ -138,6 +144,17 @@ const Index = () => {
       }
     }
   };
+
+  // Auto-trigger card flip reward when player has pending flips
+  useEffect(() => {
+    if (game.pendingCardFlips > 0 && !drawnCard) {
+      const card = require("@/data/cards").drawRandomCard();
+      game.consumeCardFlip();
+      game.grantCard(card.id);
+      setDrawnCard(card);
+      toast.success("🌟 Free Card Flip!", { description: "From your collected island stars" });
+    }
+  }, [game.pendingCardFlips, drawnCard]);
 
   // Mini-game costs 1 roll to play
   const handlePlayMiniGame = (): boolean => {
