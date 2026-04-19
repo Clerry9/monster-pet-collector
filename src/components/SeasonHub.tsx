@@ -24,6 +24,8 @@ interface SeasonHubProps {
   onClaimTier: (tier: number, reward: SeasonReward) => void;
   onBuyStreakSaver: () => boolean;
   onAddCoins?: (n: number) => void;
+  onAddRolls?: (n: number) => void;
+  onAddCardFlip?: (n: number) => void;
   onSpendCoins?: (n: number) => boolean;
 }
 
@@ -43,6 +45,8 @@ export function SeasonHub({
   onClaimTier,
   onBuyStreakSaver,
   onAddCoins,
+  onAddRolls,
+  onAddCardFlip,
   onSpendCoins,
 }: SeasonHubProps) {
   const { user } = useAuth();
@@ -254,6 +258,11 @@ export function SeasonHub({
             onSpendRoll={handleSpendRoll}
             onFinish={(s) => handleMiniGameFinish(s, 0)}
             onClose={() => setJackGameOpen(false)}
+            playerLevel={playerLevel}
+            onAddCoins={onAddCoins}
+            onAddRolls={onAddRolls}
+            onAwardStars={onAwardStars}
+            onAddCardFlip={onAddCardFlip}
           />
         )}
       </AnimatePresence>

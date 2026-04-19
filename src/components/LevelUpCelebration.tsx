@@ -6,6 +6,7 @@ import { sfxLevelUp } from "@/lib/sfx";
 interface LevelUpCelebrationProps {
   level: LevelTheme | null;
   onComplete: () => void;
+  rolls?: number;
 }
 
 function generateConfetti(count: number) {
@@ -31,7 +32,7 @@ function generateConfetti(count: number) {
   }));
 }
 
-export function LevelUpCelebration({ level, onComplete }: LevelUpCelebrationProps) {
+export function LevelUpCelebration({ level, onComplete, rolls }: LevelUpCelebrationProps) {
   const [confetti] = useState(() => generateConfetti(60));
 
   useEffect(() => {
@@ -181,6 +182,17 @@ export function LevelUpCelebration({ level, onComplete }: LevelUpCelebrationProp
             >
               {level.tileBonus}
             </motion.div>
+
+            {typeof rolls === "number" && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1.05, type: "spring", damping: 14 }}
+                className="mt-1 inline-flex items-center gap-1.5 rounded-full border-2 border-primary/40 bg-primary/10 px-3 py-1 font-display text-xs text-foreground"
+              >
+                🎲 You still have <span className="text-accent font-bold">{rolls}</span> rolls
+              </motion.div>
+            )}
 
             <motion.div
               className="mt-2 text-[10px] text-muted-foreground/60 font-body"

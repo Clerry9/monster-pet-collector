@@ -204,7 +204,7 @@ const Index = () => {
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-3 py-4 overflow-hidden">
       <LinkAccount open={showLink} onClose={() => setShowLink(false)} />
-      <LevelUpCelebration level={levelUpData} onComplete={() => setLevelUpData(null)} />
+      <LevelUpCelebration level={levelUpData} onComplete={() => setLevelUpData(null)} rolls={game.rolls} />
       <PaymentTestModeBanner />
       <DailyReward
         open={daily.showModal}
@@ -500,6 +500,8 @@ const Index = () => {
                 onClaimTier={handleClaimTier}
                 onBuyStreakSaver={handleBuyStreakSaver}
                 onAddCoins={game.addCoins}
+                onAddRolls={game.addRolls}
+                onAddCardFlip={game.addCardFlip}
                 onSpendCoins={(n) => {
                   if (game.coins < n) return false;
                   game.addCoins(-n);
