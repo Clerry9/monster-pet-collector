@@ -1,4 +1,4 @@
-// Seasonal event system — rotates every 2.5 days deterministically.
+// Seasonal event system — rotates every 3 days deterministically.
 // Each season has a theme, special symbol, mini-game palette, and two reward cards.
 
 export interface SeasonReward {
@@ -94,9 +94,9 @@ export const SEASONS: Season[] = [
   },
 ];
 
-// Epoch chosen as a fixed Monday. Seasons cycle every 2.5 days.
+// Epoch chosen as a fixed Monday. Seasons cycle every 3 days.
 const SEASON_EPOCH_MS = Date.UTC(2026, 0, 5, 0, 0, 0); // 2026-01-05
-const SEASON_DURATION_MS = 2.5 * 24 * 60 * 60 * 1000;
+const SEASON_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
 
 export function getCurrentSeason(now = Date.now()): { season: Season; index: number; startsAt: number; endsAt: number; seasonInstanceId: string } {
   const elapsed = Math.max(0, now - SEASON_EPOCH_MS);

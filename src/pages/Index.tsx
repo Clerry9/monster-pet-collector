@@ -96,7 +96,7 @@ const Index = () => {
     {
       selector: "[role='tab'][aria-controls='panel-season']",
       title: "Seasonal Event",
-      body: "Every 2.5 days a new season starts. Play the mini-game to earn special symbols and unlock rare event cards.",
+      body: "Every 3 days a new season starts. Play the mini-game to earn special symbols and unlock rare event cards.",
       emoji: "🌟",
     },
     {
