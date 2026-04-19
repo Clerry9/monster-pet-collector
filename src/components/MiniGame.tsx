@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, X, Trophy, Lightbulb, Zap, Frown } from "lucide-react";
+import { Play, X, Trophy, Lightbulb, Zap, Frown, Heart } from "lucide-react";
 import { Season } from "@/data/seasons";
-import { sfxCoinGain, sfxLevelUp } from "@/lib/sfx";
+import { sfxCoinGain, sfxLevelUp, sfxSkull } from "@/lib/sfx";
 import { useTutorial } from "@/hooks/useTutorial";
+import { RewardedAdButton } from "@/components/RewardedAdButton";
 
 interface MiniGameProps {
   season: Season;
@@ -14,21 +15,38 @@ interface MiniGameProps {
   onSpendRoll: () => void;
   coins: number;
   onBuyStreakSaver: () => boolean;
+  playerLevel?: number;
+  onAddCoins?: (n: number) => void;
+  onSpendCoins?: (n: number) => boolean;
 }
 
 const STREAK_SAVER_COST = 500;
 const STREAK_SAVER_WINDOW_MS = 4000;
 const DEFAULT_WINDOW_MS = 2000;
+const REVIVE_COST = 200;
+const BOMB = "💣";
 
-// 5x5 match-3-style: tap a tile, tap an adjacent tile to swap.
-// Any horizontal/vertical run of 3+ matching emojis clears, scores, and
-// has a chance to drop the special symbol.
+type Difficulty = "easy" | "normal" | "hard";
+const DIFFICULTY_KEY = "lov_minigame_difficulty";
+
+interface DiffConfig {
+  scoreToWin: number;
+  symbolsToWin: number;
+  seconds: number;
+  bombSpawnEverySec: number; // 0 = never
+  maxBombs: number;
+  symbolDropRate: number;
+  reviveTime: number;
+}
+
+const DIFFICULTY: Record<Difficulty, DiffConfig> = {
+  easy:   { scoreToWin: 150, symbolsToWin: 4, seconds: 60, bombSpawnEverySec: 0,  maxBombs: 0, symbolDropRate: 0.22, reviveTime: 20 },
+  normal: { scoreToWin: 200, symbolsToWin: 5, seconds: 45, bombSpawnEverySec: 8,  maxBombs: 1, symbolDropRate: 0.18, reviveTime: 15 },
+  hard:   { scoreToWin: 300, symbolsToWin: 6, seconds: 35, bombSpawnEverySec: 5,  maxBombs: 3, symbolDropRate: 0.14, reviveTime: 12 },
+};
+
 const SIZE = 5;
-const ROUND_SECONDS = 45;
-const SYMBOL_DROP_RATE = 0.18; // chance a refilled tile becomes the special symbol
-const SCORE_BONUS_PER = 120;   // +1 symbol per N score
-const LOSE_THRESHOLD = 200;    // score below this when timer hits 0 = LOSE
-const SYMBOL_WIN_THRESHOLD = 5; // OR collect this many symbols to guarantee a win
+const SCORE_BONUS_PER = 120;
 
 type Cell = { id: number; emoji: string };
 
@@ -73,21 +91,33 @@ function findMatches(cells: Cell[]): Set<number> {
   return matched;
 }
 
-export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpendRoll, coins, onBuyStreakSaver }: MiniGameProps) {
+export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpendRoll, coins, onBuyStreakSaver, playerLevel = 1, onAddCoins, onSpendCoins }: MiniGameProps) {
   const miniTutorial = useTutorial("minigame");
   const [streakSaver, setStreakSaver] = useState(false);
   const [phase, setPhase] = useState<"intro" | "playing" | "result">("intro");
+  const [difficulty, setDifficulty] = useState<Difficulty>(() => {
+    const saved = localStorage.getItem(DIFFICULTY_KEY) as Difficulty | null;
+    return saved && DIFFICULTY[saved] ? saved : "normal";
+  });
+  const cfg = DIFFICULTY[difficulty];
   const [cells, setCells] = useState<Cell[]>([]);
   const [score, setScore] = useState(0);
   const [symbolsCollected, setSymbolsCollected] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
+  const [timeLeft, setTimeLeft] = useState(cfg.seconds);
   const [combo, setCombo] = useState(0);
   const [comboFlash, setComboFlash] = useState<{ key: number; mult: number; bonus: number } | null>(null);
+  const [hasRevived, setHasRevived] = useState(false);
   const idCounter = useRef(0);
   const matchPulseRef = useRef<number[]>([]);
   const lastMatchAtRef = useRef(0);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bombTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const chooseDifficulty = (d: Difficulty) => {
+    setDifficulty(d);
+    localStorage.setItem(DIFFICULTY_KEY, d);
+  };
 
   // Timer
   useEffect(() => {
@@ -101,10 +131,30 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
     return () => clearTimeout(t);
   }, [phase, timeLeft]);
 
-  // Cleanup combo timer
+  // Bomb spawner
+  useEffect(() => {
+    if (phase !== "playing" || cfg.bombSpawnEverySec === 0) return;
+    bombTimerRef.current = setInterval(() => {
+      setCells((prev) => {
+        const bombCount = prev.filter((c) => c.emoji === BOMB).length;
+        if (bombCount >= cfg.maxBombs) return prev;
+        const candidates = prev.map((c, i) => (c.emoji !== BOMB ? i : -1)).filter((i) => i >= 0);
+        if (candidates.length === 0) return prev;
+        const idx = candidates[Math.floor(Math.random() * candidates.length)];
+        idCounter.current += 1;
+        const next = [...prev];
+        next[idx] = { id: idCounter.current, emoji: BOMB };
+        return next;
+      });
+    }, cfg.bombSpawnEverySec * 1000);
+    return () => { if (bombTimerRef.current) clearInterval(bombTimerRef.current); };
+  }, [phase, cfg.bombSpawnEverySec, cfg.maxBombs]);
+
+  // Cleanup
   useEffect(() => {
     return () => {
       if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
+      if (bombTimerRef.current) clearInterval(bombTimerRef.current);
     };
   }, []);
 
@@ -117,11 +167,28 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
     setScore(0);
     setSymbolsCollected(0);
     setSelected(null);
-    setTimeLeft(ROUND_SECONDS);
+    setTimeLeft(cfg.seconds);
     setCombo(0);
     setComboFlash(null);
     lastMatchAtRef.current = 0;
     setStreakSaver(false);
+    setHasRevived(false);
+    setPhase("playing");
+  };
+
+  const revive = (clearBombs: boolean) => {
+    setCells((prev) =>
+      prev.map((c) => {
+        if (c.emoji === BOMB && clearBombs) {
+          idCounter.current += 1;
+          const newEmoji = season.miniGameTiles[Math.floor(Math.random() * season.miniGameTiles.length)];
+          return { id: idCounter.current, emoji: newEmoji };
+        }
+        return c;
+      })
+    );
+    setTimeLeft(cfg.reviveTime);
+    setHasRevived(true);
     setPhase("playing");
   };
 
@@ -143,7 +210,7 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
         if (!matched.has(i)) return cell;
         const newEmoji = season.miniGameTiles[Math.floor(Math.random() * season.miniGameTiles.length)];
         // Higher chance dropped tile spawns the special symbol
-        const finalEmoji = Math.random() < SYMBOL_DROP_RATE ? season.symbol : newEmoji;
+        const finalEmoji = Math.random() < cfg.symbolDropRate ? season.symbol : newEmoji;
         idCounter.current += 1;
         return { id: idCounter.current, emoji: finalEmoji };
       });
@@ -179,6 +246,13 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
 
   const tryTap = (idx: number) => {
     if (phase !== "playing") return;
+    // Tapping a bomb ends the round (or costs 50 score on Easy where there are none anyway)
+    if (cells[idx]?.emoji === BOMB) {
+      sfxSkull();
+      if (navigator.vibrate) navigator.vibrate([60, 30, 60]);
+      setPhase("result");
+      return;
+    }
     if (selected === null) {
       setSelected(idx);
       return;
@@ -187,7 +261,6 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
       setSelected(null);
       return;
     }
-    // Check adjacency
     const r1 = Math.floor(selected / SIZE), c1 = selected % SIZE;
     const r2 = Math.floor(idx / SIZE), c2 = idx % SIZE;
     const adj = (Math.abs(r1 - r2) === 1 && c1 === c2) || (Math.abs(c1 - c2) === 1 && r1 === r2);
@@ -195,22 +268,21 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
       setSelected(idx);
       return;
     }
-    // Swap
     const swapped = [...cells];
     [swapped[selected], swapped[idx]] = [swapped[idx], swapped[selected]];
     const matchesAfter = findMatches(swapped);
     if (matchesAfter.size === 0) {
       setSelected(null);
-      return; // invalid swap
+      return;
     }
     matchPulseRef.current = Array.from(matchesAfter);
     setCells(resolveMatches(swapped));
     setSelected(null);
   };
 
-  const didWin = score >= LOSE_THRESHOLD || symbolsCollected >= SYMBOL_WIN_THRESHOLD;
+  const didWin = score >= cfg.scoreToWin || symbolsCollected >= cfg.symbolsToWin;
   const symbolsEarned = useMemo(() => {
-    if (!didWin) return 0; // LOSS: no symbols awarded
+    if (!didWin) return 0;
     return symbolsCollected + Math.floor(score / SCORE_BONUS_PER);
   }, [symbolsCollected, score, didWin]);
 
@@ -273,12 +345,34 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
                   </div>
                 </motion.div>
               )}
+              {/* Difficulty selector */}
+              <div className="rounded-xl border-2 border-wood-dark bg-cream/95 p-2">
+                <div className="text-[10px] font-display text-wood-dark/70 text-center mb-1.5">DIFFICULTY</div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(["easy", "normal", "hard"] as Difficulty[]).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => chooseDifficulty(d)}
+                      className={`rounded-lg border-2 px-2 py-1.5 font-display text-[11px] uppercase transition ${
+                        difficulty === d
+                          ? "border-candy-red bg-gradient-to-b from-candy-red to-destructive text-cream-light shadow-chunky-sm"
+                          : "border-wood-dark bg-cream text-wood-dark hover:bg-cream/80"
+                      }`}
+                    >
+                      {d === "easy" ? "🟢 Easy" : d === "normal" ? "🟡 Normal" : "🔴 Hard"}
+                    </button>
+                  ))}
+                </div>
+                <div className="text-[10px] text-wood-dark/70 text-center mt-1.5">
+                  {cfg.seconds}s • Win at {cfg.scoreToWin} pts or {cfg.symbolsToWin} {season.symbol} • {cfg.maxBombs > 0 ? `up to ${cfg.maxBombs} 💣` : "no bombs"}
+                </div>
+              </div>
               <div className="bg-cream/95 rounded-xl border-2 border-wood-dark p-3 text-wood-dark text-xs space-y-1">
-                <p>• {ROUND_SECONDS} seconds, swap adjacent tiles to make matches.</p>
+                <p>• {cfg.seconds} seconds, swap adjacent tiles to make matches.</p>
                 <p>• 5×5 board — bigger matches, more chances!</p>
                 <p>• Each cleared <span className="text-base align-middle">{season.symbol}</span> = 1 special symbol.</p>
                 <p>• Bonus: +1 symbol per {SCORE_BONUS_PER} score.</p>
-                <p>• <strong className="text-candy-red">WIN:</strong> reach {LOSE_THRESHOLD} score OR collect {SYMBOL_WIN_THRESHOLD} {season.symbol} before time runs out!</p>
+                <p>• <strong className="text-candy-red">WIN:</strong> reach {cfg.scoreToWin} score OR collect {cfg.symbolsToWin} {season.symbol} before time runs out!</p>
                 <p>• Costs <strong>{costRolls} roll</strong> to play.</p>
               </div>
               <motion.button
@@ -391,9 +485,36 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
                   <Frown className="mx-auto text-destructive" size={40} />
                   <div className="bg-cream/95 rounded-xl border-2 border-destructive p-3 text-wood-dark space-y-1">
                     <p className="font-display text-base text-destructive">GAME OVER</p>
-                    <p className="font-display text-sm">Final Score: {score} / {LOSE_THRESHOLD}</p>
-                    <p className="text-[11px]">Hit {LOSE_THRESHOLD} score or collect {SYMBOL_WIN_THRESHOLD} {season.symbol} to win!</p>
+                    <p className="font-display text-sm">Final Score: {score} / {cfg.scoreToWin}</p>
+                    <p className="text-[11px]">Hit {cfg.scoreToWin} score or collect {cfg.symbolsToWin} {season.symbol} to win!</p>
                   </div>
+                  {!hasRevived && (
+                    <div className="rounded-xl border-2 border-gold bg-gradient-to-br from-gold/30 to-gold/10 p-2.5 space-y-2">
+                      <div className="flex items-center justify-center gap-1.5 font-display text-[11px] text-wood-dark">
+                        <Heart size={12} className="text-candy-red" /> SECOND CHANCE — get {cfg.reviveTime}s more
+                      </div>
+                      <div className="grid grid-cols-1 gap-1.5">
+                        <button
+                          onClick={() => {
+                            if (!onSpendCoins || !onSpendCoins(REVIVE_COST)) return;
+                            revive(true);
+                          }}
+                          disabled={coins < REVIVE_COST || !onSpendCoins}
+                          className="btn-press w-full py-1.5 rounded-full font-display text-xs disabled:opacity-50"
+                        >
+                          REVIVE — {REVIVE_COST} 🪙
+                        </button>
+                        {onAddCoins && (
+                          <RewardedAdButton
+                            playerLevel={playerLevel}
+                            onReward={(c) => { onAddCoins(c); revive(true); }}
+                            compact
+                            className="!py-1.5 !text-xs"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
               <div className="grid grid-cols-2 gap-2">

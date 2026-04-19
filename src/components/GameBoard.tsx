@@ -78,6 +78,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   const isRollingRef = useRef(false);
   const rollsRef = useRef(rolls);
   const isAutoRollingRef = useRef(false);
+  const justStoppedRef = useRef(false);
 
   useEffect(() => { rollsRef.current = rolls; }, [rolls]);
   useEffect(() => { isRollingRef.current = isRolling; }, [isRolling]);
@@ -203,7 +204,9 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   const handleRoll = () => performRoll();
 
   const stopAutoRoll = () => {
+    isAutoRollingRef.current = false;
     setIsAutoRolling(false);
+    justStoppedRef.current = true;
     if (autoRollTimerRef.current) {
       clearTimeout(autoRollTimerRef.current);
       autoRollTimerRef.current = null;
@@ -217,8 +220,10 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   };
 
   const handlePressStart = () => {
-    if (isAutoRolling) { stopAutoRoll(); return; }
+    // If currently auto-rolling, this tap stops it (and skips queueing a new roll)
+    if (isAutoRollingRef.current) { stopAutoRoll(); return; }
     if (rolls <= 0) return;
+    justStoppedRef.current = false;
     const start = performance.now();
     const tick = () => {
       const p = Math.min(1, (performance.now() - start) / 2000);
@@ -227,6 +232,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
     };
     holdRafRef.current = requestAnimationFrame(tick);
     holdTimerRef.current = setTimeout(() => {
+      isAutoRollingRef.current = true;
       setIsAutoRolling(true);
       clearHoldTimers();
       performRoll();
@@ -236,8 +242,12 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   const handlePressEnd = (triggered: boolean) => {
     const wasHolding = holdTimerRef.current !== null;
     clearHoldTimers();
+    // If we just stopped auto-roll on this pointer cycle, do NOT queue a new roll
+    if (justStoppedRef.current) {
+      justStoppedRef.current = false;
+      return;
+    }
     if (wasHolding && triggered && !isAutoRollingRef.current) {
-      // Released before 2s — treat as a normal tap
       performRoll();
     }
   };
@@ -315,11 +325,11 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
               onPointerUp={() => handlePressEnd(true)}
               onPointerLeave={() => handlePressEnd(false)}
               onPointerCancel={() => handlePressEnd(false)}
-              disabled={(isRolling && !isAutoRolling) || rolls <= 0}
+              disabled={(isRolling && !isAutoRolling) || (rolls <= 0 && !isAutoRolling)}
               aria-label={rolls <= 0 ? "No rolls remaining" : isAutoRolling ? "Auto-rolling. Tap to stop." : isRolling ? "Rolling dice..." : `Roll dice. Tap to roll, hold 2 seconds to auto-roll. Range 1 to ${activeDiceMax}`}
               className={`btn-press relative w-28 h-28 rounded-full flex items-center justify-center font-display text-2xl select-none touch-none ${
-                rolls <= 0 ? "opacity-60 grayscale cursor-not-allowed" : ""
-              }`}
+                rolls <= 0 && !isAutoRolling ? "opacity-60 grayscale cursor-not-allowed" : ""
+              } ${isAutoRolling ? "!bg-gradient-to-b !from-candy-red !to-destructive" : ""}`}
             >
               {holdProgress > 0 && holdProgress < 1 && (
                 <svg className="absolute -inset-1 w-[calc(100%+0.5rem)] h-[calc(100%+0.5rem)] pointer-events-none" viewBox="0 0 100 100" aria-hidden="true">
