@@ -280,7 +280,7 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
                 <span>⚡ {score}</span>
                 <span className="flex items-center gap-1">{season.symbol} {symbolsCollected}</span>
               </div>
-              <div className="grid grid-cols-5 gap-1.5 bg-wood-dark/50 p-2 rounded-xl border-2 border-wood-dark">
+              <div className="relative grid grid-cols-5 gap-1.5 bg-wood-dark/50 p-2 rounded-xl border-2 border-wood-dark">
                 {cells.map((cell, idx) => (
                   <motion.button
                     key={cell.id}
@@ -300,7 +300,31 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
                     {cell.emoji}
                   </motion.button>
                 ))}
+                <AnimatePresence>
+                  {comboFlash && (
+                    <motion.div
+                      key={comboFlash.key}
+                      initial={{ opacity: 0, scale: 0.6, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 1.4, y: -20 }}
+                      transition={{ duration: 0.6 }}
+                      className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                    >
+                      <div className="bg-gradient-to-r from-candy-red to-gold text-cream-light font-display text-2xl px-4 py-2 rounded-full border-2 border-wood-dark shadow-chunky">
+                        COMBO ×{comboFlash.mult}!
+                        {comboFlash.bonus > 0 && (
+                          <span className="block text-xs">+{comboFlash.bonus} bonus {season.symbol}</span>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
+              {combo > 1 && (
+                <div className="text-center text-[10px] font-display text-gold">
+                  STREAK ×{combo} — chain matches within 2s for bonus {season.symbol}
+                </div>
+              )}
             </motion.div>
           )}
 
