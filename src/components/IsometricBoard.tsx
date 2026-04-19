@@ -383,7 +383,18 @@ function MonsterTrail({ positions }: { positions: THREE.Vector3[] }) {
   const MAX_TRAIL = 30;
 
   const trailPositions = useMemo(() => new Float32Array(MAX_TRAIL * 3), []);
-  const trailOpacities = useMemo(() => new Float32Array(MAX_TRAIL), []);
+
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(trailPositions, 3));
+    return geo;
+  }, [trailPositions]);
+
+  useEffect(() => {
+    return () => {
+      geometry.dispose();
+    };
+  }, [geometry]);
 
   useFrame(() => {
     if (!trailRef.current || positions.length === 0) return;
@@ -398,14 +409,12 @@ function MonsterTrail({ positions }: { positions: THREE.Vector3[] }) {
     trailPositions[1] = last.y + 0.8;
     trailPositions[2] = last.z;
 
-    trailRef.current.geometry.attributes.position.needsUpdate = true;
+    const attr = geometry.attributes.position as THREE.BufferAttribute;
+    attr.needsUpdate = true;
   });
 
   return (
-    <points ref={trailRef}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[trailPositions, 3]} />
-      </bufferGeometry>
+    <points ref={trailRef} geometry={geometry}>
       <pointsMaterial size={0.08} color="#a78bfa" transparent opacity={0.5} sizeAttenuation />
     </points>
   );
@@ -625,19 +634,29 @@ function FloatingParticles() {
     return pos;
   }, []);
 
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    return geo;
+  }, [positions]);
+
+  useEffect(() => {
+    return () => {
+      geometry.dispose();
+    };
+  }, [geometry]);
+
   useFrame((s) => {
     if (!particlesRef.current) return;
     particlesRef.current.rotation.y = s.clock.elapsedTime * 0.015;
-    const arr = particlesRef.current.geometry.attributes.position.array as Float32Array;
+    const attr = geometry.attributes.position as THREE.BufferAttribute;
+    const arr = attr.array as Float32Array;
     for (let i = 0; i < count; i++) arr[i * 3 + 1] += Math.sin(s.clock.elapsedTime + i) * 0.001;
-    particlesRef.current.geometry.attributes.position.needsUpdate = true;
+    attr.needsUpdate = true;
   });
 
   return (
-    <points ref={particlesRef}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
+    <points ref={particlesRef} geometry={geometry}>
       <pointsMaterial size={0.04} color="#e0e7ff" transparent opacity={0.5} sizeAttenuation />
     </points>
   );
