@@ -171,6 +171,9 @@ function dbToState(row: any): GameState {
     level: row.level ?? 1,
     xp: row.xp ?? 0,
     betMultiplier: row.bet_multiplier ?? 1,
+    islandStars: row.island_stars ?? 0,
+    pendingCardFlips: row.pending_card_flips ?? 0,
+    lastSpinAt: row.last_spin_at ?? null,
   };
 }
 
@@ -191,6 +194,9 @@ function stateToDb(state: GameState, userId: string) {
     level: state.level,
     xp: state.xp,
     bet_multiplier: state.betMultiplier,
+    island_stars: state.islandStars,
+    pending_card_flips: state.pendingCardFlips,
+    last_spin_at: state.lastSpinAt,
   };
 }
 
