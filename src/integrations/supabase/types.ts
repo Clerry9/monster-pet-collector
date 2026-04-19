@@ -143,6 +143,42 @@ export type Database = {
         }
         Relationships: []
       }
+      season_progress: {
+        Row: {
+          cards_unlocked: string[]
+          claimed_tiers: number[]
+          created_at: string
+          id: string
+          pass_purchased: boolean
+          season_id: string
+          symbols: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cards_unlocked?: string[]
+          claimed_tiers?: number[]
+          created_at?: string
+          id?: string
+          pass_purchased?: boolean
+          season_id: string
+          symbols?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cards_unlocked?: string[]
+          claimed_tiers?: number[]
+          created_at?: string
+          id?: string
+          pass_purchased?: boolean
+          season_id?: string
+          symbols?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
