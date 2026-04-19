@@ -184,22 +184,25 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
         onRollDice();
         setIsRolling(false);
         isRollingRef.current = false;
-        // Schedule next auto-roll after monster has finished hopping
-        if (isAutoRollingRef.current && rollsRef.current > 0) {
-          if (autoRollTimerRef.current) clearTimeout(autoRollTimerRef.current);
-          autoRollTimerRef.current = setTimeout(() => {
-            if (isAutoRollingRef.current && !isRollingRef.current && rollsRef.current > 0) {
-              performRoll();
-            } else if (rollsRef.current <= 0) {
-              setIsAutoRolling(false);
-            }
-          }, 900);
-        } else if (isAutoRollingRef.current) {
-          setIsAutoRolling(false);
-        }
+        // Next auto-roll is scheduled by the effect below, which reacts
+        // to the fresh `rolls` prop after onRollDice() decrements it.
       }
     }, 80);
   };
+
+  // Effect-based auto-roll scheduling — reacts to the live `rolls` prop
+  // so we never act on a stale ref between renders.
+  useEffect(() => {
+    if (!isAutoRolling) return;
+    if (isRolling) return;
+    if (rolls <= 0) { setIsAutoRolling(false); return; }
+    const t = setTimeout(() => {
+      if (isAutoRollingRef.current && !isRollingRef.current && rollsRef.current > 0) {
+        performRoll();
+      }
+    }, 900);
+    return () => clearTimeout(t);
+  }, [isAutoRolling, isRolling, rolls]);
 
   const handleRoll = () => performRoll();
 
