@@ -345,12 +345,34 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
                   </div>
                 </motion.div>
               )}
+              {/* Difficulty selector */}
+              <div className="rounded-xl border-2 border-wood-dark bg-cream/95 p-2">
+                <div className="text-[10px] font-display text-wood-dark/70 text-center mb-1.5">DIFFICULTY</div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(["easy", "normal", "hard"] as Difficulty[]).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => chooseDifficulty(d)}
+                      className={`rounded-lg border-2 px-2 py-1.5 font-display text-[11px] uppercase transition ${
+                        difficulty === d
+                          ? "border-candy-red bg-gradient-to-b from-candy-red to-destructive text-cream-light shadow-chunky-sm"
+                          : "border-wood-dark bg-cream text-wood-dark hover:bg-cream/80"
+                      }`}
+                    >
+                      {d === "easy" ? "🟢 Easy" : d === "normal" ? "🟡 Normal" : "🔴 Hard"}
+                    </button>
+                  ))}
+                </div>
+                <div className="text-[10px] text-wood-dark/70 text-center mt-1.5">
+                  {cfg.seconds}s • Win at {cfg.scoreToWin} pts or {cfg.symbolsToWin} {season.symbol} • {cfg.maxBombs > 0 ? `up to ${cfg.maxBombs} 💣` : "no bombs"}
+                </div>
+              </div>
               <div className="bg-cream/95 rounded-xl border-2 border-wood-dark p-3 text-wood-dark text-xs space-y-1">
-                <p>• {ROUND_SECONDS} seconds, swap adjacent tiles to make matches.</p>
+                <p>• {cfg.seconds} seconds, swap adjacent tiles to make matches.</p>
                 <p>• 5×5 board — bigger matches, more chances!</p>
                 <p>• Each cleared <span className="text-base align-middle">{season.symbol}</span> = 1 special symbol.</p>
                 <p>• Bonus: +1 symbol per {SCORE_BONUS_PER} score.</p>
-                <p>• <strong className="text-candy-red">WIN:</strong> reach {LOSE_THRESHOLD} score OR collect {SYMBOL_WIN_THRESHOLD} {season.symbol} before time runs out!</p>
+                <p>• <strong className="text-candy-red">WIN:</strong> reach {cfg.scoreToWin} score OR collect {cfg.symbolsToWin} {season.symbol} before time runs out!</p>
                 <p>• Costs <strong>{costRolls} roll</strong> to play.</p>
               </div>
               <motion.button
