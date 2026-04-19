@@ -20,7 +20,7 @@ export interface Season {
     accent: string;
     glow: string;
   };
-  miniGameTiles: string[]; // 5 emojis used in the match-3 grid
+  miniGameTiles: string[]; // 9 emojis used in the match-3 grid
   rareCardId: string;    // unlock at 25 symbols
   ultraCardId: string;   // unlock at 75 symbols
   rewards: SeasonReward[]; // 10 tiers
@@ -48,7 +48,7 @@ export const SEASONS: Season[] = [
     symbolName: "Snowflake",
     tagline: "A frozen wonderland of crystal treasures",
     palette: { bg: "210 60% 92%", accent: "199 90% 55%", glow: "199 100% 75%" },
-    miniGameTiles: ["❄️", "⛄", "🧊", "🌨️", "🎿"],
+    miniGameTiles: ["❄️", "⛄", "🧊", "🌨️", "🎿", "🐧", "🦌", "☃️", "🏔️"],
     rareCardId: "season-frost-rare",
     ultraCardId: "season-frost-ultra",
     rewards: buildRewards("season-frost-rare", "season-frost-ultra"),
@@ -61,7 +61,7 @@ export const SEASONS: Season[] = [
     symbolName: "Ember",
     tagline: "Forge your fortune in molten gold",
     palette: { bg: "20 80% 88%", accent: "16 95% 55%", glow: "30 100% 65%" },
-    miniGameTiles: ["🔥", "🌋", "💥", "☄️", "🪨"],
+    miniGameTiles: ["🔥", "🌋", "💥", "☄️", "🪨", "🧨", "🌶️", "🔆", "♨️"],
     rareCardId: "season-ember-rare",
     ultraCardId: "season-ember-ultra",
     rewards: buildRewards("season-ember-rare", "season-ember-ultra"),
@@ -74,7 +74,7 @@ export const SEASONS: Season[] = [
     symbolName: "Starlight",
     tagline: "Chase the cosmic relics across the void",
     palette: { bg: "260 50% 90%", accent: "270 80% 60%", glow: "280 100% 75%" },
-    miniGameTiles: ["⭐", "🌟", "✨", "🌙", "🪐"],
+    miniGameTiles: ["⭐", "🌟", "✨", "🌙", "🪐", "☄️", "🔮", "💫", "🛸"],
     rareCardId: "season-star-rare",
     ultraCardId: "season-star-ultra",
     rewards: buildRewards("season-star-rare", "season-star-ultra"),
@@ -87,7 +87,7 @@ export const SEASONS: Season[] = [
     symbolName: "Petal",
     tagline: "Spring's bounty blooms with rare gifts",
     palette: { bg: "330 60% 92%", accent: "330 80% 60%", glow: "320 100% 78%" },
-    miniGameTiles: ["🌸", "🌷", "🌼", "🍃", "🦋"],
+    miniGameTiles: ["🌸", "🌷", "🌼", "🍃", "🦋", "🌺", "🌻", "🐝", "🌿"],
     rareCardId: "season-bloom-rare",
     ultraCardId: "season-bloom-ultra",
     rewards: buildRewards("season-bloom-rare", "season-bloom-ultra"),
