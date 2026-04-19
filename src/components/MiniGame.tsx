@@ -73,8 +73,12 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
   const [symbolsCollected, setSymbolsCollected] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
+  const [combo, setCombo] = useState(0);
+  const [comboFlash, setComboFlash] = useState<{ key: number; mult: number; bonus: number } | null>(null);
   const idCounter = useRef(0);
   const matchPulseRef = useRef<number[]>([]);
+  const lastMatchAtRef = useRef(0);
+  const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Timer
   useEffect(() => {
@@ -88,6 +92,13 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
     return () => clearTimeout(t);
   }, [phase, timeLeft]);
 
+  // Cleanup combo timer
+  useEffect(() => {
+    return () => {
+      if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
+    };
+  }, []);
+
   const startGame = () => {
     if (!hasRolls) return;
     onSpendRoll();
@@ -98,6 +109,9 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
     setSymbolsCollected(0);
     setSelected(null);
     setTimeLeft(ROUND_SECONDS);
+    setCombo(0);
+    setComboFlash(null);
+    lastMatchAtRef.current = 0;
     setPhase("playing");
   };
 
@@ -125,9 +139,29 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
       });
     }
     if (total > 0) {
-      setScore((s) => s + total);
-      if (symbols > 0) setSymbolsCollected((s) => s + symbols);
+      // --- Streak combo: chained matches within 2s award bonus symbols ---
+      const now = performance.now();
+      const isChain = now - lastMatchAtRef.current < 2000;
+      const newCombo = isChain ? combo + 1 : 1;
+      setCombo(newCombo);
+      lastMatchAtRef.current = now;
+
+      // Combo multiplier: x1 (no bonus), x2 (combo 2), x3 (combo 3+)
+      const mult = newCombo >= 3 ? 3 : newCombo >= 2 ? 2 : 1;
+      const comboBonus = mult > 1 && symbols > 0 ? symbols * (mult - 1) : 0;
+
+      setScore((s) => s + total * mult);
+      const totalSymbols = symbols + comboBonus;
+      if (totalSymbols > 0) setSymbolsCollected((s) => s + totalSymbols);
       sfxCoinGain();
+
+      if (mult > 1) {
+        setComboFlash({ key: now, mult, bonus: comboBonus });
+      }
+
+      // Reset combo after 2s of no chains
+      if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
+      comboTimerRef.current = setTimeout(() => setCombo(0), 2100);
     }
     return working;
   };
@@ -253,7 +287,7 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
                 <span>⚡ {score}</span>
                 <span className="flex items-center gap-1">{season.symbol} {symbolsCollected}</span>
               </div>
-              <div className="grid grid-cols-5 gap-1.5 bg-wood-dark/50 p-2 rounded-xl border-2 border-wood-dark">
+              <div className="relative grid grid-cols-5 gap-1.5 bg-wood-dark/50 p-2 rounded-xl border-2 border-wood-dark">
                 {cells.map((cell, idx) => (
                   <motion.button
                     key={cell.id}
@@ -273,7 +307,31 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
                     {cell.emoji}
                   </motion.button>
                 ))}
+                <AnimatePresence>
+                  {comboFlash && (
+                    <motion.div
+                      key={comboFlash.key}
+                      initial={{ opacity: 0, scale: 0.6, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 1.4, y: -20 }}
+                      transition={{ duration: 0.6 }}
+                      className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                    >
+                      <div className="bg-gradient-to-r from-candy-red to-gold text-cream-light font-display text-2xl px-4 py-2 rounded-full border-2 border-wood-dark shadow-chunky">
+                        COMBO ×{comboFlash.mult}!
+                        {comboFlash.bonus > 0 && (
+                          <span className="block text-xs">+{comboFlash.bonus} bonus {season.symbol}</span>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
+              {combo > 1 && (
+                <div className="text-center text-[10px] font-display text-gold">
+                  STREAK ×{combo} — chain matches within 2s for bonus {season.symbol}
+                </div>
+              )}
             </motion.div>
           )}
 

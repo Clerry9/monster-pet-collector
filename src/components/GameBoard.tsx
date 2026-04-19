@@ -16,6 +16,8 @@ interface GameBoardProps {
   /** Optional season tint that overrides the level's accent/water colors. CSS color string (e.g. "hsl(199 90% 55%)"). */
   seasonAccent?: string;
   seasonGlow?: string;
+  /** Symbol emoji to spawn as a celebratory burst every few rolls */
+  seasonSymbol?: string;
 }
 
 const TILE_EMOJIS: Record<TileType, string> = {
@@ -56,13 +58,15 @@ interface Particle {
 const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
 let particleIdCounter = 0;
 
-export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax, levelId = 1, seasonAccent, seasonGlow }: GameBoardProps) {
+export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax, levelId = 1, seasonAccent, seasonGlow, seasonSymbol }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
   const [isShaking, setIsShaking] = useState(false);
   const [isAutoRolling, setIsAutoRolling] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
+  const [seasonBurstKey, setSeasonBurstKey] = useState(0);
+  const rollCounterRef = useRef(0);
   const monsterControls = useAnimation();
   const prevPositionRef = useRef(position);
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -143,8 +147,13 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       } else if (lastResult.tile.value > 0) {
         sfxCoinGain();
       }
+      // Season particle burst every 3 rolls
+      rollCounterRef.current += 1;
+      if (seasonSymbol && rollCounterRef.current % 3 === 0) {
+        setSeasonBurstKey((k) => k + 1);
+      }
     }
-  }, [lastResult, isRolling]);
+  }, [lastResult, isRolling, seasonSymbol]);
 
   const performRoll = () => {
     if (isRollingRef.current || rollsRef.current <= 0) return;
@@ -234,15 +243,23 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       aria-label="Game board"
     >
       {/* 3D Isometric Board */}
-      <IsometricBoard
-        position={position}
-        monster={monster}
-        isMoving={isRolling}
-        movementResult={lastResult}
-        levelId={levelId}
-        seasonAccent={seasonAccent}
-        seasonGlow={seasonGlow}
-      />
+      <div className="relative w-full">
+        <IsometricBoard
+          position={position}
+          monster={monster}
+          isMoving={isRolling}
+          movementResult={lastResult}
+          levelId={levelId}
+          seasonAccent={seasonAccent}
+          seasonGlow={seasonGlow}
+        />
+        {/* Season symbol particle burst */}
+        <AnimatePresence>
+          {seasonSymbol && seasonBurstKey > 0 && (
+            <SeasonBurst key={seasonBurstKey} symbol={seasonSymbol} />
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Result display */}
       <AnimatePresence>
@@ -343,5 +360,44 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
         </div>
       </div>
     </div>
+  );
+}
+
+// Celebratory burst of season symbols radiating from the center of the board
+function SeasonBurst({ symbol }: { symbol: string }) {
+  const pieces = Array.from({ length: 12 });
+  return (
+    <motion.div
+      className="pointer-events-none absolute inset-0 flex items-center justify-center z-10"
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.6 }}
+      aria-hidden="true"
+    >
+      {pieces.map((_, i) => {
+        const angle = (i / pieces.length) * Math.PI * 2;
+        const distance = 80 + Math.random() * 60;
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance - 20;
+        return (
+          <motion.span
+            key={i}
+            className="absolute text-2xl"
+            initial={{ opacity: 0, scale: 0.4, x: 0, y: 0, rotate: 0 }}
+            animate={{
+              opacity: [0, 1, 1, 0],
+              scale: [0.4, 1.1, 1, 0.7],
+              x,
+              y,
+              rotate: (Math.random() - 0.5) * 360,
+            }}
+            transition={{ duration: 1.1, ease: "easeOut" }}
+            style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))" }}
+          >
+            {symbol}
+          </motion.span>
+        );
+      })}
+    </motion.div>
   );
 }

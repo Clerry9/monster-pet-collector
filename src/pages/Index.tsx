@@ -281,6 +281,7 @@ const Index = () => {
                   levelId={getLevelForXp(game.xp).id}
                   seasonAccent={`hsl(${season.season.palette.accent})`}
                   seasonGlow={`hsl(${season.season.palette.glow})`}
+                  seasonSymbol={season.season.symbol}
                 />
               </div>
               <BetSelector
