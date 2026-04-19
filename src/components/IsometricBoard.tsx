@@ -742,7 +742,8 @@ function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRe
     ));
     queuedTiles.current.push(...nextTiles);
     scheduledPosition.current = position;
-    stepDuration.current = THREE.MathUtils.clamp(0.16 - movementResult.steps * 0.0025, 0.055, 0.12);
+    // Slower, more deliberate hops — easier to follow visually
+    stepDuration.current = THREE.MathUtils.clamp(0.38 - movementResult.steps * 0.004, 0.18, 0.32);
   }, [movementResult, pathPoints, position]);
 
   useEffect(() => {
@@ -813,33 +814,85 @@ function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRe
     }
   });
 
+  const rarityColor =
+    monster.rarity === "legendary" ? "#a855f7" :
+    monster.rarity === "epic" ? "#3b82f6" :
+    monster.rarity === "rare" ? "#22d3ee" : "#22c55e";
+
   return (
     <group ref={groupRef}>
-      <Billboard follow lockX={false} lockY={false} lockZ={false}>
-        <mesh>
-          <planeGeometry args={[0.8, 0.8]} />
-          <meshBasicMaterial map={texture} transparent alphaTest={0.1} side={THREE.DoubleSide} />
-        </mesh>
-      </Billboard>
-      <Billboard>
-        <mesh position={[0, 0, -0.05]}>
-          <circleGeometry args={[0.45, 24]} />
-          <meshBasicMaterial
-            color={monster.rarity === "legendary" ? "#a855f7" : monster.rarity === "epic" ? "#3b82f6" : monster.rarity === "rare" ? "#22d3ee" : "#22c55e"}
-            transparent
-            opacity={0.25}
-          />
-        </mesh>
-      </Billboard>
-      <mesh position={[0, -0.8, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.25, 16]} />
-        <meshStandardMaterial color="#000000" transparent opacity={0.3} />
+      {/* True 3D body — sphere with rarity-tinted glow */}
+      <mesh position={[0, 0, 0]} castShadow>
+        <sphereGeometry args={[0.32, 28, 28]} />
+        <meshStandardMaterial
+          color={rarityColor}
+          emissive={rarityColor}
+          emissiveIntensity={0.45}
+          roughness={0.35}
+          metalness={0.25}
+        />
       </mesh>
+      {/* Belly */}
+      <mesh position={[0, -0.05, 0.18]}>
+        <sphereGeometry args={[0.22, 20, 20]} />
+        <meshStandardMaterial color="#fef3c7" emissive={rarityColor} emissiveIntensity={0.1} roughness={0.6} />
+      </mesh>
+      {/* Eyes */}
+      <mesh position={[-0.11, 0.1, 0.27]}>
+        <sphereGeometry args={[0.07, 16, 16]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.2} />
+      </mesh>
+      <mesh position={[0.11, 0.1, 0.27]}>
+        <sphereGeometry args={[0.07, 16, 16]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.2} />
+      </mesh>
+      {/* Pupils */}
+      <mesh position={[-0.11, 0.1, 0.33]}>
+        <sphereGeometry args={[0.035, 12, 12]} />
+        <meshStandardMaterial color="#0a0a0a" />
+      </mesh>
+      <mesh position={[0.11, 0.1, 0.33]}>
+        <sphereGeometry args={[0.035, 12, 12]} />
+        <meshStandardMaterial color="#0a0a0a" />
+      </mesh>
+      {/* Horns/ears */}
+      <mesh position={[-0.18, 0.28, 0]} rotation={[0, 0, -0.4]}>
+        <coneGeometry args={[0.08, 0.22, 8]} />
+        <meshStandardMaterial color={rarityColor} emissive={rarityColor} emissiveIntensity={0.3} roughness={0.5} />
+      </mesh>
+      <mesh position={[0.18, 0.28, 0]} rotation={[0, 0, 0.4]}>
+        <coneGeometry args={[0.08, 0.22, 8]} />
+        <meshStandardMaterial color={rarityColor} emissive={rarityColor} emissiveIntensity={0.3} roughness={0.5} />
+      </mesh>
+      {/* Feet */}
+      <mesh position={[-0.14, -0.32, 0.05]}>
+        <sphereGeometry args={[0.1, 12, 12]} />
+        <meshStandardMaterial color={rarityColor} roughness={0.6} />
+      </mesh>
+      <mesh position={[0.14, -0.32, 0.05]}>
+        <sphereGeometry args={[0.1, 12, 12]} />
+        <meshStandardMaterial color={rarityColor} roughness={0.6} />
+      </mesh>
+      {/* Aura ring (still billboarded for readability) */}
       <Billboard>
-        <Text position={[0, 0.55, 0]} fontSize={0.13} color="#ffffff" anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="#000000">
+        <mesh position={[0, 0, -0.4]}>
+          <circleGeometry args={[0.55, 24]} />
+          <meshBasicMaterial color={rarityColor} transparent opacity={0.18} />
+        </mesh>
+      </Billboard>
+      {/* Ground shadow */}
+      <mesh position={[0, -0.55, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.35, 16]} />
+        <meshStandardMaterial color="#000000" transparent opacity={0.35} />
+      </mesh>
+      {/* Name tag */}
+      <Billboard>
+        <Text position={[0, 0.7, 0]} fontSize={0.13} color="#ffffff" anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="#000000">
           {monster.name}
         </Text>
       </Billboard>
+      {/* Sprite hint (kept tiny so legacy texture isn't wasted) — uncomment if desired */}
+      {/* <mesh position={[0, 0, 0.34]}><planeGeometry args={[0.15, 0.15]} /><meshBasicMaterial map={texture} transparent /></mesh> */}
     </group>
   );
 }

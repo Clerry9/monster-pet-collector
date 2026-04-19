@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { AD_COOLDOWN_MS, AD_DAILY_CAP, getAdReward, showRewardedAd } from "@/lib/ads";
+import { AD_COOLDOWN_MS, AD_DAILY_CAP, getAdReward, initAds, showRewardedAd } from "@/lib/ads";
 
 const KEY_DATE = "lov_ad_date";
 const KEY_COUNT = "lov_ad_count";
@@ -31,6 +31,8 @@ export function useRewardedAd(playerLevel: number, onReward: (coins: number) => 
     const s = readState();
     setCount(s.count);
     setLast(s.last);
+    // Initialize ad provider (web/native auto-detected)
+    initAds().catch(() => {});
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
