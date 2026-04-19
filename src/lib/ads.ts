@@ -14,7 +14,16 @@
 
 export type AdProvider = "demo" | "crazygames" | "admob";
 
-// AdMob ad unit IDs (replace with yours; defaults are Google's TEST IDs).
+// AdMob ad unit IDs.
+// TODO: replace with your real AdMob unit IDs before production.
+//   1. Create an AdMob account → app → Rewarded ad unit.
+//   2. Paste the `ca-app-pub-XXXXXXXXXXXX/YYYYYYYYYY` strings below.
+//   3. Also update the AdMob `appId` in `capacitor.config.ts`.
+//   4. Add your real AdMob App ID to `android/app/src/main/AndroidManifest.xml`
+//      and `ios/App/App/Info.plist` (GADApplicationIdentifier) per the
+//      @capacitor-community/admob README.
+//   5. Run `npx cap sync` after installing/updating the plugin.
+// Defaults below are Google's official TEST IDs — safe for development.
 const ADMOB_REWARDED_ANDROID = "ca-app-pub-3940256099942544/5224354917";
 const ADMOB_REWARDED_IOS = "ca-app-pub-3940256099942544/1712485313";
 
