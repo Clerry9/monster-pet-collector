@@ -66,7 +66,7 @@ export function BoardMinimap({ levelId, tileCount, position, accentColor = "hsl(
 
   return (
     <div
-      className="absolute top-3 left-3 z-20 w-20 h-20 rounded-xl bg-card/85 backdrop-blur-sm border-2 border-wood-dark shadow-chunky-sm overflow-hidden"
+      className="absolute bottom-3 left-3 z-20 w-20 h-20 rounded-xl bg-card/85 backdrop-blur-sm border-2 border-wood-dark shadow-chunky-sm overflow-hidden"
       role="img"
       aria-label={`Minimap — Level ${levelId}, position ${position + 1} of ${tileCount}`}
     >
