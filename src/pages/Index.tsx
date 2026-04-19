@@ -231,7 +231,9 @@ const Index = () => {
         <span>🃏 {game.cardsCollected}</span>
       </div>
 
-      <GameTabs active={tab} onTabChange={setTab} />
+      <div data-tutorial="tabs">
+        <GameTabs active={tab} onTabChange={setTab} />
+      </div>
 
       <CardReveal card={drawnCard} onComplete={() => setDrawnCard(null)} />
 
