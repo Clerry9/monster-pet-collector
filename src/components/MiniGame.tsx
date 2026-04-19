@@ -73,8 +73,12 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
   const [symbolsCollected, setSymbolsCollected] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
+  const [combo, setCombo] = useState(0);
+  const [comboFlash, setComboFlash] = useState<{ key: number; mult: number; bonus: number } | null>(null);
   const idCounter = useRef(0);
   const matchPulseRef = useRef<number[]>([]);
+  const lastMatchAtRef = useRef(0);
+  const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Timer
   useEffect(() => {
