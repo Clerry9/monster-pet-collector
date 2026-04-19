@@ -92,6 +92,13 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
     return () => clearTimeout(t);
   }, [phase, timeLeft]);
 
+  // Cleanup combo timer
+  useEffect(() => {
+    return () => {
+      if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
+    };
+  }, []);
+
   const startGame = () => {
     if (!hasRolls) return;
     onSpendRoll();
