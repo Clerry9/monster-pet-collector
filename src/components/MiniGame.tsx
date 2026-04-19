@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, X, Trophy } from "lucide-react";
 import { Season } from "@/data/seasons";
-import { playClick, playLevelUp } from "@/lib/sfx";
+import { sfxCoinGain, sfxLevelUp } from "@/lib/sfx";
 
 interface MiniGameProps {
   season: Season;
@@ -77,7 +77,7 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
     if (phase !== "playing") return;
     if (timeLeft <= 0) {
       setPhase("result");
-      playLevelUp();
+      sfxLevelUp();
       return;
     }
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
@@ -122,7 +122,7 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
     if (total > 0) {
       setScore((s) => s + total);
       if (symbols > 0) setSymbolsCollected((s) => s + symbols);
-      playClick();
+      sfxCoinGain();
     }
     return working;
   };
