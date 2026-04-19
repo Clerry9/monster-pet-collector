@@ -12,7 +12,13 @@ interface MiniGameProps {
   costRolls: number;
   hasRolls: boolean;
   onSpendRoll: () => void;
+  coins: number;
+  onBuyStreakSaver: () => boolean;
 }
+
+const STREAK_SAVER_COST = 500;
+const STREAK_SAVER_WINDOW_MS = 4000;
+const DEFAULT_WINDOW_MS = 2000;
 
 // 5x5 match-3-style: tap a tile, tap an adjacent tile to swap.
 // Any horizontal/vertical run of 3+ matching emojis clears, scores, and
