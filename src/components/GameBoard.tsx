@@ -158,6 +158,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   const performRoll = () => {
     if (isRollingRef.current || rollsRef.current <= 0) return;
     setIsRolling(true);
+    isRollingRef.current = true;
     setDiceValue(null);
 
     let count = 0;
@@ -169,9 +170,17 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
         clearInterval(interval);
         onRollDice();
         setIsRolling(false);
-        // Schedule next auto-roll
-        if (isAutoRollingRef.current && rollsRef.current > 1) {
-          autoRollTimerRef.current = setTimeout(() => performRoll(), 600);
+        isRollingRef.current = false;
+        // Schedule next auto-roll after monster has finished hopping
+        if (isAutoRollingRef.current && rollsRef.current > 0) {
+          if (autoRollTimerRef.current) clearTimeout(autoRollTimerRef.current);
+          autoRollTimerRef.current = setTimeout(() => {
+            if (isAutoRollingRef.current && !isRollingRef.current && rollsRef.current > 0) {
+              performRoll();
+            } else if (rollsRef.current <= 0) {
+              setIsAutoRolling(false);
+            }
+          }, 900);
         } else if (isAutoRollingRef.current) {
           setIsAutoRolling(false);
         }

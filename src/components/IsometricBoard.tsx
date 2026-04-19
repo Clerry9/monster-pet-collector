@@ -934,36 +934,21 @@ function applySeasonTint(theme: LevelTheme3D, seasonAccent?: string, seasonGlow?
   };
 }
 
-// Cinematic camera rig — smoothly fly between island viewpoints when position changes.
-function CameraRig({ targetPos, flying }: { targetPos: THREE.Vector3; flying: React.MutableRefObject<boolean> }) {
+// Camera rig — chase camera that tracks beside the monster as it moves between tiles.
+function CameraRig({ targetPos, isMoving }: { targetPos: THREE.Vector3; isMoving: boolean }) {
   const lerpedTarget = useRef(targetPos.clone());
-  const prevTarget = useRef(targetPos.clone());
-  const transitionT = useRef(1);
-
-  useEffect(() => {
-    prevTarget.current.copy(lerpedTarget.current);
-    transitionT.current = 0;
-    flying.current = true;
-  }, [targetPos.x, targetPos.y, targetPos.z, flying]);
-
   useFrame((state, delta) => {
-    if (transitionT.current < 1) {
-      transitionT.current = Math.min(1, transitionT.current + delta / 0.6);
-      const t = THREE.MathUtils.smootherstep(transitionT.current, 0, 1);
-      lerpedTarget.current.lerpVectors(prevTarget.current, targetPos, t);
-      // arc up at midpoint for fly-by feel
-      const arcY = Math.sin(t * Math.PI) * 0.6;
-      const desiredCam = new THREE.Vector3(
-        lerpedTarget.current.x + 6,
-        lerpedTarget.current.y + 5 + arcY,
-        lerpedTarget.current.z + 6
-      );
-      state.camera.position.lerp(desiredCam, 0.12);
-      state.camera.lookAt(lerpedTarget.current);
-      if (transitionT.current >= 1) flying.current = false;
-    } else {
-      lerpedTarget.current.lerp(targetPos, 0.08);
-    }
+    // Always smoothly track the target (monster's tile)
+    const speed = isMoving ? Math.min(1, delta * 6) : Math.min(1, delta * 2.2);
+    lerpedTarget.current.lerp(targetPos, speed);
+    // Over-the-shoulder offset: sit beside and slightly above the monster
+    const desiredCam = new THREE.Vector3(
+      lerpedTarget.current.x + 5,
+      lerpedTarget.current.y + 4,
+      lerpedTarget.current.z + 5
+    );
+    state.camera.position.lerp(desiredCam, isMoving ? Math.min(1, delta * 4) : Math.min(1, delta * 1.5));
+    state.camera.lookAt(lerpedTarget.current);
   });
   return null;
 }
@@ -973,7 +958,6 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
   const currentTilePos = pathPoints[position] || pathPoints[0];
   const trailPosRef = useRef<THREE.Vector3[]>([]);
   const theme = useMemo(() => applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow), [levelId, seasonAccent, seasonGlow]);
-  const flyingRef = useRef(false);
   const targetVec = useMemo(
     () => new THREE.Vector3(currentTilePos.x, currentTilePos.y + 1 + ACTIVE_LIFT_VALUE * 0.5, currentTilePos.z),
     [currentTilePos.x, currentTilePos.y, currentTilePos.z]
@@ -997,7 +981,7 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
       <MonsterTrail positions={trailPosRef.current} theme={theme} />
       <MonsterPawn pathPoints={pathPoints} position={position} monster={monster} movementResult={movementResult} trailPosRef={trailPosRef} activeLift={ACTIVE_LIFT_VALUE} />
 
-      <CameraRig targetPos={targetVec} flying={flyingRef} />
+      <CameraRig targetPos={targetVec} isMoving={isMoving} />
       <OrbitControls
         target={[targetVec.x, targetVec.y, targetVec.z]}
         minDistance={3}
@@ -1005,8 +989,7 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
         minPolarAngle={Math.PI / 6}
         maxPolarAngle={Math.PI / 2.5}
         enablePan={false}
-        autoRotate={!isMoving}
-        autoRotateSpeed={0.3}
+        autoRotate={false}
         enabled={!isMoving}
       />
     </>
