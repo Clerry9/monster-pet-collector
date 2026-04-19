@@ -68,7 +68,7 @@ const Index = () => {
       emoji: "👋",
     },
     {
-      selector: "[data-tutorial='dice']",
+      selector: "[data-tutorial='board']",
       title: "Roll the dice",
       body: "Tap to roll. You'll move that many tiles and trigger whatever you land on. Each roll costs 1 of your 🎲 rolls.",
       emoji: "🎲",
@@ -80,7 +80,7 @@ const Index = () => {
       emoji: "🎴",
     },
     {
-      selector: "[data-tutorial='tab-season']",
+      selector: "[role='tab'][aria-controls='panel-season']",
       title: "Seasonal Event",
       body: "Every 2.5 days a new season starts. Play the mini-game to earn special symbols and unlock rare event cards.",
       emoji: "🌟",
@@ -385,6 +385,27 @@ const Index = () => {
 
         </AnimatePresence>
       </div>
+
+      <HelpDialog
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        onReplayTutorial={() => {
+          mainTutorial.reset();
+          setCoachOpen(true);
+        }}
+      />
+      <TutorialCoachmark
+        open={coachOpen}
+        steps={tutorialSteps}
+        onClose={() => {
+          setCoachOpen(false);
+          mainTutorial.markCompleted();
+        }}
+        onFinish={() => {
+          setCoachOpen(false);
+          mainTutorial.markCompleted();
+        }}
+      />
     </div>
   );
 };
