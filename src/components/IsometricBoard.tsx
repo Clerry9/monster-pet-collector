@@ -996,12 +996,12 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
   );
 }
 
-export function IsometricBoard({ position, monster, isMoving, movementResult, levelId = 1, seasonAccent, seasonGlow }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId?: number; seasonAccent?: string; seasonGlow?: string }) {
+export function IsometricBoard({ position, monster, isMoving, movementResult, levelId = 1, seasonAccent, seasonGlow, fullscreen = false }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId?: number; seasonAccent?: string; seasonGlow?: string; fullscreen?: boolean }) {
   const theme = applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow);
   return (
     <div
-      className="w-full rounded-2xl overflow-hidden border-4 border-wood-dark bg-cream shadow-chunky-sm"
-      style={{ height: "min(70vh, 560px)", minHeight: 380 }}
+      className={fullscreen ? "absolute inset-0" : "w-full rounded-2xl overflow-hidden border-4 border-wood-dark bg-cream shadow-chunky-sm"}
+      style={fullscreen ? undefined : { height: "min(70vh, 560px)", minHeight: 380 }}
       role="region"
       aria-label="3D Game board"
     >
