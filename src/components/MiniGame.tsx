@@ -63,6 +63,7 @@ function findMatches(cells: Cell[]): Set<number> {
 }
 
 export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpendRoll }: MiniGameProps) {
+  const miniTutorial = useTutorial("minigame");
   const [phase, setPhase] = useState<"intro" | "playing" | "result">("intro");
   const [cells, setCells] = useState<Cell[]>([]);
   const [score, setScore] = useState(0);
