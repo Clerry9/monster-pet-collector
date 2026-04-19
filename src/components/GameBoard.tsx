@@ -362,3 +362,42 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
     </div>
   );
 }
+
+// Celebratory burst of season symbols radiating from the center of the board
+function SeasonBurst({ symbol }: { symbol: string }) {
+  const pieces = Array.from({ length: 12 });
+  return (
+    <motion.div
+      className="pointer-events-none absolute inset-0 flex items-center justify-center z-10"
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.6 }}
+      aria-hidden="true"
+    >
+      {pieces.map((_, i) => {
+        const angle = (i / pieces.length) * Math.PI * 2;
+        const distance = 80 + Math.random() * 60;
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance - 20;
+        return (
+          <motion.span
+            key={i}
+            className="absolute text-2xl"
+            initial={{ opacity: 0, scale: 0.4, x: 0, y: 0, rotate: 0 }}
+            animate={{
+              opacity: [0, 1, 1, 0],
+              scale: [0.4, 1.1, 1, 0.7],
+              x,
+              y,
+              rotate: (Math.random() - 0.5) * 360,
+            }}
+            transition={{ duration: 1.1, ease: "easeOut" }}
+            style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))" }}
+          >
+            {symbol}
+          </motion.span>
+        );
+      })}
+    </motion.div>
+  );
+}
