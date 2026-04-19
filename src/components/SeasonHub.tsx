@@ -1,21 +1,25 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { Lock, Check, Sparkles, Crown, Play, Clock } from "lucide-react";
+import { Lock, Check, Sparkles, Crown, Play, Clock, Trophy, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { Season, SeasonReward, formatTimeRemaining } from "@/data/seasons";
 import { SeasonProgress } from "@/hooks/useSeason";
 import { useAuth } from "@/hooks/useAuth";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 import { MiniGame } from "@/components/MiniGame";
+import { MiniGameJack } from "@/components/MiniGameJack";
+import { SeasonLeaderboard } from "@/components/SeasonLeaderboard";
 
 interface SeasonHubProps {
   season: Season;
   progress: SeasonProgress;
   msRemaining: number;
   rolls: number;
+  coins: number;
   onPlayMiniGame: () => boolean;
   onAwardSymbols: (amount: number) => number;
   onClaimTier: (tier: number, reward: SeasonReward) => void;
+  onBuyStreakSaver: () => boolean;
 }
 
 const MINI_GAME_COST = 1;
@@ -25,13 +29,16 @@ export function SeasonHub({
   progress,
   msRemaining,
   rolls,
+  coins,
   onPlayMiniGame,
   onAwardSymbols,
   onClaimTier,
+  onBuyStreakSaver,
 }: SeasonHubProps) {
   const { user } = useAuth();
   const { openCheckout, loading } = usePaddleCheckout();
   const [miniGameOpen, setMiniGameOpen] = useState(false);
+  const [jackGameOpen, setJackGameOpen] = useState(false);
 
   const handleBuyPass = async () => {
     if (!user) {
