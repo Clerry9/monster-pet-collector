@@ -314,14 +314,13 @@ export function useGameState() {
 
   // Monster XP is now gained from "food" tiles during rollDice, no more tapping
 
-  const rollDice = useCallback((): { steps: number; tile: BoardTile; card?: GameCard; monsterLevelUp?: { name: string; level: number; coinBonus: number } } | null => {
+  const rollDice = useCallback((): { steps: number; tile: BoardTile; card?: GameCard; monsterLevelUp?: { name: string; level: number; coinBonus: number }; islandStarEarned?: boolean } | null => {
     if (state.rolls <= 0) return null;
     const tier = DICE_TIERS.find((t) => t.id === state.activeDiceTier) ?? DICE_TIERS[0];
     const steps = Math.floor(Math.random() * tier.maxRoll) + 1;
     const newPosition = (state.position + steps) % BOARD_TILES.length;
     const tile = BOARD_TILES[newPosition];
 
-    // Apply monster coin bonus
     const activeMonster = MONSTERS.find((m) => m.id === state.activeMonster);
     const monsterXp = state.monsterTaps[state.activeMonster] ?? 0;
     const monsterEvo = activeMonster ? getMonsterEvolution(activeMonster, monsterXp) : null;
@@ -333,10 +332,8 @@ export function useGameState() {
     const xpGain = Math.max(1, Math.round(steps * state.betMultiplier));
     const modifiedTile = { ...tile, value: finalValue };
 
-    // Food tiles give monster XP instead of coins
     const monsterXpGain = tile.type === "food" ? tile.value : 0;
 
-    // Check if monster will level up
     let monsterLevelUp: { name: string; level: number; coinBonus: number } | undefined;
     if (monsterXpGain > 0 && activeMonster) {
       const oldEvo = getMonsterEvolution(activeMonster, monsterXp);
@@ -346,8 +343,13 @@ export function useGameState() {
       }
     }
 
-    // Draw a card on chest or star tiles
     const drawnCard = (tile.type === "chest" || tile.type === "star") ? drawRandomCard() : undefined;
+
+    // Island star detection: crossed into a new island? + 30% chance, always on star tile
+    const oldIsland = Math.floor(state.position / TILES_PER_ISLAND);
+    const newIsland = Math.floor(newPosition / TILES_PER_ISLAND);
+    const crossedIsland = newIsland !== oldIsland;
+    const islandStarEarned = tile.type === "star" || (crossedIsland && Math.random() < 0.3);
 
     update((s) => {
       const newXp = s.xp + xpGain;
@@ -357,12 +359,10 @@ export function useGameState() {
       let bonusCoins = 0;
 
       if (drawnCard) {
-        // Always add card (duplicates allowed for trading)
         newCollectedCards = [...s.collectedCards, drawnCard.id];
         const isNew = !s.collectedCards.includes(drawnCard.id);
 
         if (isNew) {
-          // Apply card reward only for first-time collection
           if (drawnCard.reward.type === "coins" && drawnCard.reward.amount) {
             bonusCoins += drawnCard.reward.amount;
           } else if (drawnCard.reward.type === "monster" && drawnCard.reward.monsterId) {
@@ -371,7 +371,6 @@ export function useGameState() {
             }
           }
 
-          // Check for completed sets
           for (const set of CARD_SETS) {
             const allSetCards = set.cards.map((c) => c.id);
             const hadAllBefore = allSetCards.every((id) => s.collectedCards.includes(id));
@@ -389,11 +388,17 @@ export function useGameState() {
         }
       }
 
-      // Food tiles give monster XP instead of player coins
       const coinGain = tile.type === "food" ? 0 : finalValue;
       const newMonsterTaps = monsterXpGain > 0
         ? { ...s.monsterTaps, [s.activeMonster]: (s.monsterTaps[s.activeMonster] ?? 0) + monsterXpGain }
         : s.monsterTaps;
+
+      let newIslandStars = s.islandStars + (islandStarEarned ? 1 : 0);
+      let newPendingFlips = s.pendingCardFlips;
+      while (newIslandStars >= STARS_PER_FLIP) {
+        newIslandStars -= STARS_PER_FLIP;
+        newPendingFlips += 1;
+      }
 
       return {
         ...s,
@@ -407,10 +412,36 @@ export function useGameState() {
         monsterTaps: newMonsterTaps,
         xp: newXp,
         level: newLevel.id,
+        islandStars: newIslandStars,
+        pendingCardFlips: newPendingFlips,
       };
     });
-    return { steps, tile: modifiedTile, card: drawnCard, monsterLevelUp };
-  }, [state.rolls, state.position, state.activeDiceTier, state.betMultiplier, state.xp, update]);
+    return { steps, tile: modifiedTile, card: drawnCard, monsterLevelUp, islandStarEarned };
+  }, [state.rolls, state.position, state.activeDiceTier, state.betMultiplier, state.xp, state.activeMonster, state.monsterTaps, update]);
+
+  const addStars = useCallback(
+    (amount: number) => update((s) => {
+      let stars = s.islandStars + amount;
+      let flips = s.pendingCardFlips;
+      while (stars >= STARS_PER_FLIP) { stars -= STARS_PER_FLIP; flips += 1; }
+      return { ...s, islandStars: stars, pendingCardFlips: flips };
+    }),
+    [update]
+  );
+
+  const consumeCardFlip = useCallback(
+    (): boolean => {
+      if (state.pendingCardFlips <= 0) return false;
+      update((s) => ({ ...s, pendingCardFlips: Math.max(0, s.pendingCardFlips - 1) }));
+      return true;
+    },
+    [state.pendingCardFlips, update]
+  );
+
+  const recordSpin = useCallback(
+    () => update((s) => ({ ...s, lastSpinAt: new Date().toISOString() })),
+    [update]
+  );
 
   const buyDicePack = useCallback(
     (packId: string) => {
