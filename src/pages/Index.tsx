@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Gift, LogOut, Volume2, VolumeX } from "lucide-react";
+import { Gift, LogOut, Volume2, VolumeX, HelpCircle } from "lucide-react";
+import { TutorialCoachmark, CoachStep } from "@/components/TutorialCoachmark";
+import { HelpDialog } from "@/components/HelpDialog";
+import { useTutorial } from "@/hooks/useTutorial";
 import { toast } from "sonner";
 import { isMuted, setMuted, startBgm, stopBgm } from "@/lib/sfx";
 import { getLevelForXp } from "@/data/levels";
@@ -44,6 +47,51 @@ const Index = () => {
   const [levelUpData, setLevelUpData] = useState<ReturnType<typeof getLevelForXp> | null>(null);
   const [drawnCard, setDrawnCard] = useState<GameCard | null>(null);
   const prevLevelRef = useRef(game.level);
+
+  // Tutorial + help
+  const mainTutorial = useTutorial("main");
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [coachOpen, setCoachOpen] = useState(false);
+
+  // Auto-open coachmarks on first launch (after a brief delay so UI is laid out)
+  useEffect(() => {
+    if (!mainTutorial.completed) {
+      const t = window.setTimeout(() => setCoachOpen(true), 600);
+      return () => window.clearTimeout(t);
+    }
+  }, [mainTutorial.completed]);
+
+  const tutorialSteps: CoachStep[] = [
+    {
+      title: "Welcome to Monster Mash!",
+      body: "Roll the dice, move along the board, collect cards, and evolve your monster. Let's take a quick tour.",
+      emoji: "👋",
+    },
+    {
+      selector: "[data-tutorial='dice']",
+      title: "Roll the dice",
+      body: "Tap to roll. You'll move that many tiles and trigger whatever you land on. Each roll costs 1 of your 🎲 rolls.",
+      emoji: "🎲",
+    },
+    {
+      selector: "[data-tutorial='board']",
+      title: "Land on chest 📦 or star ⭐",
+      body: "These tiles draw cards (~20% chance per roll). Complete sets to unlock new monsters and bonuses.",
+      emoji: "🎴",
+    },
+    {
+      selector: "[data-tutorial='tab-season']",
+      title: "Seasonal Event",
+      body: "Every 2.5 days a new season starts. Play the mini-game to earn special symbols and unlock rare event cards.",
+      emoji: "🌟",
+    },
+    {
+      selector: "[data-tutorial='help']",
+      title: "Need help?",
+      body: "Tap this anytime for the rules, full odds breakdown, and to replay this tour.",
+      emoji: "❓",
+    },
+  ];
 
   // Start background music on mount
   useEffect(() => {
