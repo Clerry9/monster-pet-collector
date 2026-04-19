@@ -138,6 +138,7 @@ export function SeasonHub({
         <div className="text-right text-[10px] font-display text-cream/70">
           🪙 {coins.toLocaleString()}
           <div className="opacity-70">🎲 {rolls} rolls</div>
+          <div className="text-gold">⭐ {islandStars}/5 → flip</div>
         </div>
       </div>
 
