@@ -892,11 +892,11 @@ function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRe
         <meshStandardMaterial color={rarityColor} emissive={rarityColor} emissiveIntensity={0.3} roughness={0.5} />
       </mesh>
       {/* Feet */}
-      <mesh position={[-0.14, -0.32, 0.05]}>
+      <mesh ref={leftFootRef} position={[-0.14, -0.32, 0.05]}>
         <sphereGeometry args={[0.1, 12, 12]} />
         <meshStandardMaterial color={rarityColor} roughness={0.6} />
       </mesh>
-      <mesh position={[0.14, -0.32, 0.05]}>
+      <mesh ref={rightFootRef} position={[0.14, -0.32, 0.05]}>
         <sphereGeometry args={[0.1, 12, 12]} />
         <meshStandardMaterial color={rarityColor} roughness={0.6} />
       </mesh>
