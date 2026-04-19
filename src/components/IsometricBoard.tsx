@@ -711,6 +711,7 @@ function MonsterTrail({ positions, theme }: { positions: THREE.Vector3[]; theme:
 // --- Monster Pawn ---
 
 interface MonsterPawnProps {
+  monsterPosRef?: React.MutableRefObject<THREE.Vector3>;
   pathPoints: THREE.Vector3[];
   position: number;
   monster: Monster;
