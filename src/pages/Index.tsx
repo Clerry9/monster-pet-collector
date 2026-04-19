@@ -145,6 +145,17 @@ const Index = () => {
     return true;
   };
 
+  // Streak saver power-up: 500 coins → extends mini-game combo window for one game
+  const handleBuyStreakSaver = (): boolean => {
+    if (game.coins < 500) {
+      toast.error("Not enough coins (need 500)");
+      return false;
+    }
+    game.addCoins(-500);
+    toast.success("⚡ Streak Saver active!", { description: "Combo window extended to 4s" });
+    return true;
+  };
+
   // Battle pass tier claim — applies the reward to game state
   const handleClaimTier = (tier: number, reward: SeasonReward) => {
     const r = reward.premium ?? reward.free;
@@ -398,9 +409,11 @@ const Index = () => {
                 progress={season.progress}
                 msRemaining={season.msRemaining}
                 rolls={game.rolls}
+                coins={game.coins}
                 onPlayMiniGame={handlePlayMiniGame}
                 onAwardSymbols={season.addSymbols}
                 onClaimTier={handleClaimTier}
+                onBuyStreakSaver={handleBuyStreakSaver}
               />
             </motion.div>
           )}

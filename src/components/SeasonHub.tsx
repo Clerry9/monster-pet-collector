@@ -72,7 +72,7 @@ export function SeasonHub({
     onPlayMiniGame();
   };
 
-  const handleMiniGameFinish = (symbolsEarned: number) => {
+  const handleMiniGameFinish = (symbolsEarned: number, _score?: number) => {
     if (symbolsEarned > 0) {
       const final = onAwardSymbols(symbolsEarned);
       toast.success(`+${final} ${season.symbol} earned!`, {
