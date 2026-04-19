@@ -176,6 +176,8 @@ export function SeasonHub({
               progress={progress}
               symbol={season.symbol}
               onClaim={(reward) => onClaimTier(r.tier, reward)}
+              onBuyPass={handleBuyPass}
+              buyPassLoading={loading}
             />
           ))}
         </div>
