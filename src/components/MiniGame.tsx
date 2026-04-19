@@ -210,7 +210,7 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
         if (!matched.has(i)) return cell;
         const newEmoji = season.miniGameTiles[Math.floor(Math.random() * season.miniGameTiles.length)];
         // Higher chance dropped tile spawns the special symbol
-        const finalEmoji = Math.random() < SYMBOL_DROP_RATE ? season.symbol : newEmoji;
+        const finalEmoji = Math.random() < cfg.symbolDropRate ? season.symbol : newEmoji;
         idCounter.current += 1;
         return { id: idCounter.current, emoji: finalEmoji };
       });
@@ -246,6 +246,13 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
 
   const tryTap = (idx: number) => {
     if (phase !== "playing") return;
+    // Tapping a bomb ends the round (or costs 50 score on Easy where there are none anyway)
+    if (cells[idx]?.emoji === BOMB) {
+      sfxSkull();
+      if (navigator.vibrate) navigator.vibrate([60, 30, 60]);
+      setPhase("result");
+      return;
+    }
     if (selected === null) {
       setSelected(idx);
       return;
@@ -254,7 +261,6 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
       setSelected(null);
       return;
     }
-    // Check adjacency
     const r1 = Math.floor(selected / SIZE), c1 = selected % SIZE;
     const r2 = Math.floor(idx / SIZE), c2 = idx % SIZE;
     const adj = (Math.abs(r1 - r2) === 1 && c1 === c2) || (Math.abs(c1 - c2) === 1 && r1 === r2);
@@ -262,22 +268,21 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
       setSelected(idx);
       return;
     }
-    // Swap
     const swapped = [...cells];
     [swapped[selected], swapped[idx]] = [swapped[idx], swapped[selected]];
     const matchesAfter = findMatches(swapped);
     if (matchesAfter.size === 0) {
       setSelected(null);
-      return; // invalid swap
+      return;
     }
     matchPulseRef.current = Array.from(matchesAfter);
     setCells(resolveMatches(swapped));
     setSelected(null);
   };
 
-  const didWin = score >= LOSE_THRESHOLD || symbolsCollected >= SYMBOL_WIN_THRESHOLD;
+  const didWin = score >= cfg.scoreToWin || symbolsCollected >= cfg.symbolsToWin;
   const symbolsEarned = useMemo(() => {
-    if (!didWin) return 0; // LOSS: no symbols awarded
+    if (!didWin) return 0;
     return symbolsCollected + Math.floor(score / SCORE_BONUS_PER);
   }, [symbolsCollected, score, didWin]);
 
