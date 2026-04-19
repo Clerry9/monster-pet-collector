@@ -23,7 +23,8 @@ import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
 import { LinkAccount } from "@/components/LinkAccount";
 import { Link2 } from "lucide-react";
-import { GameCard } from "@/data/cards";
+import { GameCard, ALL_CARDS } from "@/data/cards";
+import { SeasonReward } from "@/data/seasons";
 import { SpecialPacks } from "@/components/SpecialPacks";
 import { SeasonHub } from "@/components/SeasonHub";
 import { useSeason } from "@/hooks/useSeason";
@@ -83,7 +84,7 @@ const Index = () => {
   };
 
   // Battle pass tier claim — applies the reward to game state
-  const handleClaimTier = (tier: number, reward: import("@/data/seasons").SeasonReward) => {
+  const handleClaimTier = (tier: number, reward: SeasonReward) => {
     const r = reward.premium ?? reward.free;
     if (!r) return;
     if (r.type === "coins") game.addCoins(r.amount ?? 0);
@@ -92,7 +93,7 @@ const Index = () => {
     else if (r.type === "card" && r.id) {
       game.grantCard(r.id);
       season.markCardUnlocked(r.id);
-      const card = (await import("@/data/cards")).ALL_CARDS.find((c) => c.id === r.id);
+      const card = ALL_CARDS.find((c) => c.id === r.id);
       if (card) setDrawnCard(card);
     } else if (r.type === "monster" && r.id) game.grantMonster(r.id);
     else if (r.type === "dice" && r.id) game.grantDiceTier(r.id);
