@@ -41,10 +41,10 @@ export async function initAds(): Promise<AdProvider> {
 
   if (isNative()) {
     try {
-      // Lazy import so web bundles don't try to resolve the native module.
-      const mod = await import(
-        /* @vite-ignore */ "@capacitor-community/admob"
-      ).catch(() => null);
+      // Lazy import via runtime string so the web bundle / typechecker
+      // doesn't require the native module to be installed.
+      const modName = "@capacitor-community/admob";
+      const mod = await import(/* @vite-ignore */ modName).catch(() => null);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const AdMob = (mod as any)?.AdMob;
       if (AdMob) {
@@ -75,7 +75,8 @@ export async function showRewardedAd(): Promise<boolean> {
 
   if (provider === "admob") {
     try {
-      const mod = await import(/* @vite-ignore */ "@capacitor-community/admob");
+      const modName = "@capacitor-community/admob";
+      const mod = await import(/* @vite-ignore */ modName);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const AdMob = (mod as any).AdMob;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
