@@ -27,7 +27,7 @@ import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
 import { LinkAccount } from "@/components/LinkAccount";
 import { Link2 } from "lucide-react";
-import { GameCard, ALL_CARDS } from "@/data/cards";
+import { GameCard, ALL_CARDS, drawRandomCard } from "@/data/cards";
 import { SeasonReward, formatTimeRemaining } from "@/data/seasons";
 import { SpecialPacks } from "@/components/SpecialPacks";
 import { SeasonHub } from "@/components/SeasonHub";
@@ -148,7 +148,7 @@ const Index = () => {
   // Auto-trigger card flip reward when player has pending flips
   useEffect(() => {
     if (game.pendingCardFlips > 0 && !drawnCard) {
-      const card = require("@/data/cards").drawRandomCard();
+      const card = drawRandomCard();
       game.consumeCardFlip();
       game.grantCard(card.id);
       setDrawnCard(card);
