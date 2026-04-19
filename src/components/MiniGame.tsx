@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, X, Trophy, Lightbulb } from "lucide-react";
+import { Play, X, Trophy, Lightbulb, Zap } from "lucide-react";
 import { Season } from "@/data/seasons";
 import { sfxCoinGain, sfxLevelUp } from "@/lib/sfx";
 import { useTutorial } from "@/hooks/useTutorial";
@@ -71,8 +71,9 @@ function findMatches(cells: Cell[]): Set<number> {
   return matched;
 }
 
-export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpendRoll }: MiniGameProps) {
+export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpendRoll, coins, onBuyStreakSaver }: MiniGameProps) {
   const miniTutorial = useTutorial("minigame");
+  const [streakSaver, setStreakSaver] = useState(false);
   const [phase, setPhase] = useState<"intro" | "playing" | "result">("intro");
   const [cells, setCells] = useState<Cell[]>([]);
   const [score, setScore] = useState(0);
