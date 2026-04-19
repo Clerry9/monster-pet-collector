@@ -25,12 +25,15 @@ import { LinkAccount } from "@/components/LinkAccount";
 import { Link2 } from "lucide-react";
 import { GameCard } from "@/data/cards";
 import { SpecialPacks } from "@/components/SpecialPacks";
+import { SeasonHub } from "@/components/SeasonHub";
+import { useSeason } from "@/hooks/useSeason";
 
-type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials";
+type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season";
 
 const Index = () => {
   const game = useGameState();
   const daily = useDailyReward(game.addCoins);
+  const season = useSeason();
   const { user, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>("board");
   const [showLink, setShowLink] = useState(false);
