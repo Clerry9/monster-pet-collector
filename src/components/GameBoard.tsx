@@ -265,15 +265,34 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
         <motion.button
           whileTap={{ scale: 0.85, rotate: 15 }}
           whileHover={{ scale: 1.05 }}
-          onClick={handleRoll}
-          disabled={isRolling || rolls <= 0}
-          aria-label={rolls <= 0 ? "No rolls remaining" : isRolling ? "Rolling dice..." : `Roll dice, range 1 to ${activeDiceMax}`}
-          className={`relative w-24 h-24 rounded-2xl border-4 flex items-center justify-center font-display text-3xl transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+          onPointerDown={handlePressStart}
+          onPointerUp={() => handlePressEnd(true)}
+          onPointerLeave={() => handlePressEnd(false)}
+          onPointerCancel={() => handlePressEnd(false)}
+          disabled={(isRolling && !isAutoRolling) || rolls <= 0}
+          aria-label={rolls <= 0 ? "No rolls remaining" : isAutoRolling ? "Auto-rolling. Tap to stop." : isRolling ? "Rolling dice..." : `Roll dice. Tap to roll, hold 2 seconds to auto-roll. Range 1 to ${activeDiceMax}`}
+          className={`relative w-24 h-24 rounded-2xl border-4 flex items-center justify-center font-display text-3xl transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary select-none touch-none ${
             rolls <= 0
               ? "border-muted bg-muted/50 text-muted-foreground cursor-not-allowed"
-              : "border-primary bg-card text-foreground box-glow-green"
+              : isAutoRolling
+                ? "border-accent bg-card text-foreground"
+                : "border-primary bg-card text-foreground box-glow-green"
           }`}
         >
+          {/* Hold progress ring */}
+          {holdProgress > 0 && holdProgress < 1 && (
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" aria-hidden="true">
+              <rect
+                x="2" y="2" width="96" height="96" rx="14"
+                fill="none"
+                stroke="hsl(var(--accent))"
+                strokeWidth="4"
+                strokeDasharray={384}
+                strokeDashoffset={384 * (1 - holdProgress)}
+                transform="rotate(-90 50 50)"
+              />
+            </svg>
+          )}
           {isRolling ? (
             <motion.span
               animate={{ rotate: [0, 360] }}
@@ -285,6 +304,16 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
             </motion.span>
           ) : (
             <span className="text-4xl" aria-hidden="true">🎲</span>
+          )}
+          {isAutoRolling && (
+            <motion.span
+              className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground text-[10px] font-bold rounded-full px-2 py-0.5 whitespace-nowrap"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              aria-hidden="true"
+            >
+              AUTO • tap to stop
+            </motion.span>
           )}
           {diceValue && isRolling && (
             <motion.span
@@ -305,6 +334,9 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
             {rolls}
           </span>
           <span className="text-muted-foreground/50">• 1-{activeDiceMax}</span>
+        </div>
+        <div className="text-[10px] font-body text-muted-foreground/70">
+          Tap to roll • Hold 2s to auto-roll
         </div>
       </div>
     </div>
