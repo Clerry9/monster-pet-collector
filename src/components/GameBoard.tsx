@@ -59,7 +59,7 @@ interface Particle {
 const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
 let particleIdCounter = 0;
 
-export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax, levelId = 1, seasonAccent, seasonGlow, seasonSymbol }: GameBoardProps) {
+export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0 }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -248,12 +248,12 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
 
   return (
     <div
-      className={`flex flex-col items-center gap-4 w-full ${isShaking ? "animate-shake" : ""}`}
+      className={`flex flex-col items-center gap-4 w-full ${isShaking ? "animate-shake" : ""} ${fullscreen ? "h-full" : ""}`}
       role="region"
       aria-label="Game board"
     >
       {/* 3D Isometric Board */}
-      <div className="relative w-full">
+      <div className={fullscreen ? "relative w-full h-full" : "relative w-full"}>
         <IsometricBoard
           position={position}
           monster={monster}
@@ -262,6 +262,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
           levelId={levelId}
           seasonAccent={seasonAccent}
           seasonGlow={seasonGlow}
+          fullscreen={fullscreen}
         />
         {/* Season symbol particle burst */}
         <AnimatePresence>
