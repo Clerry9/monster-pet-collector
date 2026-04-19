@@ -89,7 +89,15 @@ export interface GameState {
   level: number;
   xp: number;
   betMultiplier: number;
+  islandStars: number;
+  pendingCardFlips: number;
+  lastSpinAt: string | null;
 }
+
+// Each "island" = ~5 tiles. Stars convert at this ratio.
+export const STARS_PER_FLIP = 5;
+export const TILES_PER_ISLAND = 5;
+export const SPIN_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 
 const DEFAULT_STATE: GameState = {
   coins: 50,
@@ -106,6 +114,9 @@ const DEFAULT_STATE: GameState = {
   level: 1,
   xp: 0,
   betMultiplier: 1,
+  islandStars: 0,
+  pendingCardFlips: 0,
+  lastSpinAt: null,
 };
 
 const STORAGE_KEY = "monster-mash-state";
