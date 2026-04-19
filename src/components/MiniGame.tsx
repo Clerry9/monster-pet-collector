@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, X, Trophy, Lightbulb, Zap, Frown } from "lucide-react";
+import { Play, X, Trophy, Lightbulb, Zap, Frown, Heart } from "lucide-react";
 import { Season } from "@/data/seasons";
-import { sfxCoinGain, sfxLevelUp } from "@/lib/sfx";
+import { sfxCoinGain, sfxLevelUp, sfxSkull } from "@/lib/sfx";
 import { useTutorial } from "@/hooks/useTutorial";
+import { RewardedAdButton } from "@/components/RewardedAdButton";
 
 interface MiniGameProps {
   season: Season;
@@ -14,21 +15,38 @@ interface MiniGameProps {
   onSpendRoll: () => void;
   coins: number;
   onBuyStreakSaver: () => boolean;
+  playerLevel?: number;
+  onAddCoins?: (n: number) => void;
+  onSpendCoins?: (n: number) => boolean;
 }
 
 const STREAK_SAVER_COST = 500;
 const STREAK_SAVER_WINDOW_MS = 4000;
 const DEFAULT_WINDOW_MS = 2000;
+const REVIVE_COST = 200;
+const BOMB = "💣";
 
-// 5x5 match-3-style: tap a tile, tap an adjacent tile to swap.
-// Any horizontal/vertical run of 3+ matching emojis clears, scores, and
-// has a chance to drop the special symbol.
+type Difficulty = "easy" | "normal" | "hard";
+const DIFFICULTY_KEY = "lov_minigame_difficulty";
+
+interface DiffConfig {
+  scoreToWin: number;
+  symbolsToWin: number;
+  seconds: number;
+  bombSpawnEverySec: number; // 0 = never
+  maxBombs: number;
+  symbolDropRate: number;
+  reviveTime: number;
+}
+
+const DIFFICULTY: Record<Difficulty, DiffConfig> = {
+  easy:   { scoreToWin: 150, symbolsToWin: 4, seconds: 60, bombSpawnEverySec: 0,  maxBombs: 0, symbolDropRate: 0.22, reviveTime: 20 },
+  normal: { scoreToWin: 200, symbolsToWin: 5, seconds: 45, bombSpawnEverySec: 8,  maxBombs: 1, symbolDropRate: 0.18, reviveTime: 15 },
+  hard:   { scoreToWin: 300, symbolsToWin: 6, seconds: 35, bombSpawnEverySec: 5,  maxBombs: 3, symbolDropRate: 0.14, reviveTime: 12 },
+};
+
 const SIZE = 5;
-const ROUND_SECONDS = 45;
-const SYMBOL_DROP_RATE = 0.18; // chance a refilled tile becomes the special symbol
-const SCORE_BONUS_PER = 120;   // +1 symbol per N score
-const LOSE_THRESHOLD = 200;    // score below this when timer hits 0 = LOSE
-const SYMBOL_WIN_THRESHOLD = 5; // OR collect this many symbols to guarantee a win
+const SCORE_BONUS_PER = 120;
 
 type Cell = { id: number; emoji: string };
 
