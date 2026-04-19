@@ -27,7 +27,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { LinkAccount } from "@/components/LinkAccount";
 import { Link2 } from "lucide-react";
 import { GameCard, ALL_CARDS } from "@/data/cards";
-import { SeasonReward } from "@/data/seasons";
+import { SeasonReward, formatTimeRemaining } from "@/data/seasons";
 import { SpecialPacks } from "@/components/SpecialPacks";
 import { SeasonHub } from "@/components/SeasonHub";
 import { useSeason } from "@/hooks/useSeason";
@@ -250,6 +250,7 @@ const Index = () => {
           active={tab}
           onTabChange={setTab}
           newTabs={{ season: seasonNotice.isNew }}
+          countdowns={{ season: formatTimeRemaining(season.msRemaining) }}
         />
       </div>
 
@@ -406,6 +407,19 @@ const Index = () => {
         </AnimatePresence>
       </div>
 
+      <SeasonRotationModal
+        open={rotationModalOpen}
+        season={season.season}
+        onClose={() => {
+          setRotationModalOpen(false);
+          seasonNotice.acknowledge();
+        }}
+        onGoToEvent={() => {
+          setRotationModalOpen(false);
+          seasonNotice.acknowledge();
+          setTab("season");
+        }}
+      />
       <HelpDialog
         open={helpOpen}
         onClose={() => setHelpOpen(false)}
