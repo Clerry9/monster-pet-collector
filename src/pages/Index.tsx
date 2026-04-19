@@ -193,6 +193,10 @@ const Index = () => {
     toast.success(`Claimed: ${r.label}`);
   };
 
+  const isBoardTab = tab === "board";
+  // On the board tab, the 3D scene is fullscreen — collapse top chrome into a drawer
+  const showChrome = !isBoardTab || menuOpen;
+
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-3 py-4 overflow-hidden">
       <LinkAccount open={showLink} onClose={() => setShowLink(false)} />
@@ -207,81 +211,100 @@ const Index = () => {
         alreadyClaimed={daily.alreadyClaimed}
       />
 
-      {/* Top: level + coins + actions */}
-      <div className="w-full max-w-md mb-2">
-        <LevelProgressBar xp={game.xp} level={game.level} />
-      </div>
+      {/* Floating hamburger — only on the fullscreen board */}
+      {isBoardTab && (
+        <button
+          onClick={() => setMenuOpen((o) => !o)}
+          className="fixed top-2 right-2 z-50 icon-tile-gold w-10 h-10 flex items-center justify-center shadow-chunky"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+        >
+          {menuOpen ? <XIcon size={18} /> : <Menu size={18} />}
+        </button>
+      )}
 
-      <div className="w-full max-w-md flex items-center justify-between gap-2 mb-3">
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => { const next = !muted; setMuted(next); setMutedState(next); }}
-            className="icon-tile-gold w-9 h-9 flex items-center justify-center"
-            title={muted ? "Unmute" : "Mute"}
-            aria-label={muted ? "Unmute" : "Mute"}
-          >
-            {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-          </button>
-          <button
-            onClick={daily.openModal}
-            className="icon-tile-gold w-9 h-9 flex items-center justify-center"
-            title="Daily Reward"
-            aria-label="Daily Reward"
-          >
-            <Gift size={18} />
-          </button>
+      {/* Top chrome — shown normally on non-board tabs, slide-down drawer over board tab */}
+      <div
+        className={
+          isBoardTab
+            ? `fixed inset-x-0 top-0 z-40 bg-background/95 backdrop-blur-md shadow-chunky transition-transform duration-300 ${menuOpen ? "translate-y-0" : "-translate-y-full"} px-3 pt-3 pb-3 flex flex-col items-center max-h-[80vh] overflow-y-auto`
+            : "w-full flex flex-col items-center"
+        }
+      >
+        <div className="w-full max-w-md mb-2">
+          <LevelProgressBar xp={game.xp} level={game.level} />
         </div>
-        <CoinCounter coins={game.coins} onAdd={() => setTab("shop")} />
-        <div className="flex items-center gap-1.5">
-          {isGuest && (
+
+        <div className="w-full max-w-md flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-1.5">
             <button
-              onClick={() => setShowLink(true)}
+              onClick={() => { const next = !muted; setMuted(next); setMutedState(next); }}
               className="icon-tile-gold w-9 h-9 flex items-center justify-center"
-              title="Link Account"
-              aria-label="Link Account"
+              title={muted ? "Unmute" : "Mute"}
+              aria-label={muted ? "Unmute" : "Mute"}
             >
-              <Link2 size={16} />
+              {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
             </button>
-          )}
-          <button
-            data-tutorial="help"
-            onClick={() => setHelpOpen(true)}
-            className="icon-tile-gold w-9 h-9 flex items-center justify-center"
-            title="How to play"
-            aria-label="How to play"
-          >
-            <HelpCircle size={16} />
-          </button>
-          <button
-            onClick={signOut}
-            className="icon-tile-gold w-9 h-9 flex items-center justify-center"
-            title="Sign Out"
-            aria-label="Sign Out"
-          >
-            <LogOut size={16} />
-          </button>
+            <button
+              onClick={daily.openModal}
+              className="icon-tile-gold w-9 h-9 flex items-center justify-center"
+              title="Daily Reward"
+              aria-label="Daily Reward"
+            >
+              <Gift size={18} />
+            </button>
+          </div>
+          <CoinCounter coins={game.coins} onAdd={() => setTab("shop")} />
+          <div className="flex items-center gap-1.5">
+            {isGuest && (
+              <button
+                onClick={() => setShowLink(true)}
+                className="icon-tile-gold w-9 h-9 flex items-center justify-center"
+                title="Link Account"
+                aria-label="Link Account"
+              >
+                <Link2 size={16} />
+              </button>
+            )}
+            <button
+              data-tutorial="help"
+              onClick={() => setHelpOpen(true)}
+              className="icon-tile-gold w-9 h-9 flex items-center justify-center"
+              title="How to play"
+              aria-label="How to play"
+            >
+              <HelpCircle size={16} />
+            </button>
+            <button
+              onClick={signOut}
+              className="icon-tile-gold w-9 h-9 flex items-center justify-center"
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Curved gold banner */}
-      <div className="banner-gold px-6 py-2 mb-3">
-        <h1 className="font-display text-2xl tracking-wide">⭐ MONSTER MASH ⭐</h1>
-      </div>
+        {/* Curved gold banner */}
+        <div className="banner-gold px-6 py-2 mb-3">
+          <h1 className="font-display text-2xl tracking-wide">⭐ MONSTER MASH ⭐</h1>
+        </div>
 
-      {/* Stats */}
-      <div className="w-full max-w-md flex items-center justify-center gap-4 mb-2 text-[11px] font-display text-wood-dark/80">
-        <span>🎲 {game.rolls}</span>
-        <span>👣 {game.totalSteps}</span>
-        <span>🃏 {game.cardsCollected}</span>
-      </div>
+        {/* Stats */}
+        <div className="w-full max-w-md flex items-center justify-center gap-4 mb-2 text-[11px] font-display text-wood-dark/80">
+          <span>🎲 {game.rolls}</span>
+          <span>👣 {game.totalSteps}</span>
+          <span>🃏 {game.cardsCollected}</span>
+        </div>
 
-      <div data-tutorial="tabs">
-        <GameTabs
-          active={tab}
-          onTabChange={setTab}
-          newTabs={{ season: seasonNotice.isNew }}
-          countdowns={{ season: formatTimeRemaining(season.msRemaining) }}
-        />
+        <div data-tutorial="tabs" onClick={() => isBoardTab && setMenuOpen(false)}>
+          <GameTabs
+            active={tab}
+            onTabChange={setTab}
+            newTabs={{ season: seasonNotice.isNew }}
+            countdowns={{ season: formatTimeRemaining(season.msRemaining) }}
+          />
+        </div>
       </div>
 
       <CardReveal card={drawnCard} onComplete={() => setDrawnCard(null)} />
