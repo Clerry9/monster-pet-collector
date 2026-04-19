@@ -1,65 +1,53 @@
 
 
-## Plan: Level-Synced Building Mini-Game + Unique Jack Items + Persistent Rolls
+## Plan: Fix Auto-Roll Stoppage + Per-Level Island Direction
 
-### 1. New "Build the Island" mini-game (replaces the current match-3 `MiniGame.tsx`)
-A construction game where each level unlocks a different themed structure to build, matching the LEVELS table in `src/data/levels.ts`.
+### Issue 1 — Auto-roll prematurely stops
 
-**Concept**: Player taps incoming resource tiles (wood, stone, gem) falling/floating across the panel for `cfg.seconds`. Collected resources auto-fill a 3-section blueprint (foundation → walls → roof). Completing all 3 sections = win = season symbols awarded. Bombs (💣) reduce progress. Difficulty selector (Easy/Normal/Hard) kept from current code — controls time, bomb rate, resources-per-section.
+**Root cause** in `src/components/GameBoard.tsx` `performRoll()`:
+- After the dice tick interval ends, `onRollDice()` is called (which decrements `rolls` upstream via React state).
+- The 900ms `setTimeout` then re-checks `rollsRef.current > 0` to schedule the next roll.
+- `rollsRef.current` is updated via a `useEffect` watching the `rolls` prop. Between `onRollDice()` and the timer firing, if the parent's state update batches with another re-render or the prop is stale at check time, the timer sees `rollsRef.current <= 0` (stale 1) → enters the `else if` branch → calls `setIsAutoRolling(false)` and stops. Worst case: `rollDice()` returns `null` (e.g. loading state) so rolls aren't decremented — the next scheduled roll runs, but other races stop it.
+- A second compounding bug: when `rolls` goes from 1→0 after the *intended* last auto-roll, code stops correctly, but if the user has plenty of rolls and the timer just *hasn't seen the ref update yet*, it stops incorrectly.
 
-**Level sync**: 8 building themes, one per level in `LEVELS`:
-| Level | Theme | Building |
-|---|---|---|
-| 1 Goblin Forest | 🌲 | Wooden Hut |
-| 2 Crystal Caves | 💎 | Crystal Shrine |
-| 3 Lava Peaks | 🌋 | Forge Tower |
-| 4 Haunted Marsh | 👻 | Ghost Shack |
-| 5 Sky Citadel | 🏰 | Sky Bridge |
-| 6 Dragon's Lair | 🐉 | Dragon Roost |
-| 7 Void Realm | 🌌 | Void Obelisk |
-| 8 Celestial Plane | ✨ | Star Temple |
+**Fix**: Decouple "is there budget to keep auto-rolling" from the stale `rollsRef`. Use the actual return value from `game.rollDice()`:
+- Add a callback ref `onRollDiceRef` returning the roll result OR add a return value from `onRollDice` (`() => boolean`). Simpler: change `onRollDice` prop to `() => { ok: boolean; remaining: number }` so GameBoard knows authoritatively whether to continue.
+- Also wrap the post-roll scheduling in a `useEffect` watching `rolls` prop directly: when `isAutoRolling && !isRolling && rolls > 0`, schedule a roll after 900ms; when `rolls <= 0`, set auto-rolling false. This eliminates the ref staleness entirely.
 
-Each theme defines 3 resource emojis + a final building emoji. Completing the building shows a celebratory reveal of the level's structure. Reward = symbols proportional to sections finished (full = `cfg.symbolsToWin`, partial = pro-rated).
+I will refactor to the **effect-based approach** since it's more robust:
+```ts
+// Replace internal scheduling with effect that reacts to fresh rolls prop
+useEffect(() => {
+  if (!isAutoRolling || isRolling) return;
+  if (rolls <= 0) { setIsAutoRolling(false); return; }
+  const t = setTimeout(() => performRoll(), 900);
+  return () => clearTimeout(t);
+}, [isAutoRolling, isRolling, rolls]);
+```
+And remove the inline `setTimeout` block from `performRoll`.
 
-**File changes**:
-- Add `src/data/buildings.ts` — `BUILDINGS[]` indexed by level id, each with `{ name, finalEmoji, resources: [emoji, emoji, emoji], sections: [name, name, name] }`.
-- Rewrite `src/components/MiniGame.tsx` body (keep the same exported interface so `SeasonHub.tsx` doesn't change). Replaces match-3 grid logic with a tap-spawning resource-collection loop. Keeps difficulty selector, bomb spawner, revive flow, RewardedAdButton — they all already work.
+### Issue 2 — Monster running in circles after completing the loop
 
-### 2. Unique random items in Jack-in-the-Box (`MiniGameJack.tsx`)
-Replace the single distractor card with a pool of **rare bonus items** that give one-off rewards on match (independent of season symbols):
+**Root cause**: `generatePath()` in `IsometricBoard.tsx` builds one fixed spiral of 30 tiles. After 30 steps, position wraps to 0 — the monster appears to teleport/dash back across the spiral, visually "running in circles".
 
-| Item | Effect on match |
-|---|---|
-| 💰 Coin Cache | +50 coins |
-| 🎲 Lucky Die | +1 roll |
-| ⭐ Star Shard | +1 island star |
-| 🃏 Mystery Card | +1 pending card flip |
-| 💎 Gem | +25 coins × player level |
-
-Board grows from 9 to 12 cards: 4 pairs of season symbol + 2 random unique-item pairs (drawn from pool, never duplicated). Matching a unique pair shows a small floating reward toast inside the modal and calls a new prop `onAwardItem(itemType, amount)`.
-
-**File changes**:
-- `src/components/MiniGameJack.tsx`: add `UNIQUE_ITEMS` pool, expand grid to 4×3, track item-match rewards, render reward badges in the result screen.
-- Add new optional props: `onAddCoins`, `onAddRolls`, `onAwardStars`, `onAddCardFlip`, `playerLevel`.
-- `src/components/SeasonHub.tsx`: pass these handlers through (already has access to `game.addCoins`, `game.addRolls`, `game.addStars`, plus a new `addCardFlip` helper from `useGameState`).
-- `src/hooks/useGameState.ts`: add `addCardFlip(n)` callback.
-
-### 3. Persistent rolls across levels (clarification + fix)
-Investigation confirmed `state.rolls` is stored in `useGameState` and **never** reset on level-up — they already carry over globally. The user's perception likely stems from **the mini-game's internal flip/move counter resetting per play session**. Two improvements:
-
-a. **Visible roll persistence proof** — add an info chip at the top of the LevelUp celebration: `"🎲 You still have {rolls} rolls"` so the user sees rolls survive level transitions. (Edit `LevelUpCelebration.tsx` + thread `rolls` prop from `Index.tsx`.)
-
-b. **Mini-game flip carry-over** — in `MiniGameJack.tsx`, track unused flips in `localStorage` keyed by season+level so if the player closes mid-game they resume with the same remaining flips next open (within the same level only). New small helper `lov_jack_flips_left`.
+**Fix**: Make the path layout shape change based on the player's **level** so each level feels like a different island:
+- Add `levelId` (already passed to IsometricBoard) as a dependency of `generatePath`, and parameterize the path with one of several shapes per level:
+  - L1 — outward spiral (current)
+  - L2 — figure-8
+  - L3 — zigzag river going north
+  - L4 — inward spiral (reverse direction)
+  - L5 — diamond/rhombus loop
+  - L6 — S-curve climbing
+  - L7 — two concentric arcs
+  - L8 — straight ascending bridge to a peak
+- Each path still has 30 nodes and is a closed loop returning near start, but the **direction & shape differ per level** so completing a loop and starting again on a higher level *looks* like a new island.
+- Update `generatePath(tileCount, levelId)` and memoize on `levelId`.
+- Bonus: when `position` wraps from 29 → 0 mid-game on the same level, smooth-teleport the monster (skip animation for that one wrap step) so it doesn't dash backwards. Detect with `prevPosition > newPosition + 5`.
 
 ### Files
-- Create: `src/data/buildings.ts`
-- Edit: `src/components/MiniGame.tsx` (rewrite body, keep interface)
-- Edit: `src/components/MiniGameJack.tsx` (unique items, grid, persistent flips)
-- Edit: `src/components/SeasonHub.tsx` (wire new handlers)
-- Edit: `src/hooks/useGameState.ts` (add `addCardFlip`)
-- Edit: `src/components/LevelUpCelebration.tsx` (rolls chip)
-- Edit: `src/pages/Index.tsx` (thread `rolls` prop into celebration + new MiniGame handlers)
+- Edit: `src/components/GameBoard.tsx` — replace inline auto-roll scheduling with an effect; remove `autoRollTimerRef` chain.
+- Edit: `src/components/IsometricBoard.tsx` — parameterize `generatePath(tileCount, levelId)`, add 8 shape variants, memoize on `levelId`; suppress monster dash on loop wrap in `MonsterPawn`.
 
 ### End-to-End Test
-After build → open Mini-Game from Season Hub: confirm intro shows the **current level's building blueprint**, pick difficulty, play → tap resources to fill 3 sections → win shows the completed building emoji + symbols awarded. Open Jack-in-the-Box: see 4×3 grid, find a 💰/🎲/⭐ pair → reward toast appears inside modal, on CLAIM verify coins/rolls/stars actually increase in HUD. Buy a Mega Pack to gain XP → trigger level up → celebration shows "You still have X rolls" chip; confirm rolls count is identical before and after. Close Jack mid-game with flips remaining → reopen → flips resume.
+After build → on Game tab, hold PRESS for 2s to start auto-roll → observe rolls keep firing until they actually hit 0 (no premature stop). → Buy a Mega Pack to grant 50 rolls and trigger auto-roll: it should complete all rolls without stopping. → Trigger level-up by buying packs: confirm the 3D island path visibly changes shape (spiral → figure-8 → zigzag, etc.) per level. → Roll past tile 29: confirm the monster does NOT dash backwards across the whole spiral, but instead transitions cleanly to tile 0.
 
