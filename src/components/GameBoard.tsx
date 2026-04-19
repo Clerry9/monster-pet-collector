@@ -142,8 +142,8 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
     }
   }, [lastResult, isRolling]);
 
-  const handleRoll = () => {
-    if (isRolling || rolls <= 0) return;
+  const performRoll = () => {
+    if (isRollingRef.current || rollsRef.current <= 0) return;
     setIsRolling(true);
     setDiceValue(null);
 
@@ -156,9 +156,64 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
         clearInterval(interval);
         onRollDice();
         setIsRolling(false);
+        // Schedule next auto-roll
+        if (isAutoRollingRef.current && rollsRef.current > 1) {
+          autoRollTimerRef.current = setTimeout(() => performRoll(), 600);
+        } else if (isAutoRollingRef.current) {
+          setIsAutoRolling(false);
+        }
       }
     }, 80);
   };
+
+  const handleRoll = () => performRoll();
+
+  const stopAutoRoll = () => {
+    setIsAutoRolling(false);
+    if (autoRollTimerRef.current) {
+      clearTimeout(autoRollTimerRef.current);
+      autoRollTimerRef.current = null;
+    }
+  };
+
+  const clearHoldTimers = () => {
+    if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; }
+    if (holdRafRef.current) { cancelAnimationFrame(holdRafRef.current); holdRafRef.current = null; }
+    setHoldProgress(0);
+  };
+
+  const handlePressStart = () => {
+    if (isAutoRolling) { stopAutoRoll(); return; }
+    if (rolls <= 0) return;
+    const start = performance.now();
+    const tick = () => {
+      const p = Math.min(1, (performance.now() - start) / 2000);
+      setHoldProgress(p);
+      if (p < 1) holdRafRef.current = requestAnimationFrame(tick);
+    };
+    holdRafRef.current = requestAnimationFrame(tick);
+    holdTimerRef.current = setTimeout(() => {
+      setIsAutoRolling(true);
+      clearHoldTimers();
+      performRoll();
+    }, 2000);
+  };
+
+  const handlePressEnd = (triggered: boolean) => {
+    const wasHolding = holdTimerRef.current !== null;
+    clearHoldTimers();
+    if (wasHolding && triggered && !isAutoRollingRef.current) {
+      // Released before 2s — treat as a normal tap
+      performRoll();
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      clearHoldTimers();
+      if (autoRollTimerRef.current) clearTimeout(autoRollTimerRef.current);
+    };
+  }, []);
 
   // Visible tiles: show a window around current position
   const visibleRange = 9;
