@@ -243,15 +243,23 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       aria-label="Game board"
     >
       {/* 3D Isometric Board */}
-      <IsometricBoard
-        position={position}
-        monster={monster}
-        isMoving={isRolling}
-        movementResult={lastResult}
-        levelId={levelId}
-        seasonAccent={seasonAccent}
-        seasonGlow={seasonGlow}
-      />
+      <div className="relative w-full">
+        <IsometricBoard
+          position={position}
+          monster={monster}
+          isMoving={isRolling}
+          movementResult={lastResult}
+          levelId={levelId}
+          seasonAccent={seasonAccent}
+          seasonGlow={seasonGlow}
+        />
+        {/* Season symbol particle burst */}
+        <AnimatePresence>
+          {seasonSymbol && seasonBurstKey > 0 && (
+            <SeasonBurst key={seasonBurstKey} symbol={seasonSymbol} />
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Result display */}
       <AnimatePresence>
