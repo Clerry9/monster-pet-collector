@@ -12,6 +12,7 @@ interface GameBoardProps {
   lastResult: { steps: number; tile: BoardTile } | null;
   onRollDice: () => void;
   activeDiceMax: number;
+  levelId?: number;
 }
 
 const TILE_EMOJIS: Record<TileType, string> = {
