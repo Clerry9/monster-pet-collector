@@ -89,6 +89,7 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
   const startGame = () => {
     if (!hasRolls) return;
     onSpendRoll();
+    miniTutorial.markCompleted();
     idCounter.current = SIZE * SIZE;
     setCells(randomBoard(season.miniGameTiles, season.symbol));
     setScore(0);
