@@ -1003,18 +1003,37 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
 
 export function IsometricBoard({ position, monster, isMoving, movementResult, levelId = 1, seasonAccent, seasonGlow, fullscreen = false }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId?: number; seasonAccent?: string; seasonGlow?: string; fullscreen?: boolean }) {
   const theme = applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow);
+  const recenterRef = useRef(false);
+  const lastTapRef = useRef(0);
+
+  const handleDoubleTap = () => { recenterRef.current = true; };
+  const handlePointerDown = () => {
+    const now = performance.now();
+    if (now - lastTapRef.current < 300) handleDoubleTap();
+    lastTapRef.current = now;
+  };
+
   return (
     <div
       className={fullscreen ? "absolute inset-0" : "w-full rounded-2xl overflow-hidden border-4 border-wood-dark bg-cream shadow-chunky-sm"}
       style={fullscreen ? undefined : { height: "min(70vh, 560px)", minHeight: 380 }}
       role="region"
       aria-label="3D Game board"
+      onDoubleClick={handleDoubleTap}
+      onPointerDown={handlePointerDown}
     >
       <Canvas shadows camera={{ position: [6, 5, 6], fov: 45, near: 0.1, far: 100 }} gl={{ antialias: true, alpha: false }}>
         <color attach="background" args={[theme.bg]} />
         <fog attach="fog" args={[theme.fog, 12, 28]} />
-        <IsometricBoardScene position={position} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} />
+        <IsometricBoardScene position={position} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} recenterRef={recenterRef} />
       </Canvas>
+      <button
+        onClick={(e) => { e.stopPropagation(); recenterRef.current = true; }}
+        aria-label="Recenter camera on monster"
+        className="absolute bottom-3 right-3 z-20 w-10 h-10 rounded-full bg-card/90 border-2 border-wood-dark shadow-chunky-sm flex items-center justify-center text-base hover:scale-105 active:scale-95 transition"
+      >
+        🎯
+      </button>
     </div>
   );
 }
