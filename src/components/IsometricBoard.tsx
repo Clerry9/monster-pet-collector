@@ -1103,7 +1103,7 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
 }
 
 function IsometricBoardScene({ position, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow, recenterRef }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string; recenterRef: React.MutableRefObject<boolean> }) {
-  const pathPoints = useMemo(() => generatePath(BOARD_TILES.length), []);
+  const pathPoints = useMemo(() => generatePath(BOARD_TILES.length, levelId), [levelId]);
   const currentTilePos = pathPoints[position] || pathPoints[0];
   const trailPosRef = useRef<THREE.Vector3[]>([]);
   const monsterPosRef = useRef<THREE.Vector3>(new THREE.Vector3(currentTilePos.x, currentTilePos.y + 1, currentTilePos.z));
