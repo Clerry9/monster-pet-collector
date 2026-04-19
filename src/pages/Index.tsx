@@ -269,6 +269,18 @@ const Index = () => {
               <SpecialPacks />
             </motion.div>
           )}
+
+          {tab === "specials" && (
+            <motion.div
+              key="specials"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              className="w-full"
+            >
+              <SpecialPacks />
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
     </div>
