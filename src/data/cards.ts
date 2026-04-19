@@ -80,7 +80,7 @@ export const SEASON_CARDS: GameCard[] = [
 ];
 
 
-  { id: "cosmic-1", name: "Stardust", theme: "cosmic", rarity: "common", emoji: "✨", description: "Glittering particles from a dying star.", reward: { type: "coins", amount: 20 } },
+  const cosmicCards: GameCard[] = [
   { id: "cosmic-2", name: "Moon Shard", theme: "cosmic", rarity: "rare", emoji: "🌙", description: "A fragment of a shattered moon.", reward: { type: "coins", amount: 55 } },
   { id: "cosmic-3", name: "Nebula Core", theme: "cosmic", rarity: "rare", emoji: "🌌", description: "The compressed heart of a nebula.", reward: { type: "coins", amount: 60 } },
   { id: "cosmic-4", name: "Alien Artifact", theme: "cosmic", rarity: "epic", emoji: "🛸", description: "Technology beyond human understanding.", reward: { type: "coins", amount: 130 } },
