@@ -15,6 +15,7 @@ import { CardCollection } from "@/components/CardCollection";
 import { SpinWheel } from "@/components/SpinWheel";
 import { DiceShop } from "@/components/DiceShop";
 import { GameTabs } from "@/components/GameTabs";
+import { SideRails } from "@/components/SideRails";
 import { DailyReward } from "@/components/DailyReward";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { LevelProgressBar } from "@/components/LevelProgressBar";
@@ -278,10 +279,20 @@ const Index = () => {
               className="w-full flex flex-col items-center gap-3"
             >
               <div
-                className="panel-wood p-3 w-full"
+                className="panel-wood p-3 w-full relative"
                 data-level={getLevelForXp(game.xp).id}
                 data-tutorial="board"
               >
+                <SideRails
+                  msRemaining={season.msRemaining}
+                  newEvent={seasonNotice.isNew}
+                  onOpenSeason={() => setTab("season")}
+                  onOpenSpin={() => setTab("spin")}
+                  onOpenDaily={daily.openModal}
+                  onOpenSpecials={() => setTab("specials")}
+                  onOpenCollection={() => setTab("collection")}
+                  onOpenCards={() => setTab("cards")}
+                />
                 <GameBoard
                   position={game.position}
                   monster={game.activeMonsterData}
