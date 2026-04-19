@@ -202,9 +202,11 @@ interface PassRowProps {
   progress: SeasonProgress;
   symbol: string;
   onClaim: (reward: SeasonReward) => void;
+  onBuyPass: () => void;
+  buyPassLoading: boolean;
 }
 
-function PassRow({ reward, progress, symbol, onClaim }: PassRowProps) {
+function PassRow({ reward, progress, symbol, onClaim, onBuyPass, buyPassLoading }: PassRowProps) {
   const reached = progress.symbols >= reward.symbolsRequired;
   const claimedFree = progress.claimedTiers.includes(reward.tier);
   const claimedPremium = progress.claimedTiers.includes(reward.tier + 1000);
@@ -246,6 +248,8 @@ function PassRow({ reward, progress, symbol, onClaim }: PassRowProps) {
           reached={reached}
           needsPass={!progress.passPurchased}
           onClaim={() => reward.premium && onClaim({ ...reward, free: undefined, tier: reward.tier + 1000 })}
+          onBuyPass={onBuyPass}
+          buyPassLoading={buyPassLoading}
         />
       </div>
     </div>
