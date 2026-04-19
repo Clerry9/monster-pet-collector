@@ -5,6 +5,8 @@ import { TOUCH } from "three";
 import * as THREE from "three";
 import { BOARD_TILES, BoardTile, TileType } from "@/hooks/useGameState";
 import { Monster } from "@/data/monsters";
+import { BoardMinimap } from "./BoardMinimap";
+import { LevelTransitionCinematic } from "./LevelTransitionCinematic";
 
 // Warm cartoon-casino palette
 const TILE_ACCENT: Record<TileType, string> = {
@@ -1169,6 +1171,13 @@ export function IsometricBoard({ position, monster, isMoving, movementResult, le
         <fog attach="fog" args={[theme.fog, 12, 28]} />
         <IsometricBoardScene position={position} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} recenterRef={recenterRef} />
       </Canvas>
+      <BoardMinimap
+        levelId={levelId}
+        tileCount={BOARD_TILES.length}
+        position={position}
+        accentColor={theme.ringColor}
+      />
+      <LevelTransitionCinematic levelId={levelId} accentColor={theme.ringColor} />
       <button
         onClick={(e) => { e.stopPropagation(); recenterRef.current = true; }}
         aria-label="Recenter camera on monster"
