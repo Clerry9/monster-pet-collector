@@ -849,7 +849,7 @@ function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRe
   return (
     <group ref={groupRef}>
       {/* True 3D body — sphere with rarity-tinted glow */}
-      <mesh position={[0, 0, 0]} castShadow>
+      <mesh ref={bodyRef} position={[0, 0, 0]} castShadow>
         <sphereGeometry args={[0.32, 28, 28]} />
         <meshStandardMaterial
           color={rarityColor}
