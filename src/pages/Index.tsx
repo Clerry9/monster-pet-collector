@@ -167,6 +167,7 @@ const Index = () => {
                   lastResult={lastResult}
                   onRollDice={handleRollDice}
                   activeDiceMax={game.activeDiceTierData.maxRoll}
+                  levelId={getLevelForXp(game.xp).id}
                 />
               </div>
               <BetSelector
