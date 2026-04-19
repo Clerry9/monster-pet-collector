@@ -147,8 +147,13 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       } else if (lastResult.tile.value > 0) {
         sfxCoinGain();
       }
+      // Season particle burst every 3 rolls
+      rollCounterRef.current += 1;
+      if (seasonSymbol && rollCounterRef.current % 3 === 0) {
+        setSeasonBurstKey((k) => k + 1);
+      }
     }
-  }, [lastResult, isRolling]);
+  }, [lastResult, isRolling, seasonSymbol]);
 
   const performRoll = () => {
     if (isRollingRef.current || rollsRef.current <= 0) return;
