@@ -14,8 +14,12 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['Creepster', 'cursive'],
+        display: ['"Luckiest Guy"', 'cursive'],
         body: ['Nunito', 'sans-serif'],
+      },
+      boxShadow: {
+        chunky: '0 4px 0 0 hsl(var(--wood-dark)), 0 8px 16px -2px hsl(22 60% 15% / 0.35)',
+        'chunky-sm': '0 3px 0 0 hsl(var(--wood-dark)), 0 5px 10px -2px hsl(22 60% 15% / 0.3)',
       },
       colors: {
         border: "hsl(var(--border))",
@@ -52,9 +56,15 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         coin: "hsl(var(--coin))",
-        "neon-green": "hsl(var(--neon-green))",
-        "neon-purple": "hsl(var(--neon-purple))",
-        "neon-orange": "hsl(var(--neon-orange))",
+        gold: "hsl(var(--gold))",
+        "gold-deep": "hsl(var(--gold-deep))",
+        wood: "hsl(var(--wood))",
+        "wood-dark": "hsl(var(--wood-dark))",
+        "wood-light": "hsl(var(--wood-light))",
+        cream: "hsl(var(--cream))",
+        "cream-light": "hsl(var(--cream-light))",
+        "candy-red": "hsl(var(--candy-red))",
+        "energy-pink": "hsl(var(--energy-pink))",
         "monster-bg": "hsl(var(--monster-bg))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
