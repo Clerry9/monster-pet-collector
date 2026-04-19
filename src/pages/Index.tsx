@@ -445,8 +445,10 @@ const Index = () => {
                 msRemaining={season.msRemaining}
                 rolls={game.rolls}
                 coins={game.coins}
+                islandStars={game.islandStars}
                 onPlayMiniGame={handlePlayMiniGame}
                 onAwardSymbols={season.addSymbols}
+                onAwardStars={game.addStars}
                 onClaimTier={handleClaimTier}
                 onBuyStreakSaver={handleBuyStreakSaver}
               />
