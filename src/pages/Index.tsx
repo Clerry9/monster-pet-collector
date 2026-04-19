@@ -30,6 +30,7 @@ import { Link2 } from "lucide-react";
 import { GameCard, ALL_CARDS, drawRandomCard } from "@/data/cards";
 import { SeasonReward, formatTimeRemaining } from "@/data/seasons";
 import { SpecialPacks } from "@/components/SpecialPacks";
+import { RewardedAdButton } from "@/components/RewardedAdButton";
 import { SeasonHub } from "@/components/SeasonHub";
 import { useSeason } from "@/hooks/useSeason";
 import { useSeasonNotice } from "@/hooks/useSeasonNotice";
@@ -399,8 +400,17 @@ const Index = () => {
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 50 }}
-              className="w-full"
+              className="w-full space-y-3"
             >
+              <div className="panel-wood p-3 flex flex-col items-center gap-2">
+                <div className="font-display text-sm text-cream-light text-center">
+                  📺 FREE COINS — watch a short ad
+                </div>
+                <RewardedAdButton playerLevel={game.level} onReward={(c) => game.addCoins(c)} />
+                <div className="text-[10px] text-cream/70 text-center">
+                  +50 coins per ad, +50 more every 5 levels
+                </div>
+              </div>
               <DiceShop
                 coins={game.coins}
                 rolls={game.rolls}
