@@ -58,13 +58,15 @@ interface Particle {
 const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
 let particleIdCounter = 0;
 
-export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax, levelId = 1, seasonAccent, seasonGlow }: GameBoardProps) {
+export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax, levelId = 1, seasonAccent, seasonGlow, seasonSymbol }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
   const [isShaking, setIsShaking] = useState(false);
   const [isAutoRolling, setIsAutoRolling] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
+  const [seasonBurstKey, setSeasonBurstKey] = useState(0);
+  const rollCounterRef = useRef(0);
   const monsterControls = useAnimation();
   const prevPositionRef = useRef(position);
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
