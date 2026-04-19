@@ -148,7 +148,8 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
     if (total > 0) {
       // --- Streak combo: chained matches within 2s award bonus symbols ---
       const now = performance.now();
-      const isChain = now - lastMatchAtRef.current < 2000;
+      const chainWindow = streakSaver ? STREAK_SAVER_WINDOW_MS : DEFAULT_WINDOW_MS;
+      const isChain = now - lastMatchAtRef.current < chainWindow;
       const newCombo = isChain ? combo + 1 : 1;
       setCombo(newCombo);
       lastMatchAtRef.current = now;
@@ -168,7 +169,7 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
 
       // Reset combo after 2s of no chains
       if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
-      comboTimerRef.current = setTimeout(() => setCombo(0), 2100);
+      comboTimerRef.current = setTimeout(() => setCombo(0), chainWindow + 100);
     }
     return working;
   };
