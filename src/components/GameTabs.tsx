@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin";
+type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials";
 
 interface GameTabsProps {
   active: Tab;
@@ -13,6 +13,7 @@ const tabs: { id: Tab; label: string; emoji: string }[] = [
   { id: "monster", label: "Pet", emoji: "👾" },
   { id: "cards", label: "Cards", emoji: "🃏" },
   { id: "shop", label: "Shop", emoji: "🛒" },
+  { id: "specials", label: "Deals", emoji: "🎁" },
   { id: "collection", label: "Team", emoji: "📦" },
   { id: "spin", label: "Spin", emoji: "🎰" },
 ];
