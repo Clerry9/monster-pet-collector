@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, X, Trophy, Lightbulb, Zap } from "lucide-react";
+import { Play, X, Trophy, Lightbulb, Zap, Frown } from "lucide-react";
 import { Season } from "@/data/seasons";
 import { sfxCoinGain, sfxLevelUp } from "@/lib/sfx";
 import { useTutorial } from "@/hooks/useTutorial";
@@ -27,6 +27,8 @@ const SIZE = 5;
 const ROUND_SECONDS = 45;
 const SYMBOL_DROP_RATE = 0.18; // chance a refilled tile becomes the special symbol
 const SCORE_BONUS_PER = 120;   // +1 symbol per N score
+const LOSE_THRESHOLD = 200;    // score below this when timer hits 0 = LOSE
+const SYMBOL_WIN_THRESHOLD = 5; // OR collect this many symbols to guarantee a win
 
 type Cell = { id: number; emoji: string };
 
@@ -206,10 +208,11 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
     setSelected(null);
   };
 
+  const didWin = score >= LOSE_THRESHOLD || symbolsCollected >= SYMBOL_WIN_THRESHOLD;
   const symbolsEarned = useMemo(() => {
-    // Final reward: cleared symbols + score-based bonus
+    if (!didWin) return 0; // LOSS: no symbols awarded
     return symbolsCollected + Math.floor(score / SCORE_BONUS_PER);
-  }, [symbolsCollected, score]);
+  }, [symbolsCollected, score, didWin]);
 
   return (
     <motion.div
