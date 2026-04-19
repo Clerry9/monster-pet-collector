@@ -200,6 +200,15 @@ const Index = () => {
             </button>
           )}
           <button
+            data-tutorial="help"
+            onClick={() => setHelpOpen(true)}
+            className="icon-tile-gold w-9 h-9 flex items-center justify-center"
+            title="How to play"
+            aria-label="How to play"
+          >
+            <HelpCircle size={16} />
+          </button>
+          <button
             onClick={signOut}
             className="icon-tile-gold w-9 h-9 flex items-center justify-center"
             title="Sign Out"
