@@ -290,26 +290,12 @@ const Index = () => {
           {tab === "board" && (
             <motion.div
               key="board"
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 50 }}
-              className="w-full flex flex-col items-center gap-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-0"
             >
-              <div
-                className="panel-wood p-3 w-full relative"
-                data-level={getLevelForXp(game.xp).id}
-                data-tutorial="board"
-              >
-                <SideRails
-                  msRemaining={season.msRemaining}
-                  newEvent={seasonNotice.isNew}
-                  onOpenSeason={() => setTab("season")}
-                  onOpenSpin={() => setTab("spin")}
-                  onOpenDaily={daily.openModal}
-                  onOpenSpecials={() => setTab("specials")}
-                  onOpenCollection={() => setTab("collection")}
-                  onOpenCards={() => setTab("cards")}
-                />
+              <div className="absolute inset-0" data-tutorial="board" data-level={getLevelForXp(game.xp).id}>
                 <GameBoard
                   position={game.position}
                   monster={game.activeMonsterData}
@@ -321,13 +307,34 @@ const Index = () => {
                   seasonAccent={`hsl(${season.season.palette.accent})`}
                   seasonGlow={`hsl(${season.season.palette.glow})`}
                   seasonSymbol={season.season.symbol}
+                  fullscreen
+                  islandStars={game.islandStars}
+                  pendingCardFlips={game.pendingCardFlips}
                 />
               </div>
-              <BetSelector
-                coins={game.coins}
-                currentBet={game.betMultiplier}
-                onSetBet={game.setBetMultiplier}
-              />
+              <div className="absolute top-2 left-2 right-2 z-20 pointer-events-none">
+                <div className="pointer-events-auto">
+                  <SideRails
+                    msRemaining={season.msRemaining}
+                    newEvent={seasonNotice.isNew}
+                    onOpenSeason={() => setTab("season")}
+                    onOpenSpin={() => setTab("spin")}
+                    onOpenDaily={daily.openModal}
+                    onOpenSpecials={() => setTab("specials")}
+                    onOpenCollection={() => setTab("collection")}
+                    onOpenCards={() => setTab("cards")}
+                  />
+                </div>
+              </div>
+              <div className="absolute bottom-3 left-0 right-0 z-20 px-3 pointer-events-none">
+                <div className="max-w-md mx-auto pointer-events-auto bg-gradient-to-t from-wood-dark/80 via-wood-dark/40 to-transparent rounded-2xl p-2">
+                  <BetSelector
+                    coins={game.coins}
+                    currentBet={game.betMultiplier}
+                    onSetBet={game.setBetMultiplier}
+                  />
+                </div>
+              </div>
             </motion.div>
           )}
 
@@ -408,7 +415,7 @@ const Index = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 50 }}
             >
-              <SpinWheel onWin={game.addCoins} />
+              <SpinWheel onWin={game.addCoins} lastSpinAt={game.lastSpinAt} onSpinRecord={game.recordSpin} />
             </motion.div>
           )}
 
