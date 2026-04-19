@@ -16,6 +16,8 @@ interface GameBoardProps {
   /** Optional season tint that overrides the level's accent/water colors. CSS color string (e.g. "hsl(199 90% 55%)"). */
   seasonAccent?: string;
   seasonGlow?: string;
+  /** Symbol emoji to spawn as a celebratory burst every few rolls */
+  seasonSymbol?: string;
 }
 
 const TILE_EMOJIS: Record<TileType, string> = {
