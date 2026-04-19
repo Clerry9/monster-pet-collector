@@ -56,7 +56,7 @@ function SpinningCoin({ isActive }: { isActive: boolean }) {
   return (
     <mesh ref={ref} position={[0, 1.1, 0]}>
       <cylinderGeometry args={[0.12, 0.12, 0.03, 24]} />
-      <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.6} metalness={0.8} roughness={0.1} />
+      <meshStandardMaterial color={THEME.gold} emissive={THEME.goldDeep} emissiveIntensity={0.6} metalness={0.8} roughness={0.1} />
     </mesh>
   );
 }
@@ -71,12 +71,12 @@ function GlowingChest({ isActive }: { isActive: boolean }) {
   });
   return (
     <group ref={groupRef} position={[0, 1.0, 0]}>
-      <mesh><boxGeometry args={[0.18, 0.12, 0.14]} /><meshStandardMaterial color="#92400e" roughness={0.4} metalness={0.2} /></mesh>
+      <mesh><boxGeometry args={[0.18, 0.12, 0.14]} /><meshStandardMaterial color={THEME.wood} roughness={0.4} metalness={0.2} /></mesh>
       <mesh ref={lidRef} position={[0, 0.08, 0]}>
         <boxGeometry args={[0.2, 0.05, 0.15]} />
-        <meshStandardMaterial color="#b45309" emissive="#f59e0b" emissiveIntensity={isActive ? 0.8 : 0.2} roughness={0.3} metalness={0.3} />
+        <meshStandardMaterial color={THEME.goldDeep} emissive={THEME.gold} emissiveIntensity={isActive ? 0.8 : 0.2} roughness={0.3} metalness={0.5} />
       </mesh>
-      {isActive && <pointLight position={[0, 0.15, 0]} intensity={1.5} color="#fbbf24" distance={1.2} />}
+      {isActive && <pointLight position={[0, 0.15, 0]} intensity={1.5} color={THEME.gold} distance={1.2} />}
     </group>
   );
 }
@@ -93,7 +93,7 @@ function PulsingStar({ isActive }: { isActive: boolean }) {
   return (
     <mesh ref={ref} position={[0, 1.1, 0]}>
       <octahedronGeometry args={[0.11, 0]} />
-      <meshStandardMaterial color="#eab308" emissive="#facc15" emissiveIntensity={isActive ? 1.2 : 0.5} metalness={0.7} roughness={0.1} />
+      <meshStandardMaterial color={THEME.goldDeep} emissive={THEME.gold} emissiveIntensity={isActive ? 1.2 : 0.5} metalness={0.7} roughness={0.1} />
     </mesh>
   );
 }
@@ -108,7 +108,7 @@ function LightningBolt({ isActive }: { isActive: boolean }) {
   return (
     <mesh ref={ref} position={[0, 1.1, 0]} rotation={[0, 0, 0.1]}>
       <coneGeometry args={[0.07, 0.2, 4]} />
-      <meshStandardMaterial color="#60a5fa" emissive="#3b82f6" emissiveIntensity={0.3} metalness={0.5} roughness={0.2} />
+      <meshStandardMaterial color={THEME.red} emissive={THEME.red} emissiveIntensity={0.4} metalness={0.5} roughness={0.2} />
     </mesh>
   );
 }
@@ -122,7 +122,7 @@ function SkullIcon({ isActive }: { isActive: boolean }) {
   });
   return (
     <group ref={ref} position={[0, 1.05, 0]}>
-      <mesh><sphereGeometry args={[0.1, 12, 12]} /><meshStandardMaterial color="#fecaca" emissive="#ef4444" emissiveIntensity={isActive ? 0.6 : 0.15} roughness={0.5} /></mesh>
+      <mesh><sphereGeometry args={[0.1, 12, 12]} /><meshStandardMaterial color="#FBE8C0" emissive={THEME.red} emissiveIntensity={isActive ? 0.6 : 0.15} roughness={0.5} /></mesh>
       <mesh position={[-0.035, 0.025, 0.08]}><sphereGeometry args={[0.025, 8, 8]} /><meshStandardMaterial color="#111" /></mesh>
       <mesh position={[0.035, 0.025, 0.08]}><sphereGeometry args={[0.025, 8, 8]} /><meshStandardMaterial color="#111" /></mesh>
     </group>
@@ -141,7 +141,7 @@ function MonsterIcon({ isActive }: { isActive: boolean }) {
   return (
     <mesh ref={ref} position={[0, 1.05, 0]}>
       <dodecahedronGeometry args={[0.1, 0]} />
-      <meshStandardMaterial color="#c084fc" emissive="#a855f7" emissiveIntensity={isActive ? 0.8 : 0.3} metalness={0.4} roughness={0.2} />
+      <meshStandardMaterial color="#F472B6" emissive="#EC4899" emissiveIntensity={isActive ? 0.8 : 0.3} metalness={0.4} roughness={0.2} />
     </mesh>
   );
 }
