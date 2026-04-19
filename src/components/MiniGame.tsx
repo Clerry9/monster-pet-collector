@@ -485,9 +485,36 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
                   <Frown className="mx-auto text-destructive" size={40} />
                   <div className="bg-cream/95 rounded-xl border-2 border-destructive p-3 text-wood-dark space-y-1">
                     <p className="font-display text-base text-destructive">GAME OVER</p>
-                    <p className="font-display text-sm">Final Score: {score} / {LOSE_THRESHOLD}</p>
-                    <p className="text-[11px]">Hit {LOSE_THRESHOLD} score or collect {SYMBOL_WIN_THRESHOLD} {season.symbol} to win!</p>
+                    <p className="font-display text-sm">Final Score: {score} / {cfg.scoreToWin}</p>
+                    <p className="text-[11px]">Hit {cfg.scoreToWin} score or collect {cfg.symbolsToWin} {season.symbol} to win!</p>
                   </div>
+                  {!hasRevived && (
+                    <div className="rounded-xl border-2 border-gold bg-gradient-to-br from-gold/30 to-gold/10 p-2.5 space-y-2">
+                      <div className="flex items-center justify-center gap-1.5 font-display text-[11px] text-wood-dark">
+                        <Heart size={12} className="text-candy-red" /> SECOND CHANCE — get {cfg.reviveTime}s more
+                      </div>
+                      <div className="grid grid-cols-1 gap-1.5">
+                        <button
+                          onClick={() => {
+                            if (!onSpendCoins || !onSpendCoins(REVIVE_COST)) return;
+                            revive(true);
+                          }}
+                          disabled={coins < REVIVE_COST || !onSpendCoins}
+                          className="btn-press w-full py-1.5 rounded-full font-display text-xs disabled:opacity-50"
+                        >
+                          REVIVE — {REVIVE_COST} 🪙
+                        </button>
+                        {onAddCoins && (
+                          <RewardedAdButton
+                            playerLevel={playerLevel}
+                            onReward={(c) => { onAddCoins(c); revive(true); }}
+                            compact
+                            className="!py-1.5 !text-xs"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
               <div className="grid grid-cols-2 gap-2">
