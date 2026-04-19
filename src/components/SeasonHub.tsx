@@ -267,6 +267,8 @@ function RewardSlot({
   onClaim,
   reached,
   needsPass,
+  onBuyPass,
+  buyPassLoading,
 }: {
   label: string;
   locked: boolean;
@@ -276,6 +278,8 @@ function RewardSlot({
   onClaim: () => void;
   reached?: boolean;
   needsPass?: boolean;
+  onBuyPass?: () => void;
+  buyPassLoading?: boolean;
 }) {
   const base =
     tier === "premium"
@@ -304,13 +308,27 @@ function RewardSlot({
     );
   }
 
-  // Premium reward, tier reached but no pass → show enticing CTA
-  if (tier === "premium" && reached && needsPass) {
+  // Premium reward locked behind the pass → one-tap upsell button
+  if (tier === "premium" && needsPass && onBuyPass) {
     return (
-      <div className={`rounded-md border-2 ${base} px-2 py-1 flex items-center justify-center gap-1 text-[10px] font-display text-wood-dark relative overflow-hidden`}>
-        <Crown size={10} className="text-gold-deep" />
-        <span className="truncate">{label}</span>
-      </div>
+      <motion.button
+        whileTap={{ scale: 0.95 }}
+        onClick={onBuyPass}
+        disabled={buyPassLoading}
+        aria-label={`Buy Season Pass to unlock ${label}`}
+        animate={
+          reached
+            ? { boxShadow: ["0 0 0 0 hsl(var(--gold)/0.0)", "0 0 0 5px hsl(var(--gold)/0.5)", "0 0 0 0 hsl(var(--gold)/0.0)"] }
+            : undefined
+        }
+        transition={{ duration: 1.6, repeat: Infinity }}
+        className={`rounded-md border-2 ${base} px-2 py-1 flex items-center justify-center gap-1 text-[10px] font-display text-wood-dark hover:brightness-110 active:translate-y-0.5 transition disabled:opacity-60 relative overflow-hidden`}
+      >
+        <Crown size={10} className="text-gold-deep shrink-0" />
+        <span className="truncate">
+          {reached ? `UNLOCK: ${label}` : `BUY PASS — ${label}`}
+        </span>
+      </motion.button>
     );
   }
 
