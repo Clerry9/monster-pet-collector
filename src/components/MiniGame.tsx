@@ -102,6 +102,9 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
     setSymbolsCollected(0);
     setSelected(null);
     setTimeLeft(ROUND_SECONDS);
+    setCombo(0);
+    setComboFlash(null);
+    lastMatchAtRef.current = 0;
     setPhase("playing");
   };
 
