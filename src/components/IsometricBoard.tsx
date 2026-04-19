@@ -815,6 +815,30 @@ function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRe
     if (monsterPosRef) {
       monsterPosRef.current.set(currentPos.current.x, currentPos.current.y + liftRef.current, currentPos.current.z);
     }
+
+    // --- Personality: idle breathing + walk-cycle legs ---
+    const t = state.clock.elapsedTime;
+    if (bodyRef.current) {
+      if (isAnimating) {
+        bodyRef.current.scale.set(1, 1, 1);
+        bodyRef.current.position.y = Math.sin(t * 14) * 0.05;
+        bodyRef.current.rotation.x = -0.08;
+      } else {
+        const breathe = 1 + Math.sin(t * 2.5) * 0.04;
+        bodyRef.current.scale.set(1, breathe, 1);
+        bodyRef.current.position.y = Math.sin(t * 2.5) * 0.02;
+        bodyRef.current.rotation.x = 0;
+      }
+    }
+    if (leftFootRef.current && rightFootRef.current) {
+      if (isAnimating) {
+        leftFootRef.current.position.y = -0.32 + Math.max(0, Math.sin(t * 14)) * 0.12;
+        rightFootRef.current.position.y = -0.32 + Math.max(0, Math.sin(t * 14 + Math.PI)) * 0.12;
+      } else {
+        leftFootRef.current.position.y = -0.32;
+        rightFootRef.current.position.y = -0.32;
+      }
+    }
   });
 
   const rarityColor =
