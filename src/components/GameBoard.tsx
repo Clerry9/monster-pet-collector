@@ -325,11 +325,11 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
               onPointerUp={() => handlePressEnd(true)}
               onPointerLeave={() => handlePressEnd(false)}
               onPointerCancel={() => handlePressEnd(false)}
-              disabled={(isRolling && !isAutoRolling) || rolls <= 0}
+              disabled={(isRolling && !isAutoRolling) || (rolls <= 0 && !isAutoRolling)}
               aria-label={rolls <= 0 ? "No rolls remaining" : isAutoRolling ? "Auto-rolling. Tap to stop." : isRolling ? "Rolling dice..." : `Roll dice. Tap to roll, hold 2 seconds to auto-roll. Range 1 to ${activeDiceMax}`}
               className={`btn-press relative w-28 h-28 rounded-full flex items-center justify-center font-display text-2xl select-none touch-none ${
-                rolls <= 0 ? "opacity-60 grayscale cursor-not-allowed" : ""
-              }`}
+                rolls <= 0 && !isAutoRolling ? "opacity-60 grayscale cursor-not-allowed" : ""
+              } ${isAutoRolling ? "!bg-gradient-to-b !from-candy-red !to-destructive" : ""}`}
             >
               {holdProgress > 0 && holdProgress < 1 && (
                 <svg className="absolute -inset-1 w-[calc(100%+0.5rem)] h-[calc(100%+0.5rem)] pointer-events-none" viewBox="0 0 100 100" aria-hidden="true">
