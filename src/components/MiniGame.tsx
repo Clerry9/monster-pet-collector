@@ -212,6 +212,19 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
               exit={{ opacity: 0 }}
               className="space-y-3"
             >
+              {!miniTutorial.completed && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-xl border-2 border-gold bg-gradient-to-br from-gold/30 to-gold/10 p-2.5 text-wood-dark text-[11px] flex items-start gap-2"
+                >
+                  <Lightbulb size={14} className="mt-0.5 shrink-0" />
+                  <div>
+                    <div className="font-display text-[11px]">FIRST TIME?</div>
+                    <p>Tap two adjacent tiles to swap them. Line up 3+ matching tiles to clear them and earn points. Cleared <span className="align-middle">{season.symbol}</span> tiles give you season symbols!</p>
+                  </div>
+                </motion.div>
+              )}
               <div className="bg-cream/95 rounded-xl border-2 border-wood-dark p-3 text-wood-dark text-xs space-y-1">
                 <p>• 30 seconds, swap adjacent tiles to make matches.</p>
                 <p>• Each cleared <span className="text-base align-middle">{season.symbol}</span> = 1 special symbol.</p>
