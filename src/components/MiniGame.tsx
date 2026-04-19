@@ -91,21 +91,33 @@ function findMatches(cells: Cell[]): Set<number> {
   return matched;
 }
 
-export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpendRoll, coins, onBuyStreakSaver }: MiniGameProps) {
+export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpendRoll, coins, onBuyStreakSaver, playerLevel = 1, onAddCoins, onSpendCoins }: MiniGameProps) {
   const miniTutorial = useTutorial("minigame");
   const [streakSaver, setStreakSaver] = useState(false);
   const [phase, setPhase] = useState<"intro" | "playing" | "result">("intro");
+  const [difficulty, setDifficulty] = useState<Difficulty>(() => {
+    const saved = localStorage.getItem(DIFFICULTY_KEY) as Difficulty | null;
+    return saved && DIFFICULTY[saved] ? saved : "normal";
+  });
+  const cfg = DIFFICULTY[difficulty];
   const [cells, setCells] = useState<Cell[]>([]);
   const [score, setScore] = useState(0);
   const [symbolsCollected, setSymbolsCollected] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
+  const [timeLeft, setTimeLeft] = useState(cfg.seconds);
   const [combo, setCombo] = useState(0);
   const [comboFlash, setComboFlash] = useState<{ key: number; mult: number; bonus: number } | null>(null);
+  const [hasRevived, setHasRevived] = useState(false);
   const idCounter = useRef(0);
   const matchPulseRef = useRef<number[]>([]);
   const lastMatchAtRef = useRef(0);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bombTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const chooseDifficulty = (d: Difficulty) => {
+    setDifficulty(d);
+    localStorage.setItem(DIFFICULTY_KEY, d);
+  };
 
   // Timer
   useEffect(() => {
@@ -119,10 +131,30 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
     return () => clearTimeout(t);
   }, [phase, timeLeft]);
 
-  // Cleanup combo timer
+  // Bomb spawner
+  useEffect(() => {
+    if (phase !== "playing" || cfg.bombSpawnEverySec === 0) return;
+    bombTimerRef.current = setInterval(() => {
+      setCells((prev) => {
+        const bombCount = prev.filter((c) => c.emoji === BOMB).length;
+        if (bombCount >= cfg.maxBombs) return prev;
+        const candidates = prev.map((c, i) => (c.emoji !== BOMB ? i : -1)).filter((i) => i >= 0);
+        if (candidates.length === 0) return prev;
+        const idx = candidates[Math.floor(Math.random() * candidates.length)];
+        idCounter.current += 1;
+        const next = [...prev];
+        next[idx] = { id: idCounter.current, emoji: BOMB };
+        return next;
+      });
+    }, cfg.bombSpawnEverySec * 1000);
+    return () => { if (bombTimerRef.current) clearInterval(bombTimerRef.current); };
+  }, [phase, cfg.bombSpawnEverySec, cfg.maxBombs]);
+
+  // Cleanup
   useEffect(() => {
     return () => {
       if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
+      if (bombTimerRef.current) clearInterval(bombTimerRef.current);
     };
   }, []);
 
@@ -135,11 +167,28 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
     setScore(0);
     setSymbolsCollected(0);
     setSelected(null);
-    setTimeLeft(ROUND_SECONDS);
+    setTimeLeft(cfg.seconds);
     setCombo(0);
     setComboFlash(null);
     lastMatchAtRef.current = 0;
     setStreakSaver(false);
+    setHasRevived(false);
+    setPhase("playing");
+  };
+
+  const revive = (clearBombs: boolean) => {
+    setCells((prev) =>
+      prev.map((c) => {
+        if (c.emoji === BOMB && clearBombs) {
+          idCounter.current += 1;
+          const newEmoji = season.miniGameTiles[Math.floor(Math.random() * season.miniGameTiles.length)];
+          return { id: idCounter.current, emoji: newEmoji };
+        }
+        return c;
+      })
+    );
+    setTimeLeft(cfg.reviveTime);
+    setHasRevived(true);
     setPhase("playing");
   };
 
