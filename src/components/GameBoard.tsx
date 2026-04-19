@@ -244,99 +244,95 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="flex items-center gap-2 rounded-full bg-card px-4 py-2 border border-border"
+            className="flex items-center gap-2 banner-gold px-4 py-1.5"
             role="status"
             aria-live="polite"
             aria-label={`Moved ${lastResult.steps} steps. ${lastResult.tile.value >= 0 ? "Gained" : "Lost"} ${Math.abs(lastResult.tile.value)} coins.`}
           >
             <span className="text-lg" aria-hidden="true">{TILE_EMOJIS[lastResult.tile.type]}</span>
-            <span className="font-body font-bold text-sm text-foreground">
-              Moved {lastResult.steps} steps!
-            </span>
-            <span className={`font-extrabold ${lastResult.tile.value >= 0 ? "text-primary" : "text-destructive"}`}>
+            <span className="font-display text-sm">+{lastResult.steps}</span>
+            <span className={`font-display ${lastResult.tile.value >= 0 ? "text-wood-dark" : "text-destructive"}`}>
               {lastResult.tile.value >= 0 ? `+${lastResult.tile.value}` : lastResult.tile.value} 🪙
             </span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Dice */}
-      <div className="flex flex-col items-center gap-3">
-        <motion.button
-          whileTap={{ scale: 0.85, rotate: 15 }}
-          whileHover={{ scale: 1.05 }}
-          onPointerDown={handlePressStart}
-          onPointerUp={() => handlePressEnd(true)}
-          onPointerLeave={() => handlePressEnd(false)}
-          onPointerCancel={() => handlePressEnd(false)}
-          disabled={(isRolling && !isAutoRolling) || rolls <= 0}
-          aria-label={rolls <= 0 ? "No rolls remaining" : isAutoRolling ? "Auto-rolling. Tap to stop." : isRolling ? "Rolling dice..." : `Roll dice. Tap to roll, hold 2 seconds to auto-roll. Range 1 to ${activeDiceMax}`}
-          className={`relative w-24 h-24 rounded-2xl border-4 flex items-center justify-center font-display text-3xl transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary select-none touch-none ${
-            rolls <= 0
-              ? "border-muted bg-muted/50 text-muted-foreground cursor-not-allowed"
-              : isAutoRolling
-                ? "border-accent bg-card text-foreground"
-                : "border-primary bg-card text-foreground box-glow-green"
-          }`}
-        >
-          {/* Hold progress ring */}
-          {holdProgress > 0 && holdProgress < 1 && (
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" aria-hidden="true">
-              <rect
-                x="2" y="2" width="96" height="96" rx="14"
-                fill="none"
-                stroke="hsl(var(--accent))"
-                strokeWidth="4"
-                strokeDasharray={384}
-                strokeDashoffset={384 * (1 - holdProgress)}
-                transform="rotate(-90 50 50)"
-              />
-            </svg>
-          )}
-          {isRolling ? (
-            <motion.span
-              animate={{ rotate: [0, 360] }}
-              transition={{ repeat: Infinity, duration: 0.3 }}
-              className="text-4xl"
-              aria-hidden="true"
+      {/* PRESS button */}
+      <div className="flex flex-col items-center gap-2">
+        <div className="relative">
+          <div className="absolute inset-0 translate-y-3 rounded-full bg-wood-dark/30 blur-md" aria-hidden="true" />
+          <div className="relative rounded-full p-2 bg-gradient-to-b from-[hsl(0_0%_55%)] to-[hsl(0_0%_30%)] border-[5px] border-wood-dark shadow-chunky">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onPointerDown={handlePressStart}
+              onPointerUp={() => handlePressEnd(true)}
+              onPointerLeave={() => handlePressEnd(false)}
+              onPointerCancel={() => handlePressEnd(false)}
+              disabled={(isRolling && !isAutoRolling) || rolls <= 0}
+              aria-label={rolls <= 0 ? "No rolls remaining" : isAutoRolling ? "Auto-rolling. Tap to stop." : isRolling ? "Rolling dice..." : `Roll dice. Tap to roll, hold 2 seconds to auto-roll. Range 1 to ${activeDiceMax}`}
+              className={`btn-press relative w-28 h-28 rounded-full flex items-center justify-center font-display text-2xl select-none touch-none ${
+                rolls <= 0 ? "opacity-60 grayscale cursor-not-allowed" : ""
+              }`}
             >
-              🎲
-            </motion.span>
-          ) : (
-            <span className="text-4xl" aria-hidden="true">🎲</span>
-          )}
-          {isAutoRolling && (
-            <motion.span
-              className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-accent text-accent-foreground text-[10px] font-bold rounded-full px-2 py-0.5 whitespace-nowrap"
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              aria-hidden="true"
-            >
-              AUTO • tap to stop
-            </motion.span>
-          )}
-          {diceValue && isRolling && (
-            <motion.span
-              key={diceValue}
-              initial={{ scale: 1.5 }}
-              animate={{ scale: 1 }}
-              className="absolute -top-3 -right-3 bg-primary text-primary-foreground text-sm font-bold rounded-full w-8 h-8 flex items-center justify-center"
-              aria-hidden="true"
-            >
-              {diceValue}
-            </motion.span>
-          )}
-        </motion.button>
-
-        <div className="flex items-center gap-2 text-sm font-body" aria-label={`${rolls} rolls remaining, dice range 1 to ${activeDiceMax}`}>
-          <span className="text-muted-foreground">Rolls left:</span>
-          <span className={`font-extrabold ${rolls > 0 ? "text-primary" : "text-destructive"}`}>
-            {rolls}
-          </span>
-          <span className="text-muted-foreground/50">• 1-{activeDiceMax}</span>
+              {holdProgress > 0 && holdProgress < 1 && (
+                <svg className="absolute -inset-1 w-[calc(100%+0.5rem)] h-[calc(100%+0.5rem)] pointer-events-none" viewBox="0 0 100 100" aria-hidden="true">
+                  <circle
+                    cx="50" cy="50" r="46"
+                    fill="none"
+                    stroke="hsl(var(--gold))"
+                    strokeWidth="5"
+                    strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 46}
+                    strokeDashoffset={2 * Math.PI * 46 * (1 - holdProgress)}
+                    transform="rotate(-90 50 50)"
+                  />
+                </svg>
+              )}
+              {isRolling ? (
+                <motion.span
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ repeat: Infinity, duration: 0.4 }}
+                  className="text-3xl"
+                  aria-hidden="true"
+                >
+                  🎲
+                </motion.span>
+              ) : (
+                <span className="leading-none">PRESS</span>
+              )}
+              {isAutoRolling && (
+                <motion.span
+                  className="absolute -bottom-3 left-1/2 -translate-x-1/2 banner-gold text-[10px] px-2 py-0.5 whitespace-nowrap"
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  aria-hidden="true"
+                >
+                  AUTO • TAP TO STOP
+                </motion.span>
+              )}
+              {diceValue && isRolling && (
+                <motion.span
+                  key={diceValue}
+                  initial={{ scale: 1.5 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-3 -right-3 pill-gold w-9 h-9 flex items-center justify-center text-base"
+                  aria-hidden="true"
+                >
+                  {diceValue}
+                </motion.span>
+              )}
+            </motion.button>
+          </div>
         </div>
-        <div className="text-[10px] font-body text-muted-foreground/70">
-          Tap to roll • Hold 2s to auto-roll
+
+        <div className="flex items-center gap-2 text-xs font-display text-wood-dark" aria-label={`${rolls} rolls remaining, dice range 1 to ${activeDiceMax}`}>
+          <span>ROLLS</span>
+          <span className={`pill-gold px-2 py-0.5 text-sm ${rolls <= 0 ? "opacity-60" : ""}`}>{rolls}</span>
+          <span className="text-wood-dark/60">• 1-{activeDiceMax}</span>
+        </div>
+        <div className="text-[10px] font-display tracking-wider text-wood-dark/70">
+          HOLD FOR AUTOSPIN
         </div>
       </div>
     </div>

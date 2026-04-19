@@ -72,7 +72,7 @@ const Index = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-background px-4 py-6 overflow-hidden">
+    <div className="flex min-h-screen flex-col items-center bg-background px-3 py-4 overflow-hidden">
       <LinkAccount open={showLink} onClose={() => setShowLink(false)} />
       <LevelUpCelebration level={levelUpData} onComplete={() => setLevelUpData(null)} />
       <PaymentTestModeBanner />
@@ -85,64 +85,70 @@ const Index = () => {
         alreadyClaimed={daily.alreadyClaimed}
       />
 
-      {/* Header */}
-      <div className="w-full max-w-md flex items-center justify-between mb-4">
-        <h1 className="font-display text-2xl text-foreground text-glow-purple">
-          Monster Mash
-        </h1>
-        <div className="flex items-center gap-2">
+      {/* Top: level + coins + actions */}
+      <div className="w-full max-w-md mb-2">
+        <LevelProgressBar xp={game.xp} level={game.level} />
+      </div>
+
+      <div className="w-full max-w-md flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => { const next = !muted; setMuted(next); setMutedState(next); }}
-            className="rounded-full bg-card p-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="icon-tile-gold w-9 h-9 flex items-center justify-center"
             title={muted ? "Unmute" : "Mute"}
+            aria-label={muted ? "Unmute" : "Mute"}
           >
             {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
           </button>
           <button
             onClick={daily.openModal}
-            className="rounded-full bg-card p-2 text-accent transition-transform hover:scale-110"
+            className="icon-tile-gold w-9 h-9 flex items-center justify-center"
             title="Daily Reward"
+            aria-label="Daily Reward"
           >
             <Gift size={18} />
           </button>
-          <CoinCounter coins={game.coins} />
+        </div>
+        <CoinCounter coins={game.coins} onAdd={() => setTab("shop")} />
+        <div className="flex items-center gap-1.5">
           {isGuest && (
             <button
               onClick={() => setShowLink(true)}
-              className="rounded-full bg-primary/20 p-2 text-primary hover:bg-primary/30 transition-colors"
+              className="icon-tile-gold w-9 h-9 flex items-center justify-center"
               title="Link Account"
+              aria-label="Link Account"
             >
               <Link2 size={16} />
             </button>
           )}
           <button
             onClick={signOut}
-            className="rounded-full bg-card p-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="icon-tile-gold w-9 h-9 flex items-center justify-center"
             title="Sign Out"
+            aria-label="Sign Out"
           >
             <LogOut size={16} />
           </button>
         </div>
       </div>
 
-      {/* Level progress */}
-      <LevelProgressBar xp={game.xp} level={game.level} />
-
-      {/* Stats bar */}
-      <div className="w-full max-w-md flex items-center justify-center gap-4 mb-2 mt-2 text-xs font-body text-muted-foreground">
-        <span>🎲 {game.rolls} rolls</span>
-        <span>👣 {game.totalSteps} steps</span>
-        <span>🃏 {game.cardsCollected} cards</span>
+      {/* Curved gold banner */}
+      <div className="banner-gold px-6 py-2 mb-3">
+        <h1 className="font-display text-2xl tracking-wide">⭐ MONSTER MASH ⭐</h1>
       </div>
 
-      {/* Tabs */}
+      {/* Stats */}
+      <div className="w-full max-w-md flex items-center justify-center gap-4 mb-2 text-[11px] font-display text-wood-dark/80">
+        <span>🎲 {game.rolls}</span>
+        <span>👣 {game.totalSteps}</span>
+        <span>🃏 {game.cardsCollected}</span>
+      </div>
+
       <GameTabs active={tab} onTabChange={setTab} />
 
-      {/* Card pack reveal animation */}
       <CardReveal card={drawnCard} onComplete={() => setDrawnCard(null)} />
 
-      {/* Content */}
-      <div className="w-full max-w-md flex-1 flex items-start justify-center py-6 overflow-y-auto">
+      <div className="w-full max-w-md flex-1 flex items-start justify-center py-4 overflow-y-auto">
         <AnimatePresence mode="wait">
           {tab === "board" && (
             <motion.div
@@ -152,14 +158,16 @@ const Index = () => {
               exit={{ opacity: 0, x: 50 }}
               className="w-full flex flex-col items-center gap-3"
             >
-              <GameBoard
-                position={game.position}
-                monster={game.activeMonsterData}
-                rolls={game.rolls}
-                lastResult={lastResult}
-                onRollDice={handleRollDice}
-                activeDiceMax={game.activeDiceTierData.maxRoll}
-              />
+              <div className="panel-wood p-3 w-full">
+                <GameBoard
+                  position={game.position}
+                  monster={game.activeMonsterData}
+                  rolls={game.rolls}
+                  lastResult={lastResult}
+                  onRollDice={handleRollDice}
+                  activeDiceMax={game.activeDiceTierData.maxRoll}
+                />
+              </div>
               <BetSelector
                 coins={game.coins}
                 currentBet={game.betMultiplier}
