@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Gift, LogOut, Volume2, VolumeX, HelpCircle } from "lucide-react";
+import { Gift, LogOut, Volume2, VolumeX, HelpCircle, Menu, X as XIcon } from "lucide-react";
 import { TutorialCoachmark, CoachStep } from "@/components/TutorialCoachmark";
 import { HelpDialog } from "@/components/HelpDialog";
 import { useTutorial } from "@/hooks/useTutorial";
@@ -55,6 +55,7 @@ const Index = () => {
   const mainTutorial = useTutorial("main");
   const [helpOpen, setHelpOpen] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Season rotation notice
   const seasonNotice = useSeasonNotice(season.seasonInstanceId);
