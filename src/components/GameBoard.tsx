@@ -57,8 +57,20 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
   const [isShaking, setIsShaking] = useState(false);
+  const [isAutoRolling, setIsAutoRolling] = useState(false);
+  const [holdProgress, setHoldProgress] = useState(0);
   const monsterControls = useAnimation();
   const prevPositionRef = useRef(position);
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdRafRef = useRef<number | null>(null);
+  const autoRollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isRollingRef = useRef(false);
+  const rollsRef = useRef(rolls);
+  const isAutoRollingRef = useRef(false);
+
+  useEffect(() => { rollsRef.current = rolls; }, [rolls]);
+  useEffect(() => { isRollingRef.current = isRolling; }, [isRolling]);
+  useEffect(() => { isAutoRollingRef.current = isAutoRolling; }, [isAutoRolling]);
 
   const spawnParticles = (count: number) => {
     const newParticles: Particle[] = Array.from({ length: count }, () => ({
