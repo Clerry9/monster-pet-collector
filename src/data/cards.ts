@@ -130,7 +130,11 @@ export const CARD_SETS: CardSet[] = [
   },
 ];
 
-export const ALL_CARDS: GameCard[] = CARD_SETS.flatMap((s) => s.cards);
+// All cards including seasonal — used for collection display & rarity lookup
+export const ALL_CARDS: GameCard[] = [...CARD_SETS.flatMap((s) => s.cards), ...SEASON_CARDS];
+
+// Pool used by random board draws — excludes seasonal cards (they only drop via the Season hub)
+const DRAWABLE_CARDS: GameCard[] = CARD_SETS.flatMap((s) => s.cards);
 
 // Get a random card based on rarity weights
 export function drawRandomCard(): GameCard {
@@ -153,8 +157,8 @@ export function drawRandomCard(): GameCard {
     }
   }
 
-  const pool = ALL_CARDS.filter((c) => c.rarity === selectedRarity);
-  if (pool.length === 0) return ALL_CARDS[Math.floor(Math.random() * ALL_CARDS.length)];
+  const pool = DRAWABLE_CARDS.filter((c) => c.rarity === selectedRarity);
+  if (pool.length === 0) return DRAWABLE_CARDS[Math.floor(Math.random() * DRAWABLE_CARDS.length)];
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
