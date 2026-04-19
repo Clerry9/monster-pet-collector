@@ -365,6 +365,18 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
           <span>ROLLS</span>
           <span className={`pill-gold px-2 py-0.5 text-sm ${rolls <= 0 ? "opacity-60" : ""}`}>{rolls}</span>
           <span className="text-wood-dark/60">• 1-{activeDiceMax}</span>
+          <span className="ml-1 pill-gold px-2 py-0.5 text-sm flex items-center gap-1" title={`${islandStars}/5 stars to next card flip`}>
+            ⭐ {islandStars}/5
+          </span>
+          {pendingCardFlips > 0 && (
+            <motion.span
+              animate={{ scale: [1, 1.12, 1] }}
+              transition={{ repeat: Infinity, duration: 1.4 }}
+              className="pill-gold px-2 py-0.5 text-sm bg-gradient-to-r from-candy-red to-gold text-cream-light"
+            >
+              🃏 ×{pendingCardFlips}
+            </motion.span>
+          )}
         </div>
         <div className="text-[10px] font-display tracking-wider text-wood-dark/70">
           HOLD FOR AUTOSPIN
