@@ -13,6 +13,9 @@ interface GameBoardProps {
   onRollDice: () => void;
   activeDiceMax: number;
   levelId?: number;
+  /** Optional season tint that overrides the level's accent/water colors. CSS color string (e.g. "hsl(199 90% 55%)"). */
+  seasonAccent?: string;
+  seasonGlow?: string;
 }
 
 const TILE_EMOJIS: Record<TileType, string> = {
