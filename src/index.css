@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Creepster&family=Nunito:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@400;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,53 +6,61 @@
 
 @layer base {
   :root {
-    --background: 240 20% 12%;
-    --foreground: 45 20% 95%;
+    /* Warm cartoon-casino palette */
+    --background: 35 70% 82%;            /* cream */
+    --foreground: 22 55% 18%;            /* dark wood */
 
-    --card: 240 18% 18%;
-    --card-foreground: 45 20% 95%;
+    --card: 38 75% 92%;                  /* light cream card */
+    --card-foreground: 22 55% 18%;
 
-    --popover: 240 18% 18%;
-    --popover-foreground: 45 20% 95%;
+    --popover: 38 75% 92%;
+    --popover-foreground: 22 55% 18%;
 
-    --primary: 160 65% 48%;
-    --primary-foreground: 240 20% 10%;
+    --primary: 354 78% 56%;              /* candy red */
+    --primary-foreground: 38 90% 96%;
 
-    --secondary: 260 50% 60%;
-    --secondary-foreground: 45 20% 95%;
+    --secondary: 22 60% 34%;             /* wood brown */
+    --secondary-foreground: 38 90% 96%;
 
-    --muted: 240 15% 22%;
-    --muted-foreground: 240 8% 65%;
+    --muted: 35 45% 75%;
+    --muted-foreground: 22 35% 32%;
 
-    --accent: 32 90% 58%;
-    --accent-foreground: 240 20% 10%;
+    --accent: 42 92% 55%;                /* gold */
+    --accent-foreground: 22 55% 18%;
 
-    --destructive: 0 65% 52%;
-    --destructive-foreground: 45 20% 95%;
+    --destructive: 354 78% 48%;
+    --destructive-foreground: 38 90% 96%;
 
-    --border: 240 15% 26%;
-    --input: 240 15% 26%;
-    --ring: 160 65% 48%;
+    --border: 22 55% 28%;                /* dark wood border */
+    --input: 22 55% 28%;
+    --ring: 354 78% 56%;
 
-    --radius: 1rem;
+    --radius: 1.25rem;
 
-    --coin: 42 95% 58%;
-    --neon-green: 160 65% 48%;
-    --neon-purple: 260 50% 60%;
-    --neon-orange: 32 90% 58%;
-    --monster-bg: 240 18% 15%;
+    --coin: 42 95% 55%;
+    --gold: 42 92% 55%;
+    --gold-deep: 36 88% 42%;
+    --wood: 22 60% 34%;
+    --wood-dark: 22 65% 22%;
+    --wood-light: 28 55% 52%;
+    --cream: 35 70% 82%;
+    --cream-light: 38 80% 90%;
+    --candy-red: 354 78% 56%;
+    --candy-red-deep: 354 78% 38%;
+    --energy-pink: 330 90% 62%;
+    --monster-bg: 35 70% 82%;
 
-    --font-display: 'Creepster', cursive;
+    --font-display: 'Luckiest Guy', cursive;
     --font-body: 'Nunito', sans-serif;
 
-    --sidebar-background: 240 18% 14%;
-    --sidebar-foreground: 45 20% 95%;
-    --sidebar-primary: 160 65% 48%;
-    --sidebar-primary-foreground: 240 20% 10%;
-    --sidebar-accent: 260 50% 60%;
-    --sidebar-accent-foreground: 45 20% 95%;
-    --sidebar-border: 240 15% 26%;
-    --sidebar-ring: 160 65% 48%;
+    --sidebar-background: 22 60% 28%;
+    --sidebar-foreground: 38 90% 96%;
+    --sidebar-primary: 42 92% 55%;
+    --sidebar-primary-foreground: 22 55% 18%;
+    --sidebar-accent: 354 78% 56%;
+    --sidebar-accent-foreground: 38 90% 96%;
+    --sidebar-border: 22 65% 22%;
+    --sidebar-ring: 42 92% 55%;
   }
 }
 
@@ -63,30 +71,24 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    background-image:
+      radial-gradient(ellipse at top, hsl(var(--cream-light)) 0%, hsl(var(--cream)) 40%, hsl(35 60% 70%) 100%);
+    background-attachment: fixed;
   }
 
-  /* Visible focus rings for keyboard navigation */
   *:focus-visible {
     outline: 2px solid hsl(var(--primary));
     outline-offset: 2px;
     border-radius: 4px;
   }
 
-  /* Screen reader only utility */
   .sr-only {
     position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
+    width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;
   }
 }
 
-/* Reduced motion: disable all animations and transitions */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -99,23 +101,93 @@
 @layer utilities {
   .font-display {
     font-family: var(--font-display);
+    letter-spacing: 0.04em;
   }
-  .font-body {
-    font-family: var(--font-body);
+  .font-body { font-family: var(--font-body); }
+
+  /* Chunky cartoon shadow */
+  .shadow-chunky {
+    box-shadow: 0 4px 0 0 hsl(var(--wood-dark)), 0 8px 16px -2px hsl(22 60% 15% / 0.35);
   }
-  .text-glow-green {
-    text-shadow: 0 0 10px hsl(var(--neon-green) / 0.6), 0 0 30px hsl(var(--neon-green) / 0.3);
+  .shadow-chunky-sm {
+    box-shadow: 0 3px 0 0 hsl(var(--wood-dark)), 0 5px 10px -2px hsl(22 60% 15% / 0.3);
   }
-  .text-glow-purple {
-    text-shadow: 0 0 10px hsl(var(--neon-purple) / 0.6), 0 0 30px hsl(var(--neon-purple) / 0.3);
+
+  /* Wood-grain panel framing the board */
+  .panel-wood {
+    background:
+      repeating-linear-gradient(90deg, hsl(22 55% 30%) 0px, hsl(22 55% 35%) 2px, hsl(22 60% 32%) 4px, hsl(22 50% 28%) 6px),
+      linear-gradient(180deg, hsl(var(--wood-light)), hsl(var(--wood)));
+    border: 6px solid hsl(var(--wood-dark));
+    border-radius: 2rem;
+    box-shadow: 0 8px 0 0 hsl(var(--wood-dark)), 0 14px 28px -4px hsl(22 60% 12% / 0.5), inset 0 0 0 3px hsl(42 92% 55% / 0.6);
   }
-  .box-glow-green {
-    box-shadow: 0 0 15px hsl(var(--neon-green) / 0.4), 0 0 40px hsl(var(--neon-green) / 0.15);
+
+  /* Gold pill (stat badges) */
+  .pill-gold {
+    background: linear-gradient(180deg, hsl(48 100% 70%) 0%, hsl(var(--gold)) 50%, hsl(var(--gold-deep)) 100%);
+    border: 3px solid hsl(var(--wood-dark));
+    color: hsl(var(--wood-dark));
+    border-radius: 9999px;
+    box-shadow: 0 3px 0 0 hsl(var(--wood-dark)), inset 0 2px 0 hsl(50 100% 85% / 0.8);
+    font-family: var(--font-display);
   }
-  .box-glow-purple {
-    box-shadow: 0 0 15px hsl(var(--neon-purple) / 0.4), 0 0 40px hsl(var(--neon-purple) / 0.15);
+
+  /* Big red 3D PRESS button */
+  .btn-press {
+    background: radial-gradient(circle at 35% 30%, hsl(354 90% 70%) 0%, hsl(var(--candy-red)) 45%, hsl(var(--candy-red-deep)) 100%);
+    border: 5px solid hsl(var(--wood-dark));
+    color: hsl(var(--primary-foreground));
+    box-shadow:
+      0 8px 0 0 hsl(var(--candy-red-deep)),
+      0 12px 20px -2px hsl(354 78% 25% / 0.5),
+      inset 0 4px 0 hsl(354 100% 78% / 0.6),
+      inset 0 -6px 0 hsl(354 80% 32% / 0.5);
+    text-shadow: 0 2px 0 hsl(var(--candy-red-deep));
+    transition: transform 80ms ease-out, box-shadow 80ms ease-out;
   }
-  .box-glow-orange {
-    box-shadow: 0 0 15px hsl(var(--neon-orange) / 0.4), 0 0 40px hsl(var(--neon-orange) / 0.15);
+  .btn-press:active:not(:disabled) {
+    transform: translateY(6px);
+    box-shadow:
+      0 2px 0 0 hsl(var(--candy-red-deep)),
+      0 4px 8px -2px hsl(354 78% 25% / 0.5),
+      inset 0 4px 0 hsl(354 100% 78% / 0.6),
+      inset 0 -2px 0 hsl(354 80% 32% / 0.5);
   }
+
+  /* Square gold icon tile (for tabs / rails) */
+  .icon-tile-gold {
+    background: linear-gradient(180deg, hsl(48 100% 72%), hsl(var(--gold)) 60%, hsl(var(--gold-deep)));
+    border: 3px solid hsl(var(--wood-dark));
+    border-radius: 1rem;
+    box-shadow: 0 4px 0 0 hsl(var(--wood-dark)), inset 0 2px 0 hsl(50 100% 85% / 0.8);
+    color: hsl(var(--wood-dark));
+  }
+
+  /* Curved gold banner */
+  .banner-gold {
+    background: linear-gradient(180deg, hsl(48 100% 72%), hsl(var(--gold)) 60%, hsl(var(--gold-deep)));
+    border: 4px solid hsl(var(--wood-dark));
+    color: hsl(var(--wood-dark));
+    border-radius: 9999px;
+    box-shadow: 0 5px 0 0 hsl(var(--wood-dark)), 0 10px 16px -2px hsl(22 60% 15% / 0.4), inset 0 3px 0 hsl(50 100% 85% / 0.8);
+    text-shadow: 0 2px 0 hsl(48 100% 80%);
+  }
+
+  /* Energy pink pill */
+  .pill-energy {
+    background: linear-gradient(180deg, hsl(330 100% 75%), hsl(var(--energy-pink)) 60%, hsl(330 80% 45%));
+    border: 3px solid hsl(var(--wood-dark));
+    color: hsl(38 90% 96%);
+    border-radius: 9999px;
+    box-shadow: 0 3px 0 0 hsl(var(--wood-dark)), inset 0 2px 0 hsl(330 100% 88% / 0.7), 0 0 16px hsl(var(--energy-pink) / 0.5);
+    text-shadow: 0 1px 0 hsl(330 80% 30%);
+  }
+
+  /* Legacy glow utilities (kept so old refs don't break) */
+  .text-glow-green { text-shadow: 0 2px 0 hsl(var(--wood-dark)); }
+  .text-glow-purple { text-shadow: 0 2px 0 hsl(var(--wood-dark)); }
+  .box-glow-green { box-shadow: 0 4px 0 0 hsl(var(--wood-dark)); }
+  .box-glow-purple { box-shadow: 0 4px 0 0 hsl(var(--wood-dark)); }
+  .box-glow-orange { box-shadow: 0 4px 0 0 hsl(var(--wood-dark)); }
 }
