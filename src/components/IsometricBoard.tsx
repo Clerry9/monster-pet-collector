@@ -5,13 +5,30 @@ import * as THREE from "three";
 import { BOARD_TILES, BoardTile, TileType } from "@/hooks/useGameState";
 import { Monster } from "@/data/monsters";
 
+// Warm cartoon-casino palette
 const TILE_ACCENT: Record<TileType, string> = {
-  coins: "#fbbf24",
-  bonus: "#60a5fa",
-  chest: "#f59e0b",
-  food: "#c084fc",
-  skull: "#f87171",
-  star: "#facc15",
+  coins: "#F5B324",  // gold
+  bonus: "#E63946",  // candy red
+  chest: "#D97706",  // burnt amber
+  food: "#F472B6",   // candy pink
+  skull: "#7C2D12",  // dark wood
+  star: "#FCD34D",   // bright gold
+};
+
+// Theme constants
+const THEME = {
+  cream: "#F4DCB0",
+  creamLight: "#FBE8C0",
+  wood: "#8B4A24",
+  woodDark: "#5C2E14",
+  gold: "#F5B324",
+  goldDeep: "#D97706",
+  grassLight: "#A3D977",
+  grassDark: "#6BAA3E",
+  dirt: "#A0612C",
+  rock: "#B8956A",
+  rockDark: "#8B6F4A",
+  red: "#E63946",
 };
 
 function generatePath(tileCount: number): THREE.Vector3[] {
