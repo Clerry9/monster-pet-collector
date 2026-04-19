@@ -132,9 +132,29 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
       });
     }
     if (total > 0) {
-      setScore((s) => s + total);
-      if (symbols > 0) setSymbolsCollected((s) => s + symbols);
+      // --- Streak combo: chained matches within 2s award bonus symbols ---
+      const now = performance.now();
+      const isChain = now - lastMatchAtRef.current < 2000;
+      const newCombo = isChain ? combo + 1 : 1;
+      setCombo(newCombo);
+      lastMatchAtRef.current = now;
+
+      // Combo multiplier: x1 (no bonus), x2 (combo 2), x3 (combo 3+)
+      const mult = newCombo >= 3 ? 3 : newCombo >= 2 ? 2 : 1;
+      const comboBonus = mult > 1 && symbols > 0 ? symbols * (mult - 1) : 0;
+
+      setScore((s) => s + total * mult);
+      const totalSymbols = symbols + comboBonus;
+      if (totalSymbols > 0) setSymbolsCollected((s) => s + totalSymbols);
       sfxCoinGain();
+
+      if (mult > 1) {
+        setComboFlash({ key: now, mult, bonus: comboBonus });
+      }
+
+      // Reset combo after 2s of no chains
+      if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
+      comboTimerRef.current = setTimeout(() => setCombo(0), 2100);
     }
     return working;
   };
