@@ -141,6 +141,9 @@ function loadLocalState(): GameState {
         level: p.level ?? 1,
         xp: p.xp ?? 0,
         betMultiplier: p.betMultiplier ?? 1,
+        islandStars: p.islandStars ?? 0,
+        pendingCardFlips: p.pendingCardFlips ?? 0,
+        lastSpinAt: p.lastSpinAt ?? null,
       };
     }
   } catch {}
