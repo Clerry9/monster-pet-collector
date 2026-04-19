@@ -1,41 +1,42 @@
 
+## Plan: Island Stars, Camera Tracking, Fullscreen Board & Spin Cooldown
 
-## Plan: Leaderboard, Streak Saver, Camera Fly-by, Bigger Board, Side Rails & New Mini-Game
+### 1. Island Star Prize System
+- Add `island_stars` (integer) and `pending_card_flips` (integer) to `game_state` table via migration.
+- In `useGameState.ts`, when player lands on a tile that crosses into a new "island" (group of ~5 tiles forming an island in `IsometricBoard.tsx`), award **1 star** with 30% random chance, plus always award when landing on the existing `star` tile type.
+- Stars accumulate; spending 5 stars → unlock a card flip (consumed by mini-game reward).
 
-### 1. Season Leaderboard with Podium (Top Symbol Earners)
-- **DB migration**: add `season_leaderboard` view (or materialized query) — pull top 20 from `season_progress` where `season_id = current`, ordered by `symbols DESC`. Plus add a `display_name` column to `profiles` if missing (fallback to "Player ####").
-- **RLS**: leaderboard read = `true` for authenticated users (only exposes username + symbol count, no sensitive data).
-- **Component** `src/components/SeasonLeaderboard.tsx`: shows golden podium for top 3 (animated rise-in, crown on #1) and a scrollable list (4–20). Highlights current user's row.
-- Tab into `SeasonHub` as a new section ("LEADERBOARD") below the battle pass track, plus a small button at top-right of hero banner.
+### 2. Mini-Game Earns Stars → Card Flips
+- Update `MiniGame.tsx` and `MiniGameJack.tsx`: collected symbols still count for season progress, but **completing a round now also converts every 10 symbols → 1 star**, and reaching 5 stars triggers a "FLIP A CARD" reward (animated card flip from `CardReveal.tsx`).
+- Show a small ⭐ star counter pill at the top of the mini-game.
 
-### 2. Streak Saver Power-Up (Mini-Game)
-- New shop item in `MiniGame.tsx`: 💎 "Streak Saver" — costs 500 coins, extends combo window from 2s → 4s for one game.
-- Add a small button above the play board during `phase === "playing"`. Pulses gold when combo is active. Consumes from `game.coins` via prop callback.
-- Wire `onBuyStreakSaver: () => boolean` from `SeasonHub` → `Index.tsx`.
+### 3. Spin Wheel 12-Hour Cooldown
+- Add `last_spin_at` (timestamptz) column to `game_state`.
+- In `SpinWheel.tsx`: on spin, write timestamp; on mount, compute remaining = 12h − (now − last_spin_at). If > 0, show countdown ("NEXT SPIN IN 11:23:45") and disable button.
 
-### 3. Larger Game Window + Side Rails (image-inspired layout)
-- `IsometricBoard` height: `h-[400px]` → `h-[520px]` (mobile-friendly, using `min(70vh, 560px)`).
-- New `src/components/SideRails.tsx`: two vertical floating columns (left/right of the board on wider viewports, collapsible drawers on narrow). Show stacked icon-tiles for: Mini-Game, Daily Reward, Spin Wheel, Specials, Quests, Leaderboard, with countdown timers under each (mimicking the screenshot). Each opens its respective tab/modal.
-- Restructure `Index.tsx` board view: rails-left | board-center | rails-right. On <420px width, render rails as scrollable horizontal strips above/below the board.
-- Move bottom controls (BET, PRESS dice button) into a fixed lower zone, matching uploaded image's central blue dice button.
+### 4. Fix Auto-Spin Stuck Bug (GameBoard.tsx)
+- Bug: `performRoll` schedules `setTimeout(() => performRoll(), 600)` but `setIsRolling(false)` is async — next tick may see stale state. Fix by:
+  - Using `isRollingRef.current = false` immediately before the setTimeout.
+  - Guarding the auto-roll chain with both `rollsRef.current > 0` AND `!isRollingRef.current`.
+  - Ensuring `onRollDice()` completes before scheduling next roll (await position settle via 800ms delay matching monster hop animation).
 
-### 4. Camera Fly-by Animation (Island Hop)
-- In `IsometricBoardScene`, replace the static `OrbitControls.target` with a `CameraRig` component using `useFrame` that smoothly lerps both `camera.position` and `lookAt` between `pathPoints[prevPos]` → `pathPoints[position]` over ~0.6s when position changes (cinematic swoop). 
-- Adds slight orbit arc (Y-axis offset peak) for fly-by feel. `OrbitControls` re-engages once arrival settles (gated by a `flying` ref).
+### 5. Camera Tracks Beside the Monster (IsometricBoard.tsx)
+- Replace static-target `CameraRig` with one that lerps `targetPos` to `pathPoints[currentMonsterPos]` on every frame (not just on transition).
+- Camera offset: `(monster.x + 5, monster.y + 4, monster.z + 5)` — sits to the side and slightly above, like an over-the-shoulder chase cam.
+- Disable `OrbitControls` panning during movement; re-enable for free look when idle (>2s after last move).
 
-### 5. New Mini-Game Variant: "Jack-in-the-Box" Puzzle Piece Hunt
-- A second mini-game type (rotates with seasons or selectable). `src/components/MiniGameJack.tsx`: 3×3 grid of face-down puzzle pieces; tap to flip, find pairs of season symbols hidden behind. Each pair = 2 symbols. 8 flips total. Themed splash screen ("FIND THE 🎵 BEHIND PUZZLE PIECES") matching the uploaded reference.
-- `SeasonHub` shows two play buttons: "Match-3" (existing) and "Jack-in-the-Box" (new).
+### 6. Fullscreen Game Board with Layered Buttons
+- In `Index.tsx`: when on the Game tab, render `IsometricBoard` as `fixed inset-0 z-0` filling the entire viewport.
+- Layer header, side rails, BET selector, and PRESS button as `fixed` overlays with `z-10`+ and `pointer-events-auto` on controls only (board canvas keeps gestures).
+- Bottom controls dock: `fixed bottom-0 left-0 right-0` with safe-area padding and a translucent gradient backdrop.
+- Other tabs (Event, Shop, Cards, Monsters) remain in normal scroll layout.
 
-### 6. End-to-End Test
-After implementation runs: the user manually verifies on mobile viewport per the test checklist (clear localStorage → coachmarks → rotation modal → Play Now → NEW badge clears → countdown pill → 3 rolls → season burst → mini-game combo → Buy Pass checkout opens).
+### 7. Fix Console Warnings
+- Wrap `SeasonBurst`, `CrystalCluster`, `GlowingChest`, `TileIcon` in `React.forwardRef` since framer-motion / r3f pass refs through.
 
 ### Files to create/edit
-**Create**: `SeasonLeaderboard.tsx`, `SideRails.tsx`, `MiniGameJack.tsx`, migration for leaderboard read policy + `display_name`.
-**Edit**: `IsometricBoard.tsx` (camera rig, taller canvas), `MiniGame.tsx` (streak saver), `SeasonHub.tsx` (leaderboard slot, second mini-game), `Index.tsx` (side rails layout, streak-saver wiring).
+**Edit**: `src/components/GameBoard.tsx`, `src/components/IsometricBoard.tsx`, `src/components/MiniGame.tsx`, `src/components/MiniGameJack.tsx`, `src/components/SpinWheel.tsx`, `src/hooks/useGameState.ts`, `src/pages/Index.tsx`.
+**Migration**: add `island_stars`, `pending_card_flips`, `last_spin_at` to `game_state`.
 
-### Notes / Trade-offs
-- The full Coin Master rail of 12+ live-event icons is decorative-only in the screenshot; we'll use 6 functional ones tied to existing features.
-- Camera fly-by disables `autoRotate` during transit to avoid spin conflicts.
-- Leaderboard is read-only & anonymous-friendly: guest users see "Sign in to appear on the board" CTA in their own row slot.
-
+### End-to-End Test
+After implementation: clear localStorage → verify auto-spin chains 10 rolls without stalling → camera follows monster around the loop → land on multiple islands to collect stars → play mini-game, hit 5 stars, flip a card → spin wheel, refresh, see 12h cooldown → confirm board fills the screen with controls floating on top.
