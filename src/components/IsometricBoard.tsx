@@ -159,14 +159,76 @@ function getTheme(levelId: number): LevelTheme3D {
   return LEVEL_THEMES[levelId] || LEVEL_THEMES[1];
 }
 
-function generatePath(tileCount: number): THREE.Vector3[] {
+function generatePath(tileCount: number, levelId: number = 1): THREE.Vector3[] {
   const points: THREE.Vector3[] = [];
+  const shape = ((levelId - 1) % 8) + 1;
   for (let i = 0; i < tileCount; i++) {
-    const angle = (i / tileCount) * Math.PI * 2.5;
-    const radius = 4 + i * 0.35;
-    const x = Math.cos(angle) * radius * 0.65;
-    const z = Math.sin(angle) * radius * 0.65;
-    const y = i * 0.09;
+    const t = i / tileCount;
+    let x = 0, y = 0, z = 0;
+    switch (shape) {
+      case 1: { // Outward spiral (Goblin Forest)
+        const a = t * Math.PI * 2.5;
+        const r = (4 + i * 0.35) * 0.65;
+        x = Math.cos(a) * r; z = Math.sin(a) * r; y = i * 0.09;
+        break;
+      }
+      case 2: { // Figure-8 (Crystal Caves)
+        const a = t * Math.PI * 2;
+        const r = 4.5;
+        x = Math.sin(a * 2) * r * 0.7;
+        z = Math.sin(a) * r;
+        y = i * 0.07;
+        break;
+      }
+      case 3: { // Zigzag river going north (Lava Peaks)
+        const row = i;
+        x = (row % 2 === 0 ? 1 : -1) * (3 + (i % 5) * 0.2);
+        z = -row * 0.45 + 6;
+        y = i * 0.12;
+        break;
+      }
+      case 4: { // Inward spiral, reversed (Haunted Marsh)
+        const a = -t * Math.PI * 2.5;
+        const r = (8 - i * 0.22) * 0.65;
+        x = Math.cos(a) * r; z = Math.sin(a) * r; y = i * 0.08;
+        break;
+      }
+      case 5: { // Diamond/rhombus loop (Sky Citadel)
+        const seg = Math.floor(t * 4);
+        const f = (t * 4) - seg;
+        const corners = [[0, 6], [6, 0], [0, -6], [-6, 0]];
+        const [x1, z1] = corners[seg];
+        const [x2, z2] = corners[(seg + 1) % 4];
+        x = x1 + (x2 - x1) * f;
+        z = z1 + (z2 - z1) * f;
+        y = i * 0.1;
+        break;
+      }
+      case 6: { // S-curve climbing (Dragon's Lair)
+        const a = t * Math.PI * 3;
+        x = Math.sin(a) * 4.5;
+        z = -t * 12 + 6;
+        y = i * 0.14;
+        break;
+      }
+      case 7: { // Two concentric arcs (Void Realm)
+        const half = i < tileCount / 2;
+        const a = (half ? t * 2 : (t - 0.5) * 2) * Math.PI;
+        const r = half ? 5.5 : 3.2;
+        x = Math.cos(a) * r;
+        z = Math.sin(a) * r * (half ? 1 : -1);
+        y = i * 0.08;
+        break;
+      }
+      case 8: { // Ascending bridge to a peak (Celestial Plane)
+        const a = t * Math.PI * 2;
+        const r = 4 + Math.sin(t * Math.PI) * 2;
+        x = Math.cos(a) * r * 0.7;
+        z = Math.sin(a) * r * 0.7;
+        y = Math.sin(t * Math.PI) * 4 + i * 0.05;
+        break;
+      }
+    }
     points.push(new THREE.Vector3(x, y, z));
   }
   return points;
