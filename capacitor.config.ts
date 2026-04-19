@@ -19,6 +19,13 @@ const config: CapacitorConfig = {
       splashFullScreen: true,
       splashImmersive: true,
     },
+    // AdMob — TEST app IDs by default. Replace with your real IDs before production.
+    AdMob: {
+      appId: {
+        android: 'ca-app-pub-3940256099942544~3347511713',
+        ios: 'ca-app-pub-3940256099942544~1458002511',
+      },
+    },
   },
 };
 

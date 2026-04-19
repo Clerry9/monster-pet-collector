@@ -723,6 +723,9 @@ interface MonsterPawnProps {
 
 function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRef, activeLift, monsterPosRef }: MonsterPawnProps) {
   const groupRef = useRef<THREE.Group>(null);
+  const bodyRef = useRef<THREE.Mesh>(null);
+  const leftFootRef = useRef<THREE.Mesh>(null);
+  const rightFootRef = useRef<THREE.Mesh>(null);
   const currentPos = useRef(pathPoints[position]?.clone() || new THREE.Vector3());
   const scheduledPosition = useRef(position);
   const queuedTiles = useRef<number[]>([]);
@@ -812,6 +815,30 @@ function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRe
     if (monsterPosRef) {
       monsterPosRef.current.set(currentPos.current.x, currentPos.current.y + liftRef.current, currentPos.current.z);
     }
+
+    // --- Personality: idle breathing + walk-cycle legs ---
+    const t = state.clock.elapsedTime;
+    if (bodyRef.current) {
+      if (isAnimating) {
+        bodyRef.current.scale.set(1, 1, 1);
+        bodyRef.current.position.y = Math.sin(t * 14) * 0.05;
+        bodyRef.current.rotation.x = -0.08;
+      } else {
+        const breathe = 1 + Math.sin(t * 2.5) * 0.04;
+        bodyRef.current.scale.set(1, breathe, 1);
+        bodyRef.current.position.y = Math.sin(t * 2.5) * 0.02;
+        bodyRef.current.rotation.x = 0;
+      }
+    }
+    if (leftFootRef.current && rightFootRef.current) {
+      if (isAnimating) {
+        leftFootRef.current.position.y = -0.32 + Math.max(0, Math.sin(t * 14)) * 0.12;
+        rightFootRef.current.position.y = -0.32 + Math.max(0, Math.sin(t * 14 + Math.PI)) * 0.12;
+      } else {
+        leftFootRef.current.position.y = -0.32;
+        rightFootRef.current.position.y = -0.32;
+      }
+    }
   });
 
   const rarityColor =
@@ -822,7 +849,7 @@ function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRe
   return (
     <group ref={groupRef}>
       {/* True 3D body — sphere with rarity-tinted glow */}
-      <mesh position={[0, 0, 0]} castShadow>
+      <mesh ref={bodyRef} position={[0, 0, 0]} castShadow>
         <sphereGeometry args={[0.32, 28, 28]} />
         <meshStandardMaterial
           color={rarityColor}
@@ -865,11 +892,11 @@ function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRe
         <meshStandardMaterial color={rarityColor} emissive={rarityColor} emissiveIntensity={0.3} roughness={0.5} />
       </mesh>
       {/* Feet */}
-      <mesh position={[-0.14, -0.32, 0.05]}>
+      <mesh ref={leftFootRef} position={[-0.14, -0.32, 0.05]}>
         <sphereGeometry args={[0.1, 12, 12]} />
         <meshStandardMaterial color={rarityColor} roughness={0.6} />
       </mesh>
-      <mesh position={[0.14, -0.32, 0.05]}>
+      <mesh ref={rightFootRef} position={[0.14, -0.32, 0.05]}>
         <sphereGeometry args={[0.1, 12, 12]} />
         <meshStandardMaterial color={rarityColor} roughness={0.6} />
       </mesh>
