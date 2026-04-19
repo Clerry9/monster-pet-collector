@@ -159,7 +159,7 @@ const Index = () => {
               exit={{ opacity: 0, x: 50 }}
               className="w-full flex flex-col items-center gap-3"
             >
-              <div className="panel-wood p-3 w-full">
+              <div className="panel-wood p-3 w-full" data-level={getLevelForXp(game.xp).id}>
                 <GameBoard
                   position={game.position}
                   monster={game.activeMonsterData}
