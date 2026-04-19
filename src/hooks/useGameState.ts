@@ -443,6 +443,11 @@ export function useGameState() {
     [update]
   );
 
+  const addCardFlip = useCallback(
+    (amount: number) => update((s) => ({ ...s, pendingCardFlips: Math.max(0, s.pendingCardFlips + amount) })),
+    [update]
+  );
+
   const buyDicePack = useCallback(
     (packId: string) => {
       const pack = DICE_PACKS.find((p) => p.id === packId);
@@ -555,6 +560,7 @@ export function useGameState() {
     grantDiceTier,
     addStars,
     consumeCardFlip,
+    addCardFlip,
     recordSpin,
     activeMonsterData,
     activeMonsterTaps,
