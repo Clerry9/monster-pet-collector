@@ -253,7 +253,7 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
                 <span>⚡ {score}</span>
                 <span className="flex items-center gap-1">{season.symbol} {symbolsCollected}</span>
               </div>
-              <div className="grid grid-cols-4 gap-1.5 bg-wood-dark/50 p-2 rounded-xl border-2 border-wood-dark">
+              <div className="grid grid-cols-5 gap-1.5 bg-wood-dark/50 p-2 rounded-xl border-2 border-wood-dark">
                 {cells.map((cell, idx) => (
                   <motion.button
                     key={cell.id}
