@@ -300,6 +300,26 @@ const Index = () => {
             </motion.div>
           )}
 
+          {tab === "season" && (
+            <motion.div
+              key="season"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              className="w-full"
+            >
+              <SeasonHub
+                season={season.season}
+                progress={season.progress}
+                msRemaining={season.msRemaining}
+                rolls={game.rolls}
+                onPlayMiniGame={handlePlayMiniGame}
+                onAwardSymbols={season.addSymbols}
+                onClaimTier={handleClaimTier}
+              />
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </div>
     </div>
