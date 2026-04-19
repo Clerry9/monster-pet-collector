@@ -13,6 +13,9 @@ interface GameBoardProps {
   onRollDice: () => void;
   activeDiceMax: number;
   levelId?: number;
+  /** Optional season tint that overrides the level's accent/water colors. CSS color string (e.g. "hsl(199 90% 55%)"). */
+  seasonAccent?: string;
+  seasonGlow?: string;
 }
 
 const TILE_EMOJIS: Record<TileType, string> = {
@@ -53,7 +56,7 @@ interface Particle {
 const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
 let particleIdCounter = 0;
 
-export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax, levelId = 1 }: GameBoardProps) {
+export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax, levelId = 1, seasonAccent, seasonGlow }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -237,6 +240,8 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
         isMoving={isRolling}
         movementResult={lastResult}
         levelId={levelId}
+        seasonAccent={seasonAccent}
+        seasonGlow={seasonGlow}
       />
 
       {/* Result display */}

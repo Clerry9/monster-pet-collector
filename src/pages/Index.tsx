@@ -31,6 +31,8 @@ import { SeasonReward } from "@/data/seasons";
 import { SpecialPacks } from "@/components/SpecialPacks";
 import { SeasonHub } from "@/components/SeasonHub";
 import { useSeason } from "@/hooks/useSeason";
+import { useSeasonNotice } from "@/hooks/useSeasonNotice";
+import { SeasonRotationModal } from "@/components/SeasonRotationModal";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season";
 
@@ -52,6 +54,18 @@ const Index = () => {
   const mainTutorial = useTutorial("main");
   const [helpOpen, setHelpOpen] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
+
+  // Season rotation notice
+  const seasonNotice = useSeasonNotice(season.seasonInstanceId);
+  const [rotationModalOpen, setRotationModalOpen] = useState(false);
+
+  // Show rotation celebration on first launch of a new season (after tutorial)
+  useEffect(() => {
+    if (mainTutorial.completed && seasonNotice.isNew) {
+      const t = window.setTimeout(() => setRotationModalOpen(true), 800);
+      return () => window.clearTimeout(t);
+    }
+  }, [mainTutorial.completed, seasonNotice.isNew]);
 
   // Auto-open coachmarks on first launch (after a brief delay so UI is laid out)
   useEffect(() => {
@@ -232,7 +246,11 @@ const Index = () => {
       </div>
 
       <div data-tutorial="tabs">
-        <GameTabs active={tab} onTabChange={setTab} />
+        <GameTabs
+          active={tab}
+          onTabChange={setTab}
+          newTabs={{ season: seasonNotice.isNew }}
+        />
       </div>
 
       <CardReveal card={drawnCard} onComplete={() => setDrawnCard(null)} />
@@ -260,6 +278,8 @@ const Index = () => {
                   onRollDice={handleRollDice}
                   activeDiceMax={game.activeDiceTierData.maxRoll}
                   levelId={getLevelForXp(game.xp).id}
+                  seasonAccent={`hsl(${season.season.palette.accent})`}
+                  seasonGlow={`hsl(${season.season.palette.glow})`}
                 />
               </div>
               <BetSelector
