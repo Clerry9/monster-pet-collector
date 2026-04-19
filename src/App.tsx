@@ -12,6 +12,7 @@ import Terms from "./pages/Terms";
 import Refund from "./pages/Refund";
 import AcceptableUse from "./pages/AcceptableUse";
 import Pricing from "./pages/Pricing";
+import { CookieConsent } from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ const App = () => (
             <Route path="/pricing" element={<Pricing />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <CookieConsent />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

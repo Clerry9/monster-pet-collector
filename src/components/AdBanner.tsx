@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { adsAllowed, onConsentChange } from "@/lib/cookieConsent";
 
 // TODO: Replace with your real AdSense publisher ID (also update index.html)
 const ADSENSE_CLIENT = "ca-pub-XXXXXXXXXXXXXXXX";
@@ -20,15 +21,21 @@ export const AdBanner = ({ className = "" }: AdBannerProps) => {
   const isPlaceholder =
     ADSENSE_CLIENT.includes("XXXX") || ADSENSE_SLOT.startsWith("0000");
 
+  const [consented, setConsented] = useState<boolean>(() => adsAllowed());
+  useEffect(() => onConsentChange((s) => setConsented(s.analyticsAds === "accepted")), []);
+
   useEffect(() => {
-    if (isPlaceholder || pushed.current) return;
+    if (isPlaceholder || pushed.current || !consented) return;
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
       pushed.current = true;
     } catch (e) {
       console.warn("AdSense push failed:", e);
     }
-  }, [isPlaceholder]);
+  }, [isPlaceholder, consented]);
+
+  // Hide entirely when user rejected non-essential cookies (no placeholder, no slot)
+  if (!isPlaceholder && !consented) return null;
 
   return (
     <div className={`flex flex-col items-center gap-1 ${className}`}>
