@@ -37,6 +37,7 @@ import { SeasonHub } from "@/components/SeasonHub";
 import { useSeason } from "@/hooks/useSeason";
 import { useSeasonNotice } from "@/hooks/useSeasonNotice";
 import { SeasonRotationModal } from "@/components/SeasonRotationModal";
+import { Footer } from "@/components/Footer";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season";
 
@@ -544,6 +545,7 @@ const Index = () => {
           mainTutorial.markCompleted();
         }}
       />
+      <Footer />
     </div>
   );
 };
