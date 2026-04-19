@@ -1,42 +1,57 @@
 
-## Plan: Island Stars, Camera Tracking, Fullscreen Board & Spin Cooldown
+## Plan: Difficulty, Gestures, Revive, Auto-Stop Fix & Rewarded Ads
 
-### 1. Island Star Prize System
-- Add `island_stars` (integer) and `pending_card_flips` (integer) to `game_state` table via migration.
-- In `useGameState.ts`, when player lands on a tile that crosses into a new "island" (group of ~5 tiles forming an island in `IsometricBoard.tsx`), award **1 star** with 30% random chance, plus always award when landing on the existing `star` tile type.
-- Stars accumulate; spending 5 stars → unlock a card flip (consumed by mini-game reward).
+### 1. Mini-Game Difficulty Selector (Easy / Normal / Hard)
+Add a 3-button difficulty picker on the intro screen of `MiniGame.tsx`. Persist last choice in localStorage.
 
-### 2. Mini-Game Earns Stars → Card Flips
-- Update `MiniGame.tsx` and `MiniGameJack.tsx`: collected symbols still count for season progress, but **completing a round now also converts every 10 symbols → 1 star**, and reaching 5 stars triggers a "FLIP A CARD" reward (animated card flip from `CardReveal.tsx`).
-- Show a small ⭐ star counter pill at the top of the mini-game.
+| Difficulty | Win threshold | Time | Bomb tiles | Symbol drop |
+|---|---|---|---|---|
+| Easy | 150 score / 4 symbols | 60s | 0 | 22% |
+| Normal | 200 / 5 | 45s | 1 (random spawn every 8s) | 18% |
+| Hard | 300 / 6 | 35s | 2-3 (spawn every 5s) | 14% |
 
-### 3. Spin Wheel 12-Hour Cooldown
-- Add `last_spin_at` (timestamptz) column to `game_state`.
-- In `SpinWheel.tsx`: on spin, write timestamp; on mount, compute remaining = 12h − (now − last_spin_at). If > 0, show countdown ("NEXT SPIN IN 11:23:45") and disable button.
+**Bomb tiles**: 💣 emoji that occupies a cell. Tapping a bomb ends the round immediately (or costs 50 score). Adds real risk.
 
-### 4. Fix Auto-Spin Stuck Bug (GameBoard.tsx)
-- Bug: `performRoll` schedules `setTimeout(() => performRoll(), 600)` but `setIsRolling(false)` is async — next tick may see stale state. Fix by:
-  - Using `isRollingRef.current = false` immediately before the setTimeout.
-  - Guarding the auto-roll chain with both `rollsRef.current > 0` AND `!isRollingRef.current`.
-  - Ensuring `onRollDice()` completes before scheduling next roll (await position settle via 800ms delay matching monster hop animation).
+### 2. Second-Chance Revive (Mini-Game)
+On `GAME OVER`, show a "REVIVE" button:
+- Pay 200 coins → +15s, clear bombs, keep current score/symbols
+- OR watch rewarded ad → free revive (see §5)
+- One revive per round.
 
-### 5. Camera Tracks Beside the Monster (IsometricBoard.tsx)
-- Replace static-target `CameraRig` with one that lerps `targetPos` to `pathPoints[currentMonsterPos]` on every frame (not just on transition).
-- Camera offset: `(monster.x + 5, monster.y + 4, monster.z + 5)` — sits to the side and slightly above, like an over-the-shoulder chase cam.
-- Disable `OrbitControls` panning during movement; re-enable for free look when idle (>2s after last move).
+### 3. Fix Auto-Spin Stop Bug (`GameBoard.tsx`)
+**Root cause**: when autospin is active and user taps STOP, `onPointerDown` calls `stopAutoRoll()`, but `onPointerUp` fires `handlePressEnd(true)` which sees `isAutoRollingRef.current === false` and triggers a fresh `performRoll()`. The button also turns grey because of the `disabled={(isRolling && !isAutoRolling)}` race.
 
-### 6. Fullscreen Game Board with Layered Buttons
-- In `Index.tsx`: when on the Game tab, render `IsometricBoard` as `fixed inset-0 z-0` filling the entire viewport.
-- Layer header, side rails, BET selector, and PRESS button as `fixed` overlays with `z-10`+ and `pointer-events-auto` on controls only (board canvas keeps gestures).
-- Bottom controls dock: `fixed bottom-0 left-0 right-0` with safe-area padding and a translucent gradient backdrop.
-- Other tabs (Event, Shop, Cards, Monsters) remain in normal scroll layout.
+**Fix**: 
+- Track `justStoppedRef` set true in `stopAutoRoll`, cleared on next pointer-down. `handlePressEnd` skips firing a roll when this flag is set.
+- Also clear any pending `autoRollTimerRef` immediately and call `setIsRolling(false)` if a roll cycle was queued.
+- Remove the disabled state during autospin entirely so the STOP label always stays clickable.
 
-### 7. Fix Console Warnings
-- Wrap `SeasonBurst`, `CrystalCluster`, `GlowingChest`, `TileIcon` in `React.forwardRef` since framer-motion / r3f pass refs through.
+### 4. Pinch-to-Zoom & Double-Tap Recenter (`IsometricBoard.tsx`)
+- Configure `OrbitControls` with `enableZoom`, `enablePan={false}`, `touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_ROTATE }}` and reasonable `minDistance` / `maxDistance`.
+- Add a `dblclick` listener on the Canvas wrapper that resets `transitionT` and snaps the `CameraRig` back to the chase-cam target (sets a `recenterRef` flag the rig reads in `useFrame`).
+- Small floating "recenter" 🎯 button bottom-right of the canvas as a fallback for non-touch users.
 
-### Files to create/edit
-**Edit**: `src/components/GameBoard.tsx`, `src/components/IsometricBoard.tsx`, `src/components/MiniGame.tsx`, `src/components/MiniGameJack.tsx`, `src/components/SpinWheel.tsx`, `src/hooks/useGameState.ts`, `src/pages/Index.tsx`.
-**Migration**: add `island_stars`, `pending_card_flips`, `last_spin_at` to `game_state`.
+### 5. Rewarded Ads → Bonus Coins (Revenue)
+**Provider**: Google AdSense for the web build is not eligible for rewarded ads — those require a mobile SDK. Recommended path:
+- **Web**: integrate **AdSense display ads** in non-intrusive slots (e.g., a 320×100 banner at the bottom of the Shop tab and between mini-game rounds). Plus a custom "Watch Ad for Coins" button using **CrazyGames Rewarded Ads SDK** or **Adinplay** — both free for web games and offer rewarded video. We'll wire to a generic `showRewardedAd(): Promise<boolean>` adapter so providers are swappable.
+- **Mobile (Capacitor)**: use `@capacitor-community/admob` plugin for true rewarded video. Already viable since the project has `capacitor.config.ts`.
+
+**Reward formula** (per user spec): every 5 player levels increases base reward by 50 coins.
+```
+reward = 50 + Math.floor((playerLevel - 1) / 5) * 50
+// Lvl 1-4: 50 🪙, Lvl 5-9: 100 🪙, Lvl 10-14: 150 🪙, …
+```
+
+**UI hooks**:
+- New `RewardedAdButton` component — purple gradient with 📺 icon, cooldown 60s between views, 5 ads/day cap.
+- Placed in: Shop tab header, Mini-Game game-over screen (revive option), Daily Reward modal.
+- New `useRewardedAd` hook tracks daily count (localStorage) + cooldown; calls the adapter; on success calls `addCoins(reward)`.
+
+**Action required from user**: pick an ad provider before we wire real ads. Until then, the button works in **demo mode** (3-second simulated ad, awards coins) so you can test the entire UX. We'll surface a question after this plan if you want us to proceed with a specific provider.
+
+### 6. Files to edit / create
+**Edit**: `src/components/MiniGame.tsx` (difficulty, bombs, revive), `src/components/GameBoard.tsx` (stop fix), `src/components/IsometricBoard.tsx` (gestures, recenter), `src/pages/Index.tsx` (mount RewardedAdButton, pass coins/level).
+**Create**: `src/components/RewardedAdButton.tsx`, `src/hooks/useRewardedAd.ts`, `src/lib/ads.ts` (provider adapter, demo mode default).
 
 ### End-to-End Test
-After implementation: clear localStorage → verify auto-spin chains 10 rolls without stalling → camera follows monster around the loop → land on multiple islands to collect stars → play mini-game, hit 5 stars, flip a card → spin wheel, refresh, see 12h cooldown → confirm board fills the screen with controls floating on top.
+After build: clear localStorage → mini-game intro shows 3 difficulty pills → pick Hard → bombs spawn, lose round → tap REVIVE (200 coins or Watch Ad) → finish round → on board, hold to autospin → tap PRESS once: STOP fires immediately, button stays red (not grey), no extra roll queued → pinch on board canvas to zoom, double-tap to recenter → open Shop, tap "Watch Ad for +50/100/… coins", confirm coins added and 60s cooldown.
