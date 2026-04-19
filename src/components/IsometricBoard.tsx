@@ -5,13 +5,30 @@ import * as THREE from "three";
 import { BOARD_TILES, BoardTile, TileType } from "@/hooks/useGameState";
 import { Monster } from "@/data/monsters";
 
+// Warm cartoon-casino palette
 const TILE_ACCENT: Record<TileType, string> = {
-  coins: "#fbbf24",
-  bonus: "#60a5fa",
-  chest: "#f59e0b",
-  food: "#c084fc",
-  skull: "#f87171",
-  star: "#facc15",
+  coins: "#F5B324",  // gold
+  bonus: "#E63946",  // candy red
+  chest: "#D97706",  // burnt amber
+  food: "#F472B6",   // candy pink
+  skull: "#7C2D12",  // dark wood
+  star: "#FCD34D",   // bright gold
+};
+
+// Theme constants
+const THEME = {
+  cream: "#F4DCB0",
+  creamLight: "#FBE8C0",
+  wood: "#8B4A24",
+  woodDark: "#5C2E14",
+  gold: "#F5B324",
+  goldDeep: "#D97706",
+  grassLight: "#A3D977",
+  grassDark: "#6BAA3E",
+  dirt: "#A0612C",
+  rock: "#B8956A",
+  rockDark: "#8B6F4A",
+  red: "#E63946",
 };
 
 function generatePath(tileCount: number): THREE.Vector3[] {
@@ -39,7 +56,7 @@ function SpinningCoin({ isActive }: { isActive: boolean }) {
   return (
     <mesh ref={ref} position={[0, 1.1, 0]}>
       <cylinderGeometry args={[0.12, 0.12, 0.03, 24]} />
-      <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.6} metalness={0.8} roughness={0.1} />
+      <meshStandardMaterial color={THEME.gold} emissive={THEME.goldDeep} emissiveIntensity={0.6} metalness={0.8} roughness={0.1} />
     </mesh>
   );
 }
@@ -54,12 +71,12 @@ function GlowingChest({ isActive }: { isActive: boolean }) {
   });
   return (
     <group ref={groupRef} position={[0, 1.0, 0]}>
-      <mesh><boxGeometry args={[0.18, 0.12, 0.14]} /><meshStandardMaterial color="#92400e" roughness={0.4} metalness={0.2} /></mesh>
+      <mesh><boxGeometry args={[0.18, 0.12, 0.14]} /><meshStandardMaterial color={THEME.wood} roughness={0.4} metalness={0.2} /></mesh>
       <mesh ref={lidRef} position={[0, 0.08, 0]}>
         <boxGeometry args={[0.2, 0.05, 0.15]} />
-        <meshStandardMaterial color="#b45309" emissive="#f59e0b" emissiveIntensity={isActive ? 0.8 : 0.2} roughness={0.3} metalness={0.3} />
+        <meshStandardMaterial color={THEME.goldDeep} emissive={THEME.gold} emissiveIntensity={isActive ? 0.8 : 0.2} roughness={0.3} metalness={0.5} />
       </mesh>
-      {isActive && <pointLight position={[0, 0.15, 0]} intensity={1.5} color="#fbbf24" distance={1.2} />}
+      {isActive && <pointLight position={[0, 0.15, 0]} intensity={1.5} color={THEME.gold} distance={1.2} />}
     </group>
   );
 }
@@ -76,7 +93,7 @@ function PulsingStar({ isActive }: { isActive: boolean }) {
   return (
     <mesh ref={ref} position={[0, 1.1, 0]}>
       <octahedronGeometry args={[0.11, 0]} />
-      <meshStandardMaterial color="#eab308" emissive="#facc15" emissiveIntensity={isActive ? 1.2 : 0.5} metalness={0.7} roughness={0.1} />
+      <meshStandardMaterial color={THEME.goldDeep} emissive={THEME.gold} emissiveIntensity={isActive ? 1.2 : 0.5} metalness={0.7} roughness={0.1} />
     </mesh>
   );
 }
@@ -91,7 +108,7 @@ function LightningBolt({ isActive }: { isActive: boolean }) {
   return (
     <mesh ref={ref} position={[0, 1.1, 0]} rotation={[0, 0, 0.1]}>
       <coneGeometry args={[0.07, 0.2, 4]} />
-      <meshStandardMaterial color="#60a5fa" emissive="#3b82f6" emissiveIntensity={0.3} metalness={0.5} roughness={0.2} />
+      <meshStandardMaterial color={THEME.red} emissive={THEME.red} emissiveIntensity={0.4} metalness={0.5} roughness={0.2} />
     </mesh>
   );
 }
@@ -105,7 +122,7 @@ function SkullIcon({ isActive }: { isActive: boolean }) {
   });
   return (
     <group ref={ref} position={[0, 1.05, 0]}>
-      <mesh><sphereGeometry args={[0.1, 12, 12]} /><meshStandardMaterial color="#fecaca" emissive="#ef4444" emissiveIntensity={isActive ? 0.6 : 0.15} roughness={0.5} /></mesh>
+      <mesh><sphereGeometry args={[0.1, 12, 12]} /><meshStandardMaterial color="#FBE8C0" emissive={THEME.red} emissiveIntensity={isActive ? 0.6 : 0.15} roughness={0.5} /></mesh>
       <mesh position={[-0.035, 0.025, 0.08]}><sphereGeometry args={[0.025, 8, 8]} /><meshStandardMaterial color="#111" /></mesh>
       <mesh position={[0.035, 0.025, 0.08]}><sphereGeometry args={[0.025, 8, 8]} /><meshStandardMaterial color="#111" /></mesh>
     </group>
@@ -124,7 +141,7 @@ function MonsterIcon({ isActive }: { isActive: boolean }) {
   return (
     <mesh ref={ref} position={[0, 1.05, 0]}>
       <dodecahedronGeometry args={[0.1, 0]} />
-      <meshStandardMaterial color="#c084fc" emissive="#a855f7" emissiveIntensity={isActive ? 0.8 : 0.3} metalness={0.4} roughness={0.2} />
+      <meshStandardMaterial color="#F472B6" emissive="#EC4899" emissiveIntensity={isActive ? 0.8 : 0.3} metalness={0.4} roughness={0.2} />
     </mesh>
   );
 }
@@ -180,15 +197,15 @@ function WaveRings() {
     <group>
       <mesh ref={ring1} position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.7, 0.85, 32]} />
-        <meshStandardMaterial color="#38bdf8" emissive="#0ea5e9" emissiveIntensity={0.3} transparent opacity={0.4} />
+        <meshStandardMaterial color={THEME.gold} emissive={THEME.goldDeep} emissiveIntensity={0.35} transparent opacity={0.45} />
       </mesh>
       <mesh ref={ring2} position={[0, -0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.85, 0.98, 32]} />
-        <meshStandardMaterial color="#7dd3fc" emissive="#38bdf8" emissiveIntensity={0.2} transparent opacity={0.3} />
+        <meshStandardMaterial color={THEME.creamLight} emissive={THEME.gold} emissiveIntensity={0.25} transparent opacity={0.35} />
       </mesh>
       <mesh ref={ring3} position={[0, -0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.98, 1.12, 32]} />
-        <meshStandardMaterial color="#bae6fd" emissive="#7dd3fc" emissiveIntensity={0.1} transparent opacity={0.2} />
+        <meshStandardMaterial color={THEME.cream} emissive={THEME.creamLight} emissiveIntensity={0.15} transparent opacity={0.25} />
       </mesh>
     </group>
   );
@@ -215,18 +232,18 @@ function PalmTree({ px, pz, height, seed }: { px: number; pz: number; height: nu
       {/* Trunk */}
       <mesh position={[0, height * 0.4, 0]}>
         <cylinderGeometry args={[0.025, 0.04, height * 0.8, 6]} />
-        <meshStandardMaterial color="#92400e" roughness={0.9} />
+        <meshStandardMaterial color={THEME.wood} roughness={0.9} />
       </mesh>
       {/* Coconuts */}
       <mesh position={[0, height * 0.75, 0]}>
         <sphereGeometry args={[0.03, 6, 6]} />
-        <meshStandardMaterial color="#78350f" roughness={0.8} />
+        <meshStandardMaterial color={THEME.woodDark} roughness={0.8} />
       </mesh>
       {/* Fronds - 4 leaf clusters */}
       {[0, 1.5, 3, 4.5].map((a, i) => (
         <mesh key={i} position={[Math.cos(a) * 0.1, height * 0.8, Math.sin(a) * 0.1]} rotation={[0.6 - i * 0.1, a, 0]}>
           <coneGeometry args={[0.12, 0.22, 4]} />
-          <meshStandardMaterial color={i % 2 === 0 ? "#16a34a" : "#22c55e"} roughness={0.7} side={THREE.DoubleSide} />
+          <meshStandardMaterial color={i % 2 === 0 ? THEME.grassDark : THEME.grassLight} roughness={0.7} side={THREE.DoubleSide} />
         </mesh>
       ))}
     </group>
@@ -258,38 +275,38 @@ function Tile({ tile, position, isActive, index, playerPosition }: TileProps) {
       {!isNearby && (
         <mesh position={[0, -0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.72, 1.0, 32]} />
-          <meshStandardMaterial color="#0ea5e9" emissive="#0284c7" emissiveIntensity={0.2} transparent opacity={0.12} />
+          <meshStandardMaterial color={THEME.gold} emissive={THEME.goldDeep} emissiveIntensity={0.2} transparent opacity={0.18} />
         </mesh>
       )}
 
       {/* Rock base */}
       <mesh position={[0, 0.12, 0]} castShadow>
         <cylinderGeometry args={[0.55, 0.75, 0.55, 10]} />
-        <meshStandardMaterial color="#78716c" roughness={0.95} metalness={0.05} transparent={!isNearby} opacity={isNearby ? 1 : 0.2} />
+        <meshStandardMaterial color={THEME.rockDark} roughness={0.95} metalness={0.05} transparent={!isNearby} opacity={isNearby ? 1 : 0.3} />
       </mesh>
 
       {/* Secondary rock detail */}
       <mesh position={[0.15, 0.08, 0.15]} castShadow>
         <cylinderGeometry args={[0.12, 0.18, 0.3, 6]} />
-        <meshStandardMaterial color="#a8a29e" roughness={0.95} transparent={!isNearby} opacity={isNearby ? 0.8 : 0.15} />
+        <meshStandardMaterial color={THEME.rock} roughness={0.95} transparent={!isNearby} opacity={isNearby ? 0.9 : 0.25} />
       </mesh>
 
       {/* Dirt layer */}
       <mesh position={[0, 0.38, 0]} castShadow>
         <cylinderGeometry args={[0.58, 0.55, 0.14, 10]} />
-        <meshStandardMaterial color="#92400e" roughness={0.85} transparent={!isNearby} opacity={isNearby ? 1 : 0.2} />
+        <meshStandardMaterial color={THEME.dirt} roughness={0.85} transparent={!isNearby} opacity={isNearby ? 1 : 0.3} />
       </mesh>
 
       {/* Grass top */}
       <mesh position={[0, 0.48, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[0.6, 0.58, 0.1, 10]} />
         <meshStandardMaterial
-          color={isActive ? "#4ade80" : "#22c55e"}
+          color={isActive ? THEME.grassLight : THEME.grassDark}
           emissive={isActive ? accent : "#000000"}
           emissiveIntensity={isActive ? 0.3 : 0}
           roughness={0.7}
           transparent={!isNearby}
-          opacity={isNearby ? 1 : 0.2}
+          opacity={isNearby ? 1 : 0.3}
         />
       </mesh>
 
@@ -314,11 +331,11 @@ function Tile({ tile, position, isActive, index, playerPosition }: TileProps) {
         <>
           <mesh position={[-0.22, 0.56, -0.18]}>
             <sphereGeometry args={[0.06, 8, 8]} />
-            <meshStandardMaterial color="#15803d" roughness={0.8} />
+            <meshStandardMaterial color={THEME.grassDark} roughness={0.8} />
           </mesh>
           <mesh position={[0.1, 0.55, -0.28]}>
             <sphereGeometry args={[0.045, 8, 8]} />
-            <meshStandardMaterial color="#16a34a" roughness={0.8} />
+            <meshStandardMaterial color={THEME.grassLight} roughness={0.8} />
           </mesh>
         </>
       )}
@@ -328,11 +345,11 @@ function Tile({ tile, position, isActive, index, playerPosition }: TileProps) {
         <>
           <mesh position={[-0.15, 0.55, 0.22]}>
             <coneGeometry args={[0.03, 0.08, 4]} />
-            <meshStandardMaterial color="#4ade80" roughness={0.7} />
+            <meshStandardMaterial color={THEME.grassLight} roughness={0.7} />
           </mesh>
           <mesh position={[0.2, 0.55, -0.1]}>
             <coneGeometry args={[0.025, 0.07, 4]} />
-            <meshStandardMaterial color="#22c55e" roughness={0.7} />
+            <meshStandardMaterial color={THEME.grassDark} roughness={0.7} />
           </mesh>
         </>
       )}
@@ -341,7 +358,7 @@ function Tile({ tile, position, isActive, index, playerPosition }: TileProps) {
       {isNearby && tile.type === "skull" && (
         <mesh position={[0.25, 0.55, 0.15]}>
           <cylinderGeometry args={[0.03, 0.04, 0.18, 5]} />
-          <meshStandardMaterial color="#57534e" roughness={0.95} />
+          <meshStandardMaterial color={THEME.woodDark} roughness={0.95} />
         </mesh>
       )}
 
@@ -362,11 +379,11 @@ function Tile({ tile, position, isActive, index, playerPosition }: TileProps) {
           <Text
             position={[0, 1.5, 0]}
             fontSize={0.22}
-            color={tile.value >= 0 ? "#4ade80" : "#f87171"}
+            color={tile.value >= 0 ? "#FCD34D" : "#FCA5A5"}
             anchorX="center"
             anchorY="middle"
-            outlineWidth={0.02}
-            outlineColor="#000000"
+            outlineWidth={0.025}
+            outlineColor="#5C2E14"
           >
             {tile.value >= 0 ? `+${tile.value}` : `${tile.value}`}
           </Text>
@@ -415,7 +432,7 @@ function MonsterTrail({ positions }: { positions: THREE.Vector3[] }) {
 
   return (
     <points ref={trailRef} geometry={geometry}>
-      <pointsMaterial size={0.08} color="#a78bfa" transparent opacity={0.5} sizeAttenuation />
+      <pointsMaterial size={0.08} color={THEME.gold} transparent opacity={0.6} sizeAttenuation />
     </points>
   );
 }
@@ -579,7 +596,7 @@ function PathConnector({ points }: { points: THREE.Vector3[] }) {
   return (
     <mesh ref={tubeRef}>
       <tubeGeometry args={[curve, 100, 0.04, 8, false]} />
-      <meshStandardMaterial color="#94a3b8" emissive="#475569" emissiveIntensity={0.15} roughness={0.6} transparent opacity={0.5} />
+      <meshStandardMaterial color={THEME.wood} emissive={THEME.goldDeep} emissiveIntensity={0.2} roughness={0.6} transparent opacity={0.6} />
     </mesh>
   );
 }
@@ -615,7 +632,7 @@ function Ocean() {
 
   return (
     <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]} receiveShadow geometry={geometry}>
-      <meshStandardMaterial color="#0c4a6e" roughness={0.3} metalness={0.15} transparent opacity={0.85} />
+      <meshStandardMaterial color="#5BA3D9" emissive="#3A7FB8" emissiveIntensity={0.15} roughness={0.3} metalness={0.2} transparent opacity={0.9} />
     </mesh>
   );
 }
@@ -657,7 +674,7 @@ function FloatingParticles() {
 
   return (
     <points ref={particlesRef} geometry={geometry}>
-      <pointsMaterial size={0.04} color="#e0e7ff" transparent opacity={0.5} sizeAttenuation />
+      <pointsMaterial size={0.05} color={THEME.creamLight} transparent opacity={0.7} sizeAttenuation />
     </points>
   );
 }
@@ -671,10 +688,10 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult }: { 
 
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[8, 14, 8]} intensity={1.1} castShadow shadow-mapSize={[1024, 1024]} />
-      <pointLight position={[currentTilePos.x, currentTilePos.y + 3, currentTilePos.z]} intensity={0.7} color="#a78bfa" distance={5} />
-      <hemisphereLight args={["#bfdbfe", "#1e3a5f", 0.3]} />
+      <ambientLight intensity={0.7} color="#FFF4D6" />
+      <directionalLight position={[8, 14, 8]} intensity={1.3} color="#FFE8B0" castShadow shadow-mapSize={[1024, 1024]} />
+      <pointLight position={[currentTilePos.x, currentTilePos.y + 3, currentTilePos.z]} intensity={0.8} color={THEME.gold} distance={5} />
+      <hemisphereLight args={["#FFE5A8", "#8B4A24", 0.4]} />
 
       <Ocean />
       <FloatingParticles />
@@ -703,10 +720,10 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult }: { 
 
 export function IsometricBoard({ position, monster, isMoving, movementResult }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null }) {
   return (
-    <div className="w-full h-[400px] rounded-2xl overflow-hidden border border-border bg-card" role="region" aria-label="3D Game board">
+    <div className="w-full h-[400px] rounded-2xl overflow-hidden border-4 border-wood-dark bg-cream shadow-chunky-sm" role="region" aria-label="3D Game board">
       <Canvas shadows camera={{ position: [6, 5, 6], fov: 45, near: 0.1, far: 100 }} gl={{ antialias: true, alpha: false }}>
-        <color attach="background" args={["#0c1929"]} />
-        <fog attach="fog" args={["#0c1929", 12, 28]} />
+        <color attach="background" args={["#F4DCB0"]} />
+        <fog attach="fog" args={["#F4DCB0", 12, 28]} />
         <IsometricBoardScene position={position} monster={monster} isMoving={isMoving} movementResult={movementResult} />
       </Canvas>
     </div>
