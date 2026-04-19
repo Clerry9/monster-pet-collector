@@ -24,8 +24,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { LinkAccount } from "@/components/LinkAccount";
 import { Link2 } from "lucide-react";
 import { GameCard } from "@/data/cards";
+import { SpecialPacks } from "@/components/SpecialPacks";
 
-type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin";
+type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials";
 
 const Index = () => {
   const game = useGameState();
@@ -254,6 +255,18 @@ const Index = () => {
               exit={{ opacity: 0, x: 50 }}
             >
               <SpinWheel onWin={game.addCoins} />
+            </motion.div>
+          )}
+
+          {tab === "specials" && (
+            <motion.div
+              key="specials"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              className="w-full"
+            >
+              <SpecialPacks />
             </motion.div>
           )}
         </AnimatePresence>
