@@ -1,6 +1,7 @@
 import { useRef, useMemo, useState, useEffect } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { OrbitControls, Text, Float, Billboard } from "@react-three/drei";
+import { TOUCH } from "three";
 import * as THREE from "three";
 import { BOARD_TILES, BoardTile, TileType } from "@/hooks/useGameState";
 import { Monster } from "@/data/monsters";
@@ -939,26 +940,27 @@ function applySeasonTint(theme: LevelTheme3D, seasonAccent?: string, seasonGlow?
 }
 
 // Camera rig — chase camera that tracks the monster's actual interpolated position each frame.
-function CameraRig({ monsterPosRef, isMoving }: { monsterPosRef: React.MutableRefObject<THREE.Vector3>; isMoving: boolean }) {
+function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: React.MutableRefObject<THREE.Vector3>; isMoving: boolean; recenterRef: React.MutableRefObject<boolean> }) {
   const lerpedTarget = useRef(monsterPosRef.current.clone());
   useFrame((state, delta) => {
-    // Read the monster's live position every frame (not just on tile change)
     const target = monsterPosRef.current;
-    const speed = isMoving ? Math.min(1, delta * 7) : Math.min(1, delta * 2.5);
+    // On manual recenter, snap target & camera fast
+    const recenter = recenterRef.current;
+    if (recenter) recenterRef.current = false;
+    const speed = recenter ? 1 : isMoving ? Math.min(1, delta * 7) : Math.min(1, delta * 2.5);
     lerpedTarget.current.lerp(target, speed);
-    // Beside-and-above offset, like an over-the-shoulder chase cam
     const desiredCam = new THREE.Vector3(
       lerpedTarget.current.x + 4.5,
       lerpedTarget.current.y + 3.5,
       lerpedTarget.current.z + 4.5
     );
-    state.camera.position.lerp(desiredCam, isMoving ? Math.min(1, delta * 5) : Math.min(1, delta * 1.8));
+    state.camera.position.lerp(desiredCam, recenter ? 1 : isMoving ? Math.min(1, delta * 5) : Math.min(1, delta * 1.8));
     state.camera.lookAt(lerpedTarget.current);
   });
   return null;
 }
 
-function IsometricBoardScene({ position, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string }) {
+function IsometricBoardScene({ position, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow, recenterRef }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string; recenterRef: React.MutableRefObject<boolean> }) {
   const pathPoints = useMemo(() => generatePath(BOARD_TILES.length), []);
   const currentTilePos = pathPoints[position] || pathPoints[0];
   const trailPosRef = useRef<THREE.Vector3[]>([]);
@@ -983,14 +985,16 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
       <MonsterTrail positions={trailPosRef.current} theme={theme} />
       <MonsterPawn pathPoints={pathPoints} position={position} monster={monster} movementResult={movementResult} trailPosRef={trailPosRef} activeLift={ACTIVE_LIFT_VALUE} monsterPosRef={monsterPosRef} />
 
-      <CameraRig monsterPosRef={monsterPosRef} isMoving={isMoving} />
+      <CameraRig monsterPosRef={monsterPosRef} isMoving={isMoving} recenterRef={recenterRef} />
       <OrbitControls
         minDistance={3}
         maxDistance={14}
         minPolarAngle={Math.PI / 6}
         maxPolarAngle={Math.PI / 2.4}
         enablePan={false}
+        enableZoom={true}
         autoRotate={false}
+        touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_ROTATE }}
         enabled={!isMoving}
       />
     </>
