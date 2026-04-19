@@ -1,20 +1,40 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 const PRIZES = [10, 25, 5, 50, 15, 100, 5, 30];
+const COOLDOWN_MS = 12 * 60 * 60 * 1000;
 
 interface SpinWheelProps {
   onWin: (amount: number) => void;
+  lastSpinAt?: string | null;
+  onSpinRecord?: () => void;
 }
 
-export function SpinWheel({ onWin }: SpinWheelProps) {
+function fmt(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+export function SpinWheel({ onWin, lastSpinAt, onSpinRecord }: SpinWheelProps) {
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [lastWin, setLastWin] = useState<number | null>(null);
-  const [canSpin, setCanSpin] = useState(true);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const lastSpinMs = lastSpinAt ? new Date(lastSpinAt).getTime() : 0;
+  const remaining = Math.max(0, lastSpinMs + COOLDOWN_MS - now);
+  const onCooldown = remaining > 0;
 
   const spin = () => {
-    if (spinning || !canSpin) return;
+    if (spinning || onCooldown) return;
     setSpinning(true);
     setLastWin(null);
 
@@ -28,8 +48,7 @@ export function SpinWheel({ onWin }: SpinWheelProps) {
       setSpinning(false);
       setLastWin(PRIZES[prizeIndex]);
       onWin(PRIZES[prizeIndex]);
-      setCanSpin(false);
-      setTimeout(() => setCanSpin(true), 5000);
+      onSpinRecord?.();
     }, 3000);
   };
 
@@ -40,7 +59,6 @@ export function SpinWheel({ onWin }: SpinWheelProps) {
       </h3>
 
       <div className="relative w-56 h-56" aria-hidden="true">
-        {/* Arrow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-20 text-accent text-2xl">
           ▼
         </div>
@@ -63,7 +81,6 @@ export function SpinWheel({ onWin }: SpinWheelProps) {
                 "hsl(32, 90%, 48%)",
                 "hsl(240, 18%, 22%)",
               ];
-
               return (
                 <g key={i}>
                   <path
@@ -95,18 +112,35 @@ export function SpinWheel({ onWin }: SpinWheelProps) {
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={spin}
-        disabled={spinning || !canSpin}
-        aria-label={spinning ? "Wheel is spinning" : !canSpin ? "Cooldown, please wait" : "Spin the wheel"}
+        disabled={spinning || onCooldown}
+        aria-label={spinning ? "Wheel is spinning" : onCooldown ? `Next spin in ${fmt(remaining)}` : "Spin the wheel"}
         className={`px-8 py-3 rounded-full font-bold font-body text-lg transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-          spinning || !canSpin
+          spinning || onCooldown
             ? "bg-muted text-muted-foreground cursor-not-allowed"
             : "bg-primary text-primary-foreground box-glow-green cursor-pointer"
         }`}
       >
-        {spinning ? "Spinning..." : !canSpin ? "Wait 5s..." : "SPIN!"}
+        {spinning ? "Spinning..." : onCooldown ? `NEXT SPIN IN ${fmt(remaining)}` : "SPIN!"}
       </motion.button>
 
-      {lastWin !== null && (
+      {onCooldown && (
+        <p className="text-xs font-display text-muted-foreground">
+          Free spin available every 12 hours
+        </p>
+      )}
+
+      {lastWin !== null && !onCooldown && (
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="text-xl font-bold text-accent font-body"
+          role="status"
+          aria-live="assertive"
+        >
+          🎉 Won {lastWin} coins!
+        </motion.div>
+      )}
+      {lastWin !== null && onCooldown && (
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}

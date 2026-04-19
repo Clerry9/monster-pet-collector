@@ -16,8 +16,10 @@ interface SeasonHubProps {
   msRemaining: number;
   rolls: number;
   coins: number;
+  islandStars?: number;
   onPlayMiniGame: () => boolean;
   onAwardSymbols: (amount: number) => number;
+  onAwardStars?: (amount: number) => void;
   onClaimTier: (tier: number, reward: SeasonReward) => void;
   onBuyStreakSaver: () => boolean;
 }
@@ -30,8 +32,10 @@ export function SeasonHub({
   msRemaining,
   rolls,
   coins,
+  islandStars = 0,
   onPlayMiniGame,
   onAwardSymbols,
+  onAwardStars,
   onClaimTier,
   onBuyStreakSaver,
 }: SeasonHubProps) {
@@ -75,8 +79,13 @@ export function SeasonHub({
   const handleMiniGameFinish = (symbolsEarned: number, _score?: number) => {
     if (symbolsEarned > 0) {
       const final = onAwardSymbols(symbolsEarned);
+      // Convert every 10 symbols into 1 island star → contributes to free card flips
+      const starsFromSymbols = Math.floor(symbolsEarned / 10);
+      if (starsFromSymbols > 0) onAwardStars?.(starsFromSymbols);
       toast.success(`+${final} ${season.symbol} earned!`, {
-        description: progress.passPurchased ? "Pass bonus 2× applied" : undefined,
+        description: starsFromSymbols > 0
+          ? `Plus ⭐${starsFromSymbols} towards a free card flip${progress.passPurchased ? " • 2× pass active" : ""}`
+          : (progress.passPurchased ? "Pass bonus 2× applied" : undefined),
       });
     }
   };
@@ -129,6 +138,7 @@ export function SeasonHub({
         <div className="text-right text-[10px] font-display text-cream/70">
           🪙 {coins.toLocaleString()}
           <div className="opacity-70">🎲 {rolls} rolls</div>
+          <div className="text-gold">⭐ {islandStars}/5 → flip</div>
         </div>
       </div>
 

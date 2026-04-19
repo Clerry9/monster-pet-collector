@@ -24,8 +24,11 @@ export type Database = {
           collected_cards: string[]
           created_at: string
           id: string
+          island_stars: number
+          last_spin_at: string | null
           level: number
           monster_taps: Json
+          pending_card_flips: number
           position: number
           rolls: number
           total_steps: number
@@ -44,8 +47,11 @@ export type Database = {
           collected_cards?: string[]
           created_at?: string
           id?: string
+          island_stars?: number
+          last_spin_at?: string | null
           level?: number
           monster_taps?: Json
+          pending_card_flips?: number
           position?: number
           rolls?: number
           total_steps?: number
@@ -64,8 +70,11 @@ export type Database = {
           collected_cards?: string[]
           created_at?: string
           id?: string
+          island_stars?: number
+          last_spin_at?: string | null
           level?: number
           monster_taps?: Json
+          pending_card_flips?: number
           position?: number
           rolls?: number
           total_steps?: number

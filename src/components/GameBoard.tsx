@@ -9,15 +9,16 @@ interface GameBoardProps {
   position: number;
   monster: Monster;
   rolls: number;
-  lastResult: { steps: number; tile: BoardTile } | null;
+  lastResult: { steps: number; tile: BoardTile; islandStarEarned?: boolean } | null;
   onRollDice: () => void;
   activeDiceMax: number;
   levelId?: number;
-  /** Optional season tint that overrides the level's accent/water colors. CSS color string (e.g. "hsl(199 90% 55%)"). */
   seasonAccent?: string;
   seasonGlow?: string;
-  /** Symbol emoji to spawn as a celebratory burst every few rolls */
   seasonSymbol?: string;
+  fullscreen?: boolean;
+  islandStars?: number;
+  pendingCardFlips?: number;
 }
 
 const TILE_EMOJIS: Record<TileType, string> = {
@@ -58,7 +59,7 @@ interface Particle {
 const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
 let particleIdCounter = 0;
 
-export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax, levelId = 1, seasonAccent, seasonGlow, seasonSymbol }: GameBoardProps) {
+export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0 }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -158,6 +159,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   const performRoll = () => {
     if (isRollingRef.current || rollsRef.current <= 0) return;
     setIsRolling(true);
+    isRollingRef.current = true;
     setDiceValue(null);
 
     let count = 0;
@@ -169,9 +171,17 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
         clearInterval(interval);
         onRollDice();
         setIsRolling(false);
-        // Schedule next auto-roll
-        if (isAutoRollingRef.current && rollsRef.current > 1) {
-          autoRollTimerRef.current = setTimeout(() => performRoll(), 600);
+        isRollingRef.current = false;
+        // Schedule next auto-roll after monster has finished hopping
+        if (isAutoRollingRef.current && rollsRef.current > 0) {
+          if (autoRollTimerRef.current) clearTimeout(autoRollTimerRef.current);
+          autoRollTimerRef.current = setTimeout(() => {
+            if (isAutoRollingRef.current && !isRollingRef.current && rollsRef.current > 0) {
+              performRoll();
+            } else if (rollsRef.current <= 0) {
+              setIsAutoRolling(false);
+            }
+          }, 900);
         } else if (isAutoRollingRef.current) {
           setIsAutoRolling(false);
         }
@@ -238,12 +248,12 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
 
   return (
     <div
-      className={`flex flex-col items-center gap-4 w-full ${isShaking ? "animate-shake" : ""}`}
+      className={`flex flex-col items-center gap-4 w-full ${isShaking ? "animate-shake" : ""} ${fullscreen ? "h-full" : ""}`}
       role="region"
       aria-label="Game board"
     >
       {/* 3D Isometric Board */}
-      <div className="relative w-full">
+      <div className={fullscreen ? "relative w-full h-full" : "relative w-full"}>
         <IsometricBoard
           position={position}
           monster={monster}
@@ -252,6 +262,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
           levelId={levelId}
           seasonAccent={seasonAccent}
           seasonGlow={seasonGlow}
+          fullscreen={fullscreen}
         />
         {/* Season symbol particle burst */}
         <AnimatePresence>
@@ -354,6 +365,18 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
           <span>ROLLS</span>
           <span className={`pill-gold px-2 py-0.5 text-sm ${rolls <= 0 ? "opacity-60" : ""}`}>{rolls}</span>
           <span className="text-wood-dark/60">• 1-{activeDiceMax}</span>
+          <span className="ml-1 pill-gold px-2 py-0.5 text-sm flex items-center gap-1" title={`${islandStars}/5 stars to next card flip`}>
+            ⭐ {islandStars}/5
+          </span>
+          {pendingCardFlips > 0 && (
+            <motion.span
+              animate={{ scale: [1, 1.12, 1] }}
+              transition={{ repeat: Infinity, duration: 1.4 }}
+              className="pill-gold px-2 py-0.5 text-sm bg-gradient-to-r from-candy-red to-gold text-cream-light"
+            >
+              🃏 ×{pendingCardFlips}
+            </motion.span>
+          )}
         </div>
         <div className="text-[10px] font-display tracking-wider text-wood-dark/70">
           HOLD FOR AUTOSPIN
