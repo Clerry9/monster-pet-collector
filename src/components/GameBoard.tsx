@@ -9,15 +9,16 @@ interface GameBoardProps {
   position: number;
   monster: Monster;
   rolls: number;
-  lastResult: { steps: number; tile: BoardTile } | null;
+  lastResult: { steps: number; tile: BoardTile; islandStarEarned?: boolean } | null;
   onRollDice: () => void;
   activeDiceMax: number;
   levelId?: number;
-  /** Optional season tint that overrides the level's accent/water colors. CSS color string (e.g. "hsl(199 90% 55%)"). */
   seasonAccent?: string;
   seasonGlow?: string;
-  /** Symbol emoji to spawn as a celebratory burst every few rolls */
   seasonSymbol?: string;
+  fullscreen?: boolean;
+  islandStars?: number;
+  pendingCardFlips?: number;
 }
 
 const TILE_EMOJIS: Record<TileType, string> = {
