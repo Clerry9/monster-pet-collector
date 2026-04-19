@@ -31,6 +31,7 @@ import { GameCard, ALL_CARDS, drawRandomCard } from "@/data/cards";
 import { SeasonReward, formatTimeRemaining } from "@/data/seasons";
 import { SpecialPacks } from "@/components/SpecialPacks";
 import { RewardedAdButton } from "@/components/RewardedAdButton";
+import { StarPack } from "@/components/StarPack";
 import { SeasonHub } from "@/components/SeasonHub";
 import { useSeason } from "@/hooks/useSeason";
 import { useSeasonNotice } from "@/hooks/useSeasonNotice";
@@ -411,6 +412,13 @@ const Index = () => {
                   +50 coins per ad, +50 more every 5 levels
                 </div>
               </div>
+              <StarPack
+                coins={game.coins}
+                onBuy={(cost, stars) => {
+                  game.addCoins(-cost);
+                  game.addStars(stars);
+                }}
+              />
               <DiceShop
                 coins={game.coins}
                 rolls={game.rolls}
