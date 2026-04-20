@@ -75,6 +75,8 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   const holdRafRef = useRef<number | null>(null);
   const autoRollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const rollStartedAtRef = useRef<number>(0);
   const isRollingRef = useRef(false);
   const rollsRef = useRef(rolls);
   const isAutoRollingRef = useRef(false);
@@ -83,6 +85,28 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   useEffect(() => { rollsRef.current = rolls; }, [rolls]);
   useEffect(() => { isRollingRef.current = isRolling; }, [isRolling]);
   useEffect(() => { isAutoRollingRef.current = isAutoRolling; }, [isAutoRolling]);
+
+  // Cleanup any in-flight roll interval on unmount
+  useEffect(() => () => {
+    if (rollIntervalRef.current) clearInterval(rollIntervalRef.current);
+  }, []);
+
+  // Watchdog: if isRolling stays true for >2s without completion, force-reset.
+  useEffect(() => {
+    if (!isRolling) return;
+    const start = rollStartedAtRef.current || Date.now();
+    const watchdog = setTimeout(() => {
+      if (isRollingRef.current && Date.now() - start >= 2000) {
+        if (rollIntervalRef.current) {
+          clearInterval(rollIntervalRef.current);
+          rollIntervalRef.current = null;
+        }
+        setIsRolling(false);
+        isRollingRef.current = false;
+      }
+    }, 2100);
+    return () => clearTimeout(watchdog);
+  }, [isRolling]);
 
   const spawnParticles = (count: number) => {
     const newParticles: Particle[] = Array.from({ length: count }, () => ({
@@ -170,22 +194,37 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
 
   const performRoll = () => {
     if (isRollingRef.current || rollsRef.current <= 0) return;
+    // Defensive: clear any orphaned interval before starting a new roll.
+    if (rollIntervalRef.current) {
+      clearInterval(rollIntervalRef.current);
+      rollIntervalRef.current = null;
+    }
     setIsRolling(true);
     isRollingRef.current = true;
+    rollStartedAtRef.current = Date.now();
     setDiceValue(null);
 
     let count = 0;
-    const interval = setInterval(() => {
-      sfxDiceTick();
-      setDiceValue(Math.floor(Math.random() * activeDiceMax) + 1);
-      count++;
-      if (count > 12) {
-        clearInterval(interval);
+    const finish = () => {
+      if (rollIntervalRef.current) {
+        clearInterval(rollIntervalRef.current);
+        rollIntervalRef.current = null;
+      }
+      try {
         onRollDice();
+      } finally {
         setIsRolling(false);
         isRollingRef.current = false;
-        // Next auto-roll is scheduled by the effect below, which reacts
-        // to the fresh `rolls` prop after onRollDice() decrements it.
+      }
+    };
+    rollIntervalRef.current = setInterval(() => {
+      try {
+        sfxDiceTick();
+        setDiceValue(Math.floor(Math.random() * activeDiceMax) + 1);
+        count++;
+        if (count > 12) finish();
+      } catch {
+        finish();
       }
     }, 80);
   };

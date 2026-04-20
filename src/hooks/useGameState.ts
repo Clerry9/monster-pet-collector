@@ -224,7 +224,7 @@ export function useGameState() {
         clearTimeout(saveTimerRef.current);
         saveTimerRef.current = null;
         const currentState = loadLocalState();
-        await supabase.from("game_state").upsert(stateToDb(currentState, userId));
+        await supabase.from("game_state").upsert(stateToDb(currentState, userId), { onConflict: "user_id" });
       }
 
       const { data } = await supabase
@@ -240,7 +240,7 @@ export function useGameState() {
       } else {
         // First login — save current local state to DB
         const local = loadLocalState();
-        await supabase.from("game_state").upsert(stateToDb(local, userId));
+        await supabase.from("game_state").upsert(stateToDb(local, userId), { onConflict: "user_id" });
         setState(local);
       }
       setDbLoaded(true);
@@ -257,7 +257,7 @@ export function useGameState() {
       saveTimerRef.current = setTimeout(async () => {
         await supabase
           .from("game_state")
-          .upsert(stateToDb(newState, user.id));
+          .upsert(stateToDb(newState, user.id), { onConflict: "user_id" });
         // Mirror level onto profiles so leaderboards can display prestige ribbons.
         await supabase
           .from("profiles")
