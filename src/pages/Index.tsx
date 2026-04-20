@@ -444,6 +444,7 @@ const Index = () => {
               <DiceShop
                 coins={game.coins}
                 rolls={game.rolls}
+                level={game.level}
                 unlockedDiceTiers={game.unlockedDiceTiers}
                 activeDiceTier={game.activeDiceTier}
                 onBuyPack={game.buyDicePack}

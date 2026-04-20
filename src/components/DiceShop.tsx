@@ -86,6 +86,9 @@ export function DiceShop({
         </span>
       </div>
 
+      {/* Prestige rewards roadmap */}
+      <PrestigeRewardsPanel level={level} />
+
       {/* Dice Tiers */}
       <div>
         <h3 className="font-display text-xl text-foreground text-glow-purple mb-3">
