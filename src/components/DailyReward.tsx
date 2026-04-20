@@ -11,7 +11,7 @@ interface DailyRewardProps {
   alreadyClaimed: boolean;
 }
 
-const DAILY_REWARDS = [10, 20, 35, 50, 75, 100, 200];
+const DAILY_REWARDS = [25, 50, 100, 175, 275, 400, 750];
 
 export function DailyReward({ open, streak, reward, onClaim, onDismiss, alreadyClaimed }: DailyRewardProps) {
   if (!open) return null;

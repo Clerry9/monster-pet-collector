@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 
 const STORAGE_KEY = "monster-mash-daily";
-const DAILY_REWARDS = [10, 20, 35, 50, 75, 100, 200];
+// Grows each consecutive day, big jump on day 7. Resets if a day is missed.
+const DAILY_REWARDS = [25, 50, 100, 175, 275, 400, 750];
 
 interface DailyState {
   lastClaim: string | null; // ISO date string (date only)
