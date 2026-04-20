@@ -576,7 +576,7 @@ const Index = () => {
           mainTutorial.markCompleted();
         }}
       />
-      <Footer />
+      {!isBoardTab && <Footer />}
     </div>
   );
 };
