@@ -108,6 +108,10 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
     return () => clearTimeout(watchdog);
   }, [isRolling]);
 
+  // Hard safety: a single timeout guarantees roll completes regardless of setInterval throttling.
+  // setInterval is throttled to ~1Hz on backgrounded tabs, which can leave isRolling stuck.
+  const performRollGuardRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const spawnParticles = (count: number) => {
     const newParticles: Particle[] = Array.from({ length: count }, () => ({
       id: particleIdCounter++,
