@@ -102,8 +102,9 @@ export function SeasonLeaderboard({ season, seasonInstanceId }: Props) {
                   {place === 1 && <Crown className="text-gold drop-shadow" size={20} />}
                   {place === 2 && <Medal className="text-zinc-300" size={16} />}
                   {place === 3 && <Medal className="text-orange-400" size={16} />}
-                  <div className="text-[10px] font-display text-cream-light truncate w-full text-center px-0.5">
-                    {entry.display_name || fallbackName(entry.user_id)}
+                  <div className="text-[10px] font-display text-cream-light truncate w-full text-center px-0.5 flex items-center justify-center gap-1">
+                    <span className="truncate">{entry.display_name || fallbackName(entry.user_id)}</span>
+                    <PrestigeRibbon tier={entry.prestige} />
                   </div>
                   <div
                     className={`w-full rounded-t-lg border-2 border-wood-dark bg-gradient-to-b ${colors[i]} ${heights[i]} flex flex-col items-center justify-center font-display text-wood-dark`}
