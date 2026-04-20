@@ -196,7 +196,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_leaderboard_profiles: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          display_name: string
+          level: number
+          user_id: string
+        }[]
+      }
+      get_season_leaderboard: {
+        Args: { _limit?: number; _season_id: string }
+        Returns: {
+          symbols: number
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
