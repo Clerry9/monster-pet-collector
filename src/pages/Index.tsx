@@ -33,6 +33,7 @@ import { SeasonReward, formatTimeRemaining } from "@/data/seasons";
 import { SpecialPacks } from "@/components/SpecialPacks";
 import { RewardedAdButton } from "@/components/RewardedAdButton";
 import { StarPack } from "@/components/StarPack";
+import { LimitedTimeBundle } from "@/components/LimitedTimeBundle";
 import { AdBanner } from "@/components/AdBanner";
 import { SeasonHub } from "@/components/SeasonHub";
 import { useSeason } from "@/hooks/useSeason";
@@ -434,6 +435,13 @@ const Index = () => {
                   +50 coins per ad, +50 more every 5 levels
                 </div>
               </div>
+              <LimitedTimeBundle
+                coins={game.coins}
+                onPurchase={(rolls, coinsReward) => {
+                  game.addCoins(-400 + coinsReward);
+                  game.addRolls(rolls);
+                }}
+              />
               <StarPack
                 coins={game.coins}
                 onBuy={(cost, stars) => {
