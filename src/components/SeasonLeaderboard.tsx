@@ -43,27 +43,24 @@ export function SeasonLeaderboard({ season, seasonInstanceId }: Props) {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data: progress } = await supabase
-        .from("season_progress")
-        .select("user_id,symbols")
-        .eq("season_id", seasonInstanceId)
-        .order("symbols", { ascending: false })
-        .limit(20);
+      const { data: progress } = await supabase.rpc("get_season_leaderboard", {
+        _season_id: seasonInstanceId,
+        _limit: 20,
+      });
 
       if (cancelled) return;
-      const userIds = (progress ?? []).map((p) => p.user_id);
+      const userIds = (progress ?? []).map((p: any) => p.user_id);
       let names: Record<string, string | null> = {};
       let levels: Record<string, number> = {};
       if (userIds.length) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id,display_name,level")
-          .in("user_id", userIds);
-        names = Object.fromEntries((profiles ?? []).map((p) => [p.user_id, p.display_name]));
-        levels = Object.fromEntries((profiles ?? []).map((p) => [p.user_id, p.level ?? 1]));
+        const { data: profiles } = await supabase.rpc("get_leaderboard_profiles", {
+          _user_ids: userIds,
+        });
+        names = Object.fromEntries((profiles ?? []).map((p: any) => [p.user_id, p.display_name]));
+        levels = Object.fromEntries((profiles ?? []).map((p: any) => [p.user_id, p.level ?? 1]));
       }
       setRows(
-        (progress ?? []).map((p) => {
+        (progress ?? []).map((p: any) => {
           const lvl = levels[p.user_id] ?? 1;
           return {
             user_id: p.user_id,
