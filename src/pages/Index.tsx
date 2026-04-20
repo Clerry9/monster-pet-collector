@@ -375,8 +375,8 @@ const Index = () => {
                   />
                 </div>
               </div>
-              <div className="absolute bottom-3 left-0 right-0 z-20 px-3 pointer-events-none">
-                <div className="max-w-md mx-auto pointer-events-auto bg-gradient-to-t from-wood-dark/80 via-wood-dark/40 to-transparent rounded-2xl p-2">
+              <div className="absolute bottom-2 left-0 right-0 z-30 px-2 pointer-events-none">
+                <div className="max-w-md mx-auto pointer-events-auto bg-gradient-to-t from-wood-dark/95 via-wood-dark/70 to-wood-dark/30 backdrop-blur-sm rounded-2xl px-2 py-1.5 shadow-chunky">
                   <BetSelector
                     coins={game.coins}
                     currentBet={game.betMultiplier}
