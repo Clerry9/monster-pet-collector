@@ -4,6 +4,7 @@ import { Lock, Check, Zap, CreditCard } from "lucide-react";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { PrestigeRewardsPanel } from "@/components/PrestigeRewardsPanel";
 
 const PACK_PRICE_IDS: Record<string, string> = {
   value: "value_pack_price",
@@ -19,6 +20,7 @@ const TIER_PRICE_IDS: Record<string, string> = {
 interface DiceShopProps {
   coins: number;
   rolls: number;
+  level: number;
   unlockedDiceTiers: string[];
   activeDiceTier: string;
   onBuyPack: (packId: string) => boolean;
@@ -29,6 +31,7 @@ interface DiceShopProps {
 export function DiceShop({
   coins,
   rolls,
+  level,
   unlockedDiceTiers,
   activeDiceTier,
   onBuyPack,
@@ -82,6 +85,9 @@ export function DiceShop({
           You have <span className="font-extrabold text-primary">{rolls}</span> rolls
         </span>
       </div>
+
+      {/* Prestige rewards roadmap */}
+      <PrestigeRewardsPanel level={level} />
 
       {/* Dice Tiers */}
       <div>

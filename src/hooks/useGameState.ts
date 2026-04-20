@@ -258,6 +258,11 @@ export function useGameState() {
         await supabase
           .from("game_state")
           .upsert(stateToDb(newState, user.id));
+        // Mirror level onto profiles so leaderboards can display prestige ribbons.
+        await supabase
+          .from("profiles")
+          .update({ level: newState.level })
+          .eq("user_id", user.id);
       }, 1000);
     },
     [user]
@@ -388,7 +393,10 @@ export function useGameState() {
         }
       }
 
-      const coinGain = tile.type === "food" ? 0 : finalValue;
+      // Global -20% coin payout adjustment to make packs feel more valuable
+      const COIN_PAYOUT_MULTIPLIER = 0.8;
+      const coinGain = tile.type === "food" ? 0 : Math.round(finalValue * COIN_PAYOUT_MULTIPLIER);
+      bonusCoins = Math.round(bonusCoins * COIN_PAYOUT_MULTIPLIER);
       const newMonsterTaps = monsterXpGain > 0
         ? { ...s.monsterTaps, [s.activeMonster]: (s.monsterTaps[s.activeMonster] ?? 0) + monsterXpGain }
         : s.monsterTaps;
