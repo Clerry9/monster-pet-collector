@@ -359,6 +359,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       </div>
 
       {/* Result display — only after monster lands */}
+      <div className={fullscreen ? "absolute left-1/2 -translate-x-1/2 bottom-[7.5rem] z-30 flex flex-col items-center gap-2 pointer-events-none" : "contents"}>
       <AnimatePresence>
         {lastResult && showResult && (
           <motion.div
@@ -378,9 +379,10 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
 
       {/* PRESS button */}
-      <div className="flex flex-col items-center gap-2">
+      <div className={`flex flex-col items-center gap-1 ${fullscreen ? "absolute left-1/2 -translate-x-1/2 bottom-12 z-30 pointer-events-auto" : ""}`}>
         <div className="relative">
           <div className="absolute inset-0 translate-y-3 rounded-full bg-wood-dark/30 blur-md" aria-hidden="true" />
           <div className="relative rounded-full p-2 bg-gradient-to-b from-[hsl(0_0%_55%)] to-[hsl(0_0%_30%)] border-[5px] border-wood-dark shadow-chunky">
@@ -392,7 +394,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
               onPointerCancel={() => handlePressEnd(false)}
               disabled={rolls <= 0 && !isAutoRolling}
               aria-label={rolls <= 0 ? "No rolls remaining" : isAutoRolling ? "Auto-rolling. Tap to stop." : isRolling ? "Rolling dice..." : `Roll dice. Tap to roll, hold 2 seconds to auto-roll. Range 1 to ${activeDiceMax}`}
-              className={`btn-press relative w-28 h-28 rounded-full flex items-center justify-center font-display text-2xl select-none touch-none ${
+              className={`btn-press relative ${fullscreen ? "w-20 h-20 text-lg" : "w-28 h-28 text-2xl"} rounded-full flex items-center justify-center font-display select-none touch-none ${
                 rolls <= 0 && !isAutoRolling ? "opacity-60 grayscale cursor-not-allowed" : ""
               } ${isAutoRolling ? "!bg-gradient-to-b !from-candy-red !to-destructive" : ""}`}
             >
