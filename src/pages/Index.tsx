@@ -6,7 +6,7 @@ import { HelpDialog } from "@/components/HelpDialog";
 import { useTutorial } from "@/hooks/useTutorial";
 import { toast } from "sonner";
 import { isMuted, setMuted, startBgm, stopBgm } from "@/lib/sfx";
-import { getLevelForXp } from "@/data/levels";
+import { getLevelForXp, prestigeTierUnlocked } from "@/data/levels";
 import { CoinCounter } from "@/components/CoinCounter";
 import { GameBoard } from "@/components/GameBoard";
 import { MonsterDisplay } from "@/components/MonsterDisplay";
@@ -21,6 +21,7 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { LevelProgressBar } from "@/components/LevelProgressBar";
 import { BetSelector } from "@/components/BetSelector";
 import { LevelUpCelebration } from "@/components/LevelUpCelebration";
+import { PrestigeCelebration } from "@/components/PrestigeCelebration";
 import { CardReveal } from "@/components/CardReveal";
 import { useGameState, BoardTile } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
@@ -52,6 +53,7 @@ const Index = () => {
   const isGuest = user?.is_anonymous === true;
   const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile; card?: GameCard } | null>(null);
   const [levelUpData, setLevelUpData] = useState<ReturnType<typeof getLevelForXp> | null>(null);
+  const [prestigeTier, setPrestigeTier] = useState<number | null>(null);
   const [drawnCard, setDrawnCard] = useState<GameCard | null>(null);
   const prevLevelRef = useRef(game.level);
 
@@ -119,10 +121,12 @@ const Index = () => {
     return () => stopBgm();
   }, []);
 
-  // Detect level-up
+  // Detect level-up + prestige milestones (every 100 levels)
   useEffect(() => {
     if (game.level > prevLevelRef.current) {
       setLevelUpData(getLevelForXp(game.xp));
+      const tier = prestigeTierUnlocked(prevLevelRef.current, game.level);
+      if (tier > 0) setPrestigeTier(tier);
     }
     prevLevelRef.current = game.level;
   }, [game.level, game.xp]);
@@ -205,6 +209,7 @@ const Index = () => {
     <div className="flex min-h-screen flex-col items-center bg-background px-3 py-4 overflow-hidden">
       <LinkAccount open={showLink} onClose={() => setShowLink(false)} />
       <LevelUpCelebration level={levelUpData} onComplete={() => setLevelUpData(null)} rolls={game.rolls} />
+      <PrestigeCelebration tier={prestigeTier} onComplete={() => setPrestigeTier(null)} />
       <PaymentTestModeBanner />
       <DailyReward
         open={daily.showModal}
