@@ -89,6 +89,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   // Cleanup any in-flight roll interval on unmount
   useEffect(() => () => {
     if (rollIntervalRef.current) clearInterval(rollIntervalRef.current);
+    if (performRollGuardRef.current) clearTimeout(performRollGuardRef.current);
   }, []);
 
   // Watchdog: if isRolling stays true for >2s without completion, force-reset.
@@ -107,6 +108,10 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
     }, 2100);
     return () => clearTimeout(watchdog);
   }, [isRolling]);
+
+  // Hard safety: a single timeout guarantees roll completes regardless of setInterval throttling.
+  // setInterval is throttled to ~1Hz on backgrounded tabs, which can leave isRolling stuck.
+  const performRollGuardRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const spawnParticles = (count: number) => {
     const newParticles: Particle[] = Array.from({ length: count }, () => ({
@@ -193,11 +198,21 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   }, [lastResult, isRolling, seasonSymbol]);
 
   const performRoll = () => {
+    // Self-heal: if a stale isRolling flag is blocking us but no interval is actually running,
+    // recover and continue. This prevents the "stuck PRESS button" bug after tab throttling.
+    if (isRollingRef.current && !rollIntervalRef.current) {
+      isRollingRef.current = false;
+      setIsRolling(false);
+    }
     if (isRollingRef.current || rollsRef.current <= 0) return;
     // Defensive: clear any orphaned interval before starting a new roll.
     if (rollIntervalRef.current) {
       clearInterval(rollIntervalRef.current);
       rollIntervalRef.current = null;
+    }
+    if (performRollGuardRef.current) {
+      clearTimeout(performRollGuardRef.current);
+      performRollGuardRef.current = null;
     }
     setIsRolling(true);
     isRollingRef.current = true;
@@ -209,6 +224,10 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       if (rollIntervalRef.current) {
         clearInterval(rollIntervalRef.current);
         rollIntervalRef.current = null;
+      }
+      if (performRollGuardRef.current) {
+        clearTimeout(performRollGuardRef.current);
+        performRollGuardRef.current = null;
       }
       try {
         onRollDice();
@@ -227,6 +246,10 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
         finish();
       }
     }, 80);
+    // Hard guard — even if setInterval is throttled (background tab), force-finish at 1.5s.
+    performRollGuardRef.current = setTimeout(() => {
+      if (isRollingRef.current) finish();
+    }, 1500);
   };
 
   // Effect-based auto-roll scheduling — reacts to the live `rolls` prop
@@ -311,12 +334,12 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
 
   return (
     <div
-      className={`flex flex-col items-center gap-4 w-full ${isShaking ? "animate-shake" : ""} ${fullscreen ? "h-full" : ""}`}
+      className={`flex flex-col items-center gap-4 w-full ${isShaking ? "animate-shake" : ""} ${fullscreen ? "h-full relative" : ""}`}
       role="region"
       aria-label="Game board"
     >
       {/* 3D Isometric Board */}
-      <div className={fullscreen ? "relative w-full h-full" : "relative w-full"}>
+      <div className={fullscreen ? "absolute inset-0" : "relative w-full"}>
         <IsometricBoard
           position={position}
           monster={monster}
@@ -336,6 +359,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       </div>
 
       {/* Result display — only after monster lands */}
+      <div className={fullscreen ? "absolute left-1/2 -translate-x-1/2 bottom-[10rem] z-30 flex flex-col items-center gap-2 pointer-events-none" : "contents"}>
       <AnimatePresence>
         {lastResult && showResult && (
           <motion.div
@@ -355,9 +379,10 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
 
       {/* PRESS button */}
-      <div className="flex flex-col items-center gap-2">
+      <div className={`flex flex-col items-center gap-1 ${fullscreen ? "absolute left-1/2 -translate-x-1/2 bottom-12 z-30 pointer-events-auto" : ""}`}>
         <div className="relative">
           <div className="absolute inset-0 translate-y-3 rounded-full bg-wood-dark/30 blur-md" aria-hidden="true" />
           <div className="relative rounded-full p-2 bg-gradient-to-b from-[hsl(0_0%_55%)] to-[hsl(0_0%_30%)] border-[5px] border-wood-dark shadow-chunky">
@@ -367,9 +392,9 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
               onPointerUp={() => handlePressEnd(true)}
               onPointerLeave={() => handlePressEnd(false)}
               onPointerCancel={() => handlePressEnd(false)}
-              disabled={(isRolling && !isAutoRolling) || (rolls <= 0 && !isAutoRolling)}
+              disabled={rolls <= 0 && !isAutoRolling}
               aria-label={rolls <= 0 ? "No rolls remaining" : isAutoRolling ? "Auto-rolling. Tap to stop." : isRolling ? "Rolling dice..." : `Roll dice. Tap to roll, hold 2 seconds to auto-roll. Range 1 to ${activeDiceMax}`}
-              className={`btn-press relative w-28 h-28 rounded-full flex items-center justify-center font-display text-2xl select-none touch-none ${
+              className={`btn-press relative ${fullscreen ? "w-20 h-20 text-lg" : "w-28 h-28 text-2xl"} rounded-full flex items-center justify-center font-display select-none touch-none ${
                 rolls <= 0 && !isAutoRolling ? "opacity-60 grayscale cursor-not-allowed" : ""
               } ${isAutoRolling ? "!bg-gradient-to-b !from-candy-red !to-destructive" : ""}`}
             >
