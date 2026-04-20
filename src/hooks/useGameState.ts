@@ -513,6 +513,15 @@ export function useGameState() {
     [state.coins, update]
   );
 
+  const addXp = useCallback(
+    (amount: number) => update((s) => {
+      const newXp = Math.max(0, s.xp + amount);
+      const newLevel = getLevelForXp(newXp);
+      return { ...s, xp: newXp, level: newLevel.id };
+    }),
+    [update]
+  );
+
   const tradeCard = useCallback(
     (cardId: string) => {
       // Count how many of this card we have
@@ -559,6 +568,7 @@ export function useGameState() {
     grantMonster,
     grantDiceTier,
     addStars,
+    addXp,
     consumeCardFlip,
     addCardFlip,
     recordSpin,

@@ -306,6 +306,21 @@ const Index = () => {
           <span>🃏 {game.cardsCollected}</span>
         </div>
 
+        {import.meta.env.DEV && (
+          <div className="w-full max-w-md flex items-center justify-center gap-2 mb-2">
+            <button
+              onClick={() => {
+                game.addXp(10000);
+                toast.success("🧪 +10,000 XP granted");
+              }}
+              className="px-3 py-1 rounded-md bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-display tracking-wide border-2 border-purple-900 shadow-chunky-sm"
+              title="Dev only: instantly grant XP for testing level-ups"
+            >
+              🧪 +10,000 XP (DEV)
+            </button>
+          </div>
+        )}
+
         <div data-tutorial="tabs" onClick={() => isBoardTab && setMenuOpen(false)}>
           <GameTabs
             active={tab}
