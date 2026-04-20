@@ -334,12 +334,12 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
 
   return (
     <div
-      className={`flex flex-col items-center gap-4 w-full ${isShaking ? "animate-shake" : ""} ${fullscreen ? "h-full" : ""}`}
+      className={`flex flex-col items-center gap-4 w-full ${isShaking ? "animate-shake" : ""} ${fullscreen ? "h-full relative" : ""}`}
       role="region"
       aria-label="Game board"
     >
       {/* 3D Isometric Board */}
-      <div className={fullscreen ? "relative w-full h-full" : "relative w-full"}>
+      <div className={fullscreen ? "absolute inset-0" : "relative w-full"}>
         <IsometricBoard
           position={position}
           monster={monster}
