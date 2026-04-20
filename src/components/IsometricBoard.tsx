@@ -158,7 +158,9 @@ const LEVEL_THEMES: Record<number, LevelTheme3D> = {
 };
 
 function getTheme(levelId: number): LevelTheme3D {
-  return LEVEL_THEMES[levelId] || LEVEL_THEMES[1];
+  // Cycle through the 8 available themes so levels above 8 still get unique looks.
+  const cycled = ((Math.max(1, levelId) - 1) % 8) + 1;
+  return LEVEL_THEMES[cycled] || LEVEL_THEMES[1];
 }
 
 function generatePath(tileCount: number, levelId: number = 1): THREE.Vector3[] {
@@ -545,7 +547,7 @@ function CelestialOrb({ px, pz, height, seed, theme }: { px: number; pz: number;
   );
 }
 
-function LevelFoliage(props: { px: number; pz: number; height: number; seed: number; theme: LevelTheme3D }) {
+const LevelFoliage = React.forwardRef<THREE.Group, { px: number; pz: number; height: number; seed: number; theme: LevelTheme3D }>((props, _ref) => {
   switch (props.theme.foliage) {
     case "crystal": return <CrystalCluster {...props} />;
     case "ember": return <EmberRock {...props} />;
@@ -557,7 +559,8 @@ function LevelFoliage(props: { px: number; pz: number; height: number; seed: num
     case "palm":
     default: return <PalmTree {...props} />;
   }
-}
+});
+LevelFoliage.displayName = "LevelFoliage";
 
 // --- Island Tile ---
 
