@@ -1,53 +1,50 @@
 
 
-## Plan: Fix Auto-Roll Stoppage + Per-Level Island Direction
+## Plan: Fix Island Rendering + Stuck Roll Button
 
-### Issue 1 — Auto-roll prematurely stops
+### Issue 1 — Island theme falls back to Level 1 for all levels above 8
 
-**Root cause** in `src/components/GameBoard.tsx` `performRoll()`:
-- After the dice tick interval ends, `onRollDice()` is called (which decrements `rolls` upstream via React state).
-- The 900ms `setTimeout` then re-checks `rollsRef.current > 0` to schedule the next roll.
-- `rollsRef.current` is updated via a `useEffect` watching the `rolls` prop. Between `onRollDice()` and the timer firing, if the parent's state update batches with another re-render or the prop is stale at check time, the timer sees `rollsRef.current <= 0` (stale 1) → enters the `else if` branch → calls `setIsAutoRolling(false)` and stops. Worst case: `rollDice()` returns `null` (e.g. loading state) so rolls aren't decremented — the next scheduled roll runs, but other races stop it.
-- A second compounding bug: when `rolls` goes from 1→0 after the *intended* last auto-roll, code stops correctly, but if the user has plenty of rolls and the timer just *hasn't seen the ref update yet*, it stops incorrectly.
+In `IsometricBoard.tsx`, `getTheme(levelId)` does `LEVEL_THEMES[levelId] || LEVEL_THEMES[1]`. Since only themes 1-8 exist, **every level from 9 through 1200 silently renders the Goblin Forest theme**, even though the path shape correctly cycles. This makes higher-cycle levels look identical to Level 1 (wrong colors, wrong foliage), which is what's reported as "islands aren't rendering correctly".
 
-**Fix**: Decouple "is there budget to keep auto-rolling" from the stale `rollsRef`. Use the actual return value from `game.rollDice()`:
-- Add a callback ref `onRollDiceRef` returning the roll result OR add a return value from `onRollDice` (`() => boolean`). Simpler: change `onRollDice` prop to `() => { ok: boolean; remaining: number }` so GameBoard knows authoritatively whether to continue.
-- Also wrap the post-roll scheduling in a `useEffect` watching `rolls` prop directly: when `isAutoRolling && !isRolling && rolls > 0`, schedule a roll after 900ms; when `rolls <= 0`, set auto-rolling false. This eliminates the ref staleness entirely.
-
-I will refactor to the **effect-based approach** since it's more robust:
+**Fix:** cycle `levelId` through the 8 themes the same way `generatePath` does:
 ```ts
-// Replace internal scheduling with effect that reacts to fresh rolls prop
-useEffect(() => {
-  if (!isAutoRolling || isRolling) return;
-  if (rolls <= 0) { setIsAutoRolling(false); return; }
-  const t = setTimeout(() => performRoll(), 900);
-  return () => clearTimeout(t);
-}, [isAutoRolling, isRolling, rolls]);
+function getTheme(levelId: number): LevelTheme3D {
+  const cycled = ((levelId - 1) % 8) + 1;
+  return LEVEL_THEMES[cycled] || LEVEL_THEMES[1];
+}
 ```
-And remove the inline `setTimeout` block from `performRoll`.
 
-### Issue 2 — Monster running in circles after completing the loop
+### Issue 2 — `forwardRef` warnings on `DeadTree` / `CloudPuff` / `LevelFoliage`
 
-**Root cause**: `generatePath()` in `IsometricBoard.tsx` builds one fixed spiral of 30 tiles. After 30 steps, position wraps to 0 — the monster appears to teleport/dash back across the spiral, visually "running in circles".
+React-three-fiber attaches refs to elements as part of its reconciler. When `LevelFoliage` (a plain function component) is used as if it were an R3F primitive, R3F may try to forward a ref to it. The console errors are noisy and may suppress some renders. Fix by wrapping `DeadTree`, `CloudPuff`, and `LevelFoliage` with `React.forwardRef` (just accept and ignore the ref, or forward to the inner `<group>`). Lowest-risk fix: wrap all 8 foliage variants and `LevelFoliage` with `forwardRef` and forward to the root `<group>` / `<mesh>`.
 
-**Fix**: Make the path layout shape change based on the player's **level** so each level feels like a different island:
-- Add `levelId` (already passed to IsometricBoard) as a dependency of `generatePath`, and parameterize the path with one of several shapes per level:
-  - L1 — outward spiral (current)
-  - L2 — figure-8
-  - L3 — zigzag river going north
-  - L4 — inward spiral (reverse direction)
-  - L5 — diamond/rhombus loop
-  - L6 — S-curve climbing
-  - L7 — two concentric arcs
-  - L8 — straight ascending bridge to a peak
-- Each path still has 30 nodes and is a closed loop returning near start, but the **direction & shape differ per level** so completing a loop and starting again on a higher level *looks* like a new island.
-- Update `generatePath(tileCount, levelId)` and memoize on `levelId`.
-- Bonus: when `position` wraps from 29 → 0 mid-game on the same level, smooth-teleport the monster (skip animation for that one wrap step) so it doesn't dash backwards. Detect with `prevPosition > newPosition + 5`.
+### Issue 3 — Roll button gets stuck, requires page refresh
 
-### Files
-- Edit: `src/components/GameBoard.tsx` — replace inline auto-roll scheduling with an effect; remove `autoRollTimerRef` chain.
-- Edit: `src/components/IsometricBoard.tsx` — parameterize `generatePath(tileCount, levelId)`, add 8 shape variants, memoize on `levelId`; suppress monster dash on loop wrap in `MonsterPawn`.
+Looking at `GameBoard.tsx` `performRoll()`: if a user taps PRESS while `rollsRef.current` is stale at 0 (immediately after a previous roll, before parent re-render), the function returns early WITHOUT clearing `isRolling` — but it also doesn't *set* `isRolling`, so that path is fine. The actual stuck case:
 
-### End-to-End Test
-After build → on Game tab, hold PRESS for 2s to start auto-roll → observe rolls keep firing until they actually hit 0 (no premature stop). → Buy a Mega Pack to grant 50 rolls and trigger auto-roll: it should complete all rolls without stopping. → Trigger level-up by buying packs: confirm the 3D island path visibly changes shape (spiral → figure-8 → zigzag, etc.) per level. → Roll past tile 29: confirm the monster does NOT dash backwards across the whole spiral, but instead transitions cleanly to tile 0.
+- `performRoll` sets `isRolling = true`, runs the dice tick interval (~1 second).
+- After ticking, calls `onRollDice()` (parent reduces rolls + updates state) and `setIsRolling(false)`.
+- **But** `onRollDice()` in the parent is the hook's `rollDice()` which checks `if (state.rolls <= 0) return null` synchronously against possibly-stale closure state. If the user's state save is in flight (we see flooding 409 errors against `game_state`), the React state can lag and `rollDice()` no-ops → the parent's `rolls` prop never decrements → next tap sees `rollsRef.current > 0` and works → BUT if the user double-taps quickly, `performRoll` is re-entered and `setIsRolling(true)` happens before the prior tick interval finishes its cleanup, leaving a stuck `isRolling=true` whose interval is orphaned. Also: any thrown error inside the interval (e.g. failed `sfxDiceTick`) leaves `isRolling=true` permanently because there's no try/finally.
+
+**Fixes in `performRoll`:**
+1. Wrap the entire roll lifecycle in a `try/finally` so `setIsRolling(false)` and `isRollingRef.current = false` ALWAYS run.
+2. Store the `setInterval` id in a ref and clear it on unmount + at the start of every new `performRoll` (defensive — prevents orphaned intervals).
+3. Add a "watchdog" `useEffect` that detects `isRolling` stuck for >2 seconds with no dice updates and force-resets it.
+
+### Issue 4 — Flooding 409 errors on `game_state` upsert (related to "stuck" feeling)
+
+Every save is POSTing without specifying `onConflict`, so PostgREST treats it as an insert and trips the unique constraint. The `prefer: resolution=merge-duplicates` header isn't enough on its own — supabase-js needs `.upsert(row, { onConflict: 'user_id' })`. These failed saves don't break gameplay but flood the network panel and may slow re-renders enough to compound the stuck-button feel.
+
+**Fix:** in `useGameState.ts`, change both upsert calls to `.upsert(stateToDb(...), { onConflict: 'user_id' })`.
+
+### Files to edit
+- `src/components/IsometricBoard.tsx` — fix `getTheme` to cycle levelId; wrap foliage components with `forwardRef`.
+- `src/components/GameBoard.tsx` — try/finally + interval ref + watchdog in `performRoll`.
+- `src/hooks/useGameState.ts` — add `{ onConflict: 'user_id' }` to both `.upsert` calls.
+
+### End-to-end test
+1. Open game, tap PRESS rapidly 10 times in a row — confirm button never gets stuck on the dice spinner; if it ever does, the watchdog auto-clears within 2 seconds.
+2. Use "🧪 +10,000 XP" to push past level 8 — confirm theme cycles correctly (Level 9 = Goblin Forest II with the **same green wood look as Level 1**, Level 10 = Crystal Caves II in cyan, etc.) and the path shape changes per level.
+3. Open browser network panel — confirm `game_state` POSTs return 201/200 instead of 409.
+4. Confirm console no longer shows the `forwardRef` warnings for `DeadTree`, `CloudPuff`, `LevelFoliage`.
 
