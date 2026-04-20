@@ -197,11 +197,21 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   }, [lastResult, isRolling, seasonSymbol]);
 
   const performRoll = () => {
+    // Self-heal: if a stale isRolling flag is blocking us but no interval is actually running,
+    // recover and continue. This prevents the "stuck PRESS button" bug after tab throttling.
+    if (isRollingRef.current && !rollIntervalRef.current) {
+      isRollingRef.current = false;
+      setIsRolling(false);
+    }
     if (isRollingRef.current || rollsRef.current <= 0) return;
     // Defensive: clear any orphaned interval before starting a new roll.
     if (rollIntervalRef.current) {
       clearInterval(rollIntervalRef.current);
       rollIntervalRef.current = null;
+    }
+    if (performRollGuardRef.current) {
+      clearTimeout(performRollGuardRef.current);
+      performRollGuardRef.current = null;
     }
     setIsRolling(true);
     isRollingRef.current = true;
@@ -213,6 +223,10 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       if (rollIntervalRef.current) {
         clearInterval(rollIntervalRef.current);
         rollIntervalRef.current = null;
+      }
+      if (performRollGuardRef.current) {
+        clearTimeout(performRollGuardRef.current);
+        performRollGuardRef.current = null;
       }
       try {
         onRollDice();
@@ -231,6 +245,10 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
         finish();
       }
     }, 80);
+    // Hard guard — even if setInterval is throttled (background tab), force-finish at 1.5s.
+    performRollGuardRef.current = setTimeout(() => {
+      if (isRollingRef.current) finish();
+    }, 1500);
   };
 
   // Effect-based auto-roll scheduling — reacts to the live `rolls` prop
