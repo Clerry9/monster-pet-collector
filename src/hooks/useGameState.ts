@@ -394,7 +394,7 @@ export function useGameState() {
       }
 
       // Global -20% coin payout adjustment to make packs feel more valuable
-      const COIN_PAYOUT_MULTIPLIER = 0.8;
+      const COIN_PAYOUT_MULTIPLIER = 0.48;
       const coinGain = tile.type === "food" ? 0 : Math.round(finalValue * COIN_PAYOUT_MULTIPLIER);
       bonusCoins = Math.round(bonusCoins * COIN_PAYOUT_MULTIPLIER);
       const newMonsterTaps = monsterXpGain > 0
