@@ -86,12 +86,21 @@ function tier(n: number): string {
   return ` ${out}`;
 }
 
-/** Closed-form XP threshold for level id (1-indexed). Smooth quadratic-ish curve. */
+/**
+ * XP required to REACH a given level (1-indexed).
+ * Each level's XP cost is 15% higher than the previous level.
+ *   gap(k) = BASE * 1.15^(k-1)   for the jump from level k → k+1
+ *   xpForLevel(id) = sum_{k=1..id-1} gap(k) = BASE * (1.15^(id-1) - 1) / 0.15
+ *
+ * BASE = 100 → L2 needs 100 XP, L8 ≈ 1066 XP, L20 ≈ 10,244 XP, L50 ≈ 695k XP.
+ * Numbers grow exponentially past L80 — capped only by MAX_LEVEL.
+ */
+const XP_BASE = 100;
+const XP_GROWTH = 1.15;
 export function xpForLevel(id: number): number {
   if (id <= 1) return 0;
-  const n = id - 1;
-  // ~100 XP for L2, ~12000 for L8, scales gracefully past L1000.
-  return Math.round(50 * n * n + 50 * n);
+  const total = XP_BASE * (Math.pow(XP_GROWTH, id - 1) - 1) / (XP_GROWTH - 1);
+  return Math.round(total);
 }
 
 function buildLevel(id: number): LevelTheme {
@@ -125,10 +134,32 @@ export const BET_MULTIPLIERS = [
 /** Get the current level for a given XP amount — closed-form, O(1). */
 export function getLevelForXp(xp: number): LevelTheme {
   if (xp <= 0) return LEVELS[0];
-  // Invert xpForLevel: 50n^2 + 50n = xp  →  n = (-50 + √(2500 + 200·xp)) / 100
-  const n = Math.floor((-50 + Math.sqrt(2500 + 200 * xp)) / 100);
-  const id = Math.min(MAX_LEVEL, Math.max(1, n + 1));
+  // Invert: xp = BASE * (g^(id-1) - 1) / (g-1)
+  //   →  id = 1 + log_g(1 + xp * (g-1) / BASE)
+  const ratio = 1 + (xp * (XP_GROWTH - 1)) / XP_BASE;
+  const idApprox = 1 + Math.log(ratio) / Math.log(XP_GROWTH);
+  const id = Math.min(MAX_LEVEL, Math.max(1, Math.floor(idApprox)));
   return LEVELS[id - 1];
+}
+
+/** Prestige milestone every 100 levels grants a permanent +5% coin bonus per tier. */
+export const PRESTIGE_INTERVAL = 100;
+export const PRESTIGE_BONUS_PER_TIER = 0.05;
+
+export function getPrestigeTier(level: number): number {
+  return Math.floor(Math.max(1, level) / PRESTIGE_INTERVAL);
+}
+
+/** Multiplier applied to coin rewards based on prestige tier. 0 → 1.0, 1 → 1.05, 2 → 1.10... */
+export function getPrestigeCoinMultiplier(level: number): number {
+  return 1 + getPrestigeTier(level) * PRESTIGE_BONUS_PER_TIER;
+}
+
+/** Returns the prestige tier just unlocked when crossing fromLevel → toLevel, or 0 if none. */
+export function prestigeTierUnlocked(fromLevel: number, toLevel: number): number {
+  const before = getPrestigeTier(fromLevel);
+  const after = getPrestigeTier(toLevel);
+  return after > before ? after : 0;
 }
 
 /** Get XP progress within current level (0-1) */
