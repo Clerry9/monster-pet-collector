@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { forwardRef, useEffect, useLayoutEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, X } from "lucide-react";
 
@@ -19,7 +19,10 @@ interface TutorialCoachmarkProps {
 
 const PADDING = 8;
 
-export function TutorialCoachmark({ open, steps, onClose, onFinish }: TutorialCoachmarkProps) {
+export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkProps>(function TutorialCoachmark(
+  { open, steps, onClose, onFinish },
+  _ref,
+) {
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
 
@@ -178,4 +181,4 @@ export function TutorialCoachmark({ open, steps, onClose, onFinish }: TutorialCo
       </motion.div>
     </AnimatePresence>
   );
-}
+});

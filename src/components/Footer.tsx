@@ -1,7 +1,8 @@
+import { forwardRef } from "react";
 import { Link } from "react-router-dom";
 
-export const Footer = () => (
-  <footer className="mt-8 border-t border-border/40 px-4 py-6">
+export const Footer = forwardRef<HTMLElement>((_props, ref) => (
+  <footer ref={ref} className="mt-8 border-t border-border/40 px-4 py-6">
     <nav className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
       <Link to="/privacy" className="hover:text-primary hover:underline">Privacy</Link>
       <span aria-hidden>·</span>
@@ -17,4 +18,5 @@ export const Footer = () => (
       © {new Date().getFullYear()} · All rights reserved
     </p>
   </footer>
-);
+));
+Footer.displayName = "Footer";

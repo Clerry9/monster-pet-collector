@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Gift, Flame, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,10 @@ interface DailyRewardProps {
 
 const DAILY_REWARDS = [25, 50, 100, 175, 275, 400, 750];
 
-export function DailyReward({ open, streak, reward, onClaim, onDismiss, alreadyClaimed }: DailyRewardProps) {
+export const DailyReward = forwardRef<HTMLDivElement, DailyRewardProps>(function DailyReward(
+  { open, streak, reward, onClaim, onDismiss, alreadyClaimed },
+  _ref,
+) {
   if (!open) return null;
 
   return (
@@ -113,4 +117,4 @@ export function DailyReward({ open, streak, reward, onClaim, onDismiss, alreadyC
       </motion.div>
     </AnimatePresence>
   );
-}
+});

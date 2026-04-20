@@ -109,7 +109,8 @@ function buildLevel(id: number): LevelTheme {
   return {
     ...base,
     id,
-    name: cycle === 0 ? base.name : `${base.name}${tier(cycle)}`,
+    // cycle 0 = base name (e.g. "Goblin Forest"); cycle 1 → " II", cycle 2 → " III", ...
+    name: cycle === 0 ? base.name : `${base.name}${tier(cycle + 1)}`,
     xpRequired: xpForLevel(id),
   };
 }
