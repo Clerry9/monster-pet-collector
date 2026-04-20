@@ -4,11 +4,14 @@ import { Crown, Trophy, Medal, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Season } from "@/data/seasons";
+import { getPrestigeTier } from "@/data/levels";
 
 interface LeaderboardEntry {
   user_id: string;
   symbols: number;
   display_name: string | null;
+  level: number;
+  prestige: number;
 }
 
 interface Props {
@@ -17,6 +20,19 @@ interface Props {
 }
 
 const fallbackName = (uid: string) => `Player ${uid.slice(0, 4).toUpperCase()}`;
+
+function PrestigeRibbon({ tier }: { tier: number }) {
+  if (tier <= 0) return null;
+  return (
+    <span
+      title={`Prestige ${tier}: +${tier * 5}% coin bonus`}
+      className="inline-flex items-center gap-0.5 rounded-sm bg-gradient-to-r from-amber-400 to-yellow-600 border border-amber-700 px-1 py-[1px] text-[8px] font-display text-wood-dark shadow-sm shrink-0"
+    >
+      <Crown size={8} strokeWidth={3} />
+      P{tier}
+    </span>
+  );
+}
 
 export function SeasonLeaderboard({ season, seasonInstanceId }: Props) {
   const { user } = useAuth();
@@ -37,19 +53,26 @@ export function SeasonLeaderboard({ season, seasonInstanceId }: Props) {
       if (cancelled) return;
       const userIds = (progress ?? []).map((p) => p.user_id);
       let names: Record<string, string | null> = {};
+      let levels: Record<string, number> = {};
       if (userIds.length) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id,display_name")
+          .select("user_id,display_name,level")
           .in("user_id", userIds);
         names = Object.fromEntries((profiles ?? []).map((p) => [p.user_id, p.display_name]));
+        levels = Object.fromEntries((profiles ?? []).map((p) => [p.user_id, p.level ?? 1]));
       }
       setRows(
-        (progress ?? []).map((p) => ({
-          user_id: p.user_id,
-          symbols: p.symbols,
-          display_name: names[p.user_id] ?? null,
-        }))
+        (progress ?? []).map((p) => {
+          const lvl = levels[p.user_id] ?? 1;
+          return {
+            user_id: p.user_id,
+            symbols: p.symbols,
+            display_name: names[p.user_id] ?? null,
+            level: lvl,
+            prestige: getPrestigeTier(lvl),
+          };
+        })
       );
       setLoading(false);
     })();
@@ -102,7 +125,7 @@ export function SeasonLeaderboard({ season, seasonInstanceId }: Props) {
                   {place === 1 && <Crown className="text-gold drop-shadow" size={20} />}
                   {place === 2 && <Medal className="text-zinc-300" size={16} />}
                   {place === 3 && <Medal className="text-orange-400" size={16} />}
-                  <div className="text-[10px] font-display text-cream-light truncate w-full text-center px-0.5 flex items-center justify-center gap-1">
+                  <div className="text-[10px] font-display text-cream-light w-full px-0.5 flex items-center justify-center gap-1 min-w-0">
                     <span className="truncate">{entry.display_name || fallbackName(entry.user_id)}</span>
                     <PrestigeRibbon tier={entry.prestige} />
                   </div>
@@ -129,12 +152,13 @@ export function SeasonLeaderboard({ season, seasonInstanceId }: Props) {
                       isMe ? "border-gold bg-gradient-to-r from-gold/30 to-gold/10 text-wood-dark" : "border-wood-dark/40 bg-cream/95 text-wood-dark"
                     }`}
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="opacity-60">#{idx + 4}</span>
-                      <span className="truncate max-w-[120px]">{entry.display_name || fallbackName(entry.user_id)}</span>
-                      {isMe && <span className="text-[9px] text-candy-red">YOU</span>}
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span className="opacity-60 shrink-0">#{idx + 4}</span>
+                      <span className="truncate max-w-[100px]">{entry.display_name || fallbackName(entry.user_id)}</span>
+                      <PrestigeRibbon tier={entry.prestige} />
+                      {isMe && <span className="text-[9px] text-candy-red shrink-0">YOU</span>}
                     </span>
-                    <span>{entry.symbols} {season.symbol}</span>
+                    <span className="shrink-0">{entry.symbols} {season.symbol}</span>
                   </div>
                 );
               })}
@@ -153,7 +177,7 @@ export function SeasonLeaderboard({ season, seasonInstanceId }: Props) {
           )}
           {myRow && myRank && myRank > 20 && (
             <div className="rounded-md border-2 border-gold bg-gradient-to-r from-gold/30 to-gold/10 px-2 py-1.5 flex items-center justify-between text-[11px] font-display text-wood-dark">
-              <span>#{myRank} YOU</span>
+              <span className="flex items-center gap-1.5">#{myRank} YOU <PrestigeRibbon tier={myRow.prestige} /></span>
               <span>{myRow.symbols} {season.symbol}</span>
             </div>
           )}
