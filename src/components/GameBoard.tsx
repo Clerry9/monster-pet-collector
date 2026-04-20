@@ -89,6 +89,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   // Cleanup any in-flight roll interval on unmount
   useEffect(() => () => {
     if (rollIntervalRef.current) clearInterval(rollIntervalRef.current);
+    if (performRollGuardRef.current) clearTimeout(performRollGuardRef.current);
   }, []);
 
   // Watchdog: if isRolling stays true for >2s without completion, force-reset.
