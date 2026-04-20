@@ -77,7 +77,7 @@ export function useSeason() {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel(`season-${user.id}`)
+      .channel(`season-${user.id}`, { config: { private: false } })
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "season_progress", filter: `user_id=eq.${user.id}` },
