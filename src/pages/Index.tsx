@@ -366,6 +366,22 @@ const Index = () => {
               </div>
               <div className="absolute top-2 left-2 right-2 z-20 pointer-events-none">
                 <div className="pointer-events-auto">
+                  {/* Coin-Master style HUD — always visible on board */}
+                  <TopHud
+                    gems={game.pendingCardFlips}
+                    coins={game.coins}
+                    keys={hudKeys}
+                    stars={game.islandStars}
+                    xp={game.xp}
+                    level={game.level}
+                    betMultiplier={game.betMultiplier}
+                    onAddCoins={() => setTab("shop")}
+                    onAddGems={() => setTab("specials")}
+                    onAddKeys={() => setTab("season")}
+                    onAddStars={() => setTab("specials")}
+                  />
+                </div>
+                <div className="pointer-events-auto mt-2">
                   <SideRails
                     msRemaining={season.msRemaining}
                     newEvent={seasonNotice.isNew}
@@ -378,13 +394,24 @@ const Index = () => {
                   />
                 </div>
               </div>
-              <div className="absolute bottom-2 left-0 right-0 z-30 px-2 pointer-events-none">
-                <div className="max-w-md mx-auto pointer-events-auto bg-gradient-to-t from-wood-dark/95 via-wood-dark/70 to-wood-dark/30 backdrop-blur-sm rounded-2xl px-2 py-1.5 shadow-chunky">
+              {/* Bottom: BetSelector pill row above the wooden dock tab bar */}
+              <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none flex flex-col">
+                <div className="px-2 pb-1 pointer-events-auto max-w-md mx-auto w-full">
                   <BetSelector
                     coins={game.coins}
                     currentBet={game.betMultiplier}
                     onSetBet={game.setBetMultiplier}
                   />
+                </div>
+                <div className="dock-wood w-full px-3 py-2 pointer-events-auto pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+                  <div data-tutorial="tabs" className="max-w-md mx-auto">
+                    <GameTabs
+                      active={tab}
+                      onTabChange={setTab}
+                      newTabs={{ season: seasonNotice.isNew }}
+                      countdowns={{ season: formatTimeRemaining(season.msRemaining) }}
+                    />
+                  </div>
                 </div>
               </div>
             </motion.div>
