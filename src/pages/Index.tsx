@@ -9,6 +9,7 @@ import { isMuted, setMuted, startBgm, stopBgm } from "@/lib/sfx";
 import { getLevelForXp, prestigeTierUnlocked } from "@/data/levels";
 import { CoinCounter } from "@/components/CoinCounter";
 import { GameBoard } from "@/components/GameBoard";
+import { TopHud } from "@/components/TopHud";
 import { MonsterDisplay } from "@/components/MonsterDisplay";
 import { MonsterCollection } from "@/components/MonsterCollection";
 import { CardCollection } from "@/components/CardCollection";
@@ -203,8 +204,10 @@ const Index = () => {
   };
 
   const isBoardTab = tab === "board";
-  // On the board tab, the 3D scene is fullscreen — collapse top chrome into a drawer
+  // On the board tab, the 3D scene is fullscreen — collapse old top chrome into a drawer
   const showChrome = !isBoardTab || menuOpen;
+  // Derived display values for the HUD (no extra DB schema needed)
+  const hudKeys = Math.min(3, Math.floor(game.islandStars / 2)); // 0..3 visual key shards
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-3 py-4 overflow-hidden">
