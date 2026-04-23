@@ -4,6 +4,7 @@ import { BOARD_TILES, BoardTile, TileType } from "@/hooks/useGameState";
 import { Monster } from "@/data/monsters";
 import { sfxDiceTick, sfxHop, sfxLand, sfxCoinGain, sfxSkull } from "@/lib/sfx";
 import { IsometricBoard } from "@/components/IsometricBoard";
+import { Zap } from "lucide-react";
 
 interface GameBoardProps {
   position: number;
@@ -19,6 +20,7 @@ interface GameBoardProps {
   fullscreen?: boolean;
   islandStars?: number;
   pendingCardFlips?: number;
+  betMultiplier?: number;
 }
 
 const TILE_EMOJIS: Record<TileType, string> = {
@@ -59,7 +61,7 @@ interface Particle {
 const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
 let particleIdCounter = 0;
 
-export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0 }: GameBoardProps) {
+export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1 }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -381,11 +383,35 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       </AnimatePresence>
       </div>
 
-      {/* PRESS button */}
-      <div className={`flex flex-col items-center gap-1 ${fullscreen ? "absolute left-1/2 -translate-x-1/2 bottom-12 z-30 pointer-events-auto" : ""}`}>
-        <div className="relative">
-          <div className="absolute inset-0 translate-y-3 rounded-full bg-wood-dark/30 blur-md" aria-hidden="true" />
-          <div className="relative rounded-full p-2 bg-gradient-to-b from-[hsl(0_0%_55%)] to-[hsl(0_0%_30%)] border-[5px] border-wood-dark shadow-chunky">
+      {/* Roll dial — Coin-Master style glossy blue circle with BET pill above and AUTO pill on the left */}
+      <div className={`${fullscreen ? "absolute left-1/2 -translate-x-1/2 bottom-24 z-30 pointer-events-auto" : ""} flex flex-col items-center gap-2`}>
+        {/* Green BET pill above the dial */}
+        <div className="pill-bet px-4 py-1 text-sm tracking-wider" aria-label={`Current bet ${betMultiplier} times`}>
+          BET ×{betMultiplier.toLocaleString()}
+        </div>
+
+        {/* Row: AUTO pill | Dial | spacer */}
+        <div className="flex items-end gap-2">
+          {/* AUTO toggle pill (purple) */}
+          <button
+            type="button"
+            onClick={() => {
+              if (isAutoRollingRef.current) { stopAutoRoll(); return; }
+              if (rolls <= 0) return;
+              isAutoRollingRef.current = true;
+              setIsAutoRolling(true);
+              performRoll();
+            }}
+            className={`pill-auto px-3 py-2 text-xs leading-tight flex flex-col items-center min-w-[60px] ${rolls <= 0 && !isAutoRolling ? "opacity-50" : ""}`}
+            aria-label={isAutoRolling ? "Stop auto-roll" : "Start auto-roll"}
+          >
+            <span>{isAutoRolling ? "STOP" : "AUTO"}</span>
+            <span className="text-[9px] opacity-90 mt-0.5">{isAutoRolling ? "TAP" : `${rolls}`}</span>
+          </button>
+
+          {/* The big blue dial */}
+          <div className="relative">
+            <div className="absolute inset-0 translate-y-4 rounded-full bg-black/40 blur-lg" aria-hidden="true" />
             <motion.button
               whileTap={{ scale: 0.95 }}
               onPointerDown={handlePressStart}
@@ -393,10 +419,10 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
               onPointerLeave={() => handlePressEnd(false)}
               onPointerCancel={() => handlePressEnd(false)}
               disabled={rolls <= 0 && !isAutoRolling}
-              aria-label={rolls <= 0 ? "No rolls remaining" : isAutoRolling ? "Auto-rolling. Tap to stop." : isRolling ? "Rolling dice..." : `Roll dice. Tap to roll, hold 2 seconds to auto-roll. Range 1 to ${activeDiceMax}`}
-              className={`btn-press relative ${fullscreen ? "w-20 h-20 text-lg" : "w-28 h-28 text-2xl"} rounded-full flex items-center justify-center font-display select-none touch-none ${
+              aria-label={rolls <= 0 ? "No rolls remaining" : isAutoRolling ? "Auto-rolling. Tap to stop." : isRolling ? "Rolling dice..." : `Roll. Tap or hold to auto-roll. ${rolls} rolls remaining.`}
+              className={`roll-dial relative w-[88px] h-[88px] sm:w-[104px] sm:h-[104px] rounded-full flex flex-col items-center justify-center font-display select-none touch-none ${
                 rolls <= 0 && !isAutoRolling ? "opacity-60 grayscale cursor-not-allowed" : ""
-              } ${isAutoRolling ? "!bg-gradient-to-b !from-candy-red !to-destructive" : ""}`}
+              }`}
             >
               {holdProgress > 0 && holdProgress < 1 && (
                 <svg className="absolute -inset-1 w-[calc(100%+0.5rem)] h-[calc(100%+0.5rem)] pointer-events-none" viewBox="0 0 100 100" aria-hidden="true">
@@ -413,28 +439,15 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
                 </svg>
               )}
               {isRolling ? (
-                <motion.span
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ repeat: Infinity, duration: 0.4 }}
-                  className="text-3xl"
-                  aria-hidden="true"
-                >
-                  🎲
+                <motion.span animate={{ rotate: [0, 360] }} transition={{ repeat: Infinity, duration: 0.5 }} className="text-3xl" aria-hidden="true">
+                  ⚡
                 </motion.span>
-              ) : isAutoRolling ? (
-                <span className="leading-none text-candy-red">STOP</span>
               ) : (
-                <span className="leading-none">PRESS</span>
-              )}
-              {isAutoRolling && (
-                <motion.span
-                  className="absolute -bottom-3 left-1/2 -translate-x-1/2 banner-gold text-[10px] px-2 py-0.5 whitespace-nowrap"
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  aria-hidden="true"
-                >
-                  AUTO • TAP TO STOP
-                </motion.span>
+                <>
+                  <Zap size={26} className="text-yellow-200 drop-shadow-[0_2px_0_rgba(0,0,0,0.5)]" fill="currentColor" />
+                  <span className="text-lg leading-none mt-0.5">{rolls.toLocaleString()}</span>
+                  <span className="text-[9px] opacity-80 leading-none mt-0.5">/ {activeDiceMax * 5}</span>
+                </>
               )}
               {diceValue && isRolling && (
                 <motion.span
@@ -449,27 +462,25 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
               )}
             </motion.button>
           </div>
+
+          {/* Spacer to balance the AUTO pill so the dial stays centered */}
+          <div className="w-[60px]" aria-hidden="true" />
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-display text-wood-dark" aria-label={`${rolls} rolls remaining, dice range 1 to ${activeDiceMax}`}>
-          <span>ROLLS</span>
-          <span className={`pill-gold px-2 py-0.5 text-sm ${rolls <= 0 ? "opacity-60" : ""}`}>{rolls}</span>
-          <span className="text-wood-dark/60">• 1-{activeDiceMax}</span>
-          <span className="ml-1 pill-gold px-2 py-0.5 text-sm flex items-center gap-1" title={`${islandStars}/5 stars to next card flip`}>
-            ⭐ {islandStars}/5
-          </span>
+        {/* Tiny status row */}
+        <div className="flex items-center gap-1.5 text-[9px] font-display text-cream-light/95 drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]">
+          <span>ROLLS {rolls}</span>
+          <span className="opacity-70">• 1–{activeDiceMax}</span>
+          <span className="opacity-90">⭐ {islandStars}/5</span>
           {pendingCardFlips > 0 && (
             <motion.span
               animate={{ scale: [1, 1.12, 1] }}
               transition={{ repeat: Infinity, duration: 1.4 }}
-              className="pill-gold px-2 py-0.5 text-sm bg-gradient-to-r from-candy-red to-gold text-cream-light"
+              className="pill-gold px-1.5 py-0 text-[9px]"
             >
               🃏 ×{pendingCardFlips}
             </motion.span>
           )}
-        </div>
-        <div className="text-[10px] font-display tracking-wider text-wood-dark/70">
-          HOLD FOR AUTOSPIN
         </div>
       </div>
     </div>
