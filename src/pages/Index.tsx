@@ -325,14 +325,17 @@ const Index = () => {
           </div>
         )}
 
-        <div data-tutorial="tabs" onClick={() => isBoardTab && setMenuOpen(false)}>
-          <GameTabs
-            active={tab}
-            onTabChange={setTab}
-            newTabs={{ season: seasonNotice.isNew }}
-            countdowns={{ season: formatTimeRemaining(season.msRemaining) }}
-          />
-        </div>
+        {/* On the board view the dock at the bottom replaces this; on other tabs we keep it here */}
+        {!isBoardTab && (
+          <div data-tutorial="tabs">
+            <GameTabs
+              active={tab}
+              onTabChange={setTab}
+              newTabs={{ season: seasonNotice.isNew }}
+              countdowns={{ season: formatTimeRemaining(season.msRemaining) }}
+            />
+          </div>
+        )}
       </div>
 
       <CardReveal card={drawnCard} onComplete={() => setDrawnCard(null)} />
