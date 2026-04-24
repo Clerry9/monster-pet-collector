@@ -10,6 +10,7 @@ interface TopHudProps {
   xp: number;
   level: number;
   betMultiplier: number;
+  guestName?: string;
   onAddGems?: () => void;
   onAddCoins?: () => void;
   onAddKeys?: () => void;
@@ -20,13 +21,18 @@ interface TopHudProps {
  * Coin-Master style top HUD: gem · coin · 3 key slots · star + center XP bar.
  */
 export function TopHud({
-  gems, coins, keys, stars, xp, level, betMultiplier,
+  gems, coins, keys, stars, xp, level, betMultiplier, guestName,
   onAddGems, onAddCoins, onAddKeys, onAddStars,
 }: TopHudProps) {
   const { current, progress, xpInLevel, xpNeeded } = getLevelProgress(xp);
 
   return (
     <div className="w-full flex flex-col gap-1.5" role="region" aria-label="Player resources">
+      {guestName && (
+        <div className="self-start ml-1 px-2 py-0.5 rounded-full bg-black/45 border border-cream-light/30 text-[10px] font-display text-cream-light tracking-wide truncate max-w-[60%]" aria-label={`Guest name ${guestName}`}>
+          👤 {guestName}
+        </div>
+      )}
       {/* Top counter strip */}
       <div className="flex items-center justify-between gap-1 flex-wrap">
         <Counter
