@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Mail, Lock, User } from "lucide-react";
+import { Footer } from "@/components/Footer";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -57,7 +57,8 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen flex-col bg-background">
+      <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -151,17 +152,9 @@ export default function AuthPage() {
             {isLogin ? "Sign up" : "Log in"}
           </button>
         </p>
-
-        <p className="text-center text-xs text-muted-foreground font-body">
-          <Link to="/pricing" className="text-primary underline">Pricing</Link>
-          {" · "}
-          <Link to="/terms" className="text-primary underline">Terms</Link>
-          {" · "}
-          <Link to="/privacy" className="text-primary underline">Privacy</Link>
-          {" · "}
-          <Link to="/refund" className="text-primary underline">Refunds</Link>
-        </p>
       </motion.div>
+      </div>
+      <Footer />
     </div>
   );
 }
