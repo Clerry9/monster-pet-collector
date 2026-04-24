@@ -25,7 +25,7 @@ interface GameBoardProps {
 
 const TILE_EMOJIS: Record<TileType, string> = {
   coins: "🪙",
-  bonus: "⚡",
+  bonus: "⚡", // overridden in result banner with a styled <Zap /> icon
   chest: "🎁",
   food: "🍖",
   skull: "💀",
@@ -374,7 +374,11 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
             aria-live="polite"
             aria-label={`Moved ${lastResult.steps} steps. ${lastResult.tile.value >= 0 ? "Gained" : "Lost"} ${Math.abs(lastResult.tile.value)} coins.`}
           >
-            <span className="text-lg" aria-hidden="true">{TILE_EMOJIS[lastResult.tile.type]}</span>
+            <span className="text-lg" aria-hidden="true">
+              {lastResult.tile.type === "bonus"
+                ? <Zap size={18} className="text-yellow-500 drop-shadow-[0_1px_0_rgba(0,0,0,0.4)]" fill="currentColor" />
+                : TILE_EMOJIS[lastResult.tile.type]}
+            </span>
             <span className="font-display text-sm">+{lastResult.steps}</span>
             <span className={`font-display ${lastResult.tile.value >= 0 ? "text-wood-dark" : "text-destructive"}`}>
               {lastResult.tile.value >= 0 ? `+${lastResult.tile.value}` : lastResult.tile.value} 🪙
