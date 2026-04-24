@@ -221,9 +221,12 @@ function pathPointAt(absIdx: number, levelId: number = 1): THREE.Vector3 {
   return new THREE.Vector3(x, y, z);
 }
 
-/** Build a window of contiguous path points around the player's absolute step. */
-const WINDOW_BEFORE = 3;
-const WINDOW_AFTER = 14;
+/** Build a window of contiguous path points around the player's absolute step.
+ * WINDOW_BEFORE is generous so trailing tiles stay rendered while the monster
+ * mid-hops several tiles forward (avoids islands "disappearing" during a hop).
+ */
+const WINDOW_BEFORE = 10;
+const WINDOW_AFTER = 16;
 function buildPathWindow(centerAbs: number, levelId: number): { points: THREE.Vector3[]; startAbs: number } {
   const startAbs = Math.max(0, centerAbs - WINDOW_BEFORE);
   const points: THREE.Vector3[] = [];
