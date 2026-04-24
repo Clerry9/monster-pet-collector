@@ -1126,9 +1126,14 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
   return null;
 }
 
-function IsometricBoardScene({ position, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow, recenterRef }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string; recenterRef: React.MutableRefObject<boolean> }) {
-  const pathPoints = useMemo(() => generatePath(BOARD_TILES.length, levelId), [levelId]);
-  const currentTilePos = pathPoints[position] || pathPoints[0];
+function IsometricBoardScene({ absoluteStep, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow, recenterRef }: { absoluteStep: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string; recenterRef: React.MutableRefObject<boolean> }) {
+  // Pure path function bound to current level
+  const pathFn = useMemo(() => (i: number) => pathPointAt(i, levelId), [levelId]);
+  const { points: windowPoints, startAbs } = useMemo(
+    () => buildPathWindow(absoluteStep, levelId),
+    [absoluteStep, levelId]
+  );
+  const currentTilePos = pathFn(absoluteStep);
   const trailPosRef = useRef<THREE.Vector3[]>([]);
   const monsterPosRef = useRef<THREE.Vector3>(new THREE.Vector3(currentTilePos.x, currentTilePos.y + 1, currentTilePos.z));
   const theme = useMemo(() => applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow), [levelId, seasonAccent, seasonGlow]);
@@ -1142,14 +1147,34 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
 
       <Ocean theme={theme} />
       <FloatingParticles theme={theme} />
-      <PathConnector points={pathPoints} theme={theme} />
+      <PathConnector points={windowPoints} theme={theme} />
 
-      {BOARD_TILES.map((tile, index) => (
-        <Tile key={tile.id} tile={tile} position={pathPoints[index]} isActive={index === position} index={index} playerPosition={position} theme={theme} />
-      ))}
+      {windowPoints.map((p, i) => {
+        const absIdx = startAbs + i;
+        const tile = BOARD_TILES[((absIdx % BOARD_TILES.length) + BOARD_TILES.length) % BOARD_TILES.length];
+        return (
+          <Tile
+            key={absIdx}
+            tile={tile}
+            position={p}
+            isActive={absIdx === absoluteStep}
+            index={absIdx}
+            playerPosition={absoluteStep}
+            theme={theme}
+          />
+        );
+      })}
 
       <MonsterTrail positions={trailPosRef.current} theme={theme} />
-      <MonsterPawn pathPoints={pathPoints} position={position} monster={monster} movementResult={movementResult} trailPosRef={trailPosRef} activeLift={ACTIVE_LIFT_VALUE} monsterPosRef={monsterPosRef} />
+      <MonsterPawn
+        pathPointAt={pathFn}
+        absoluteIndex={absoluteStep}
+        monster={monster}
+        movementResult={movementResult}
+        trailPosRef={trailPosRef}
+        activeLift={ACTIVE_LIFT_VALUE}
+        monsterPosRef={monsterPosRef}
+      />
 
       <CameraRig monsterPosRef={monsterPosRef} isMoving={isMoving} recenterRef={recenterRef} />
       <OrbitControls
@@ -1167,7 +1192,9 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
   );
 }
 
-export function IsometricBoard({ position, monster, isMoving, movementResult, levelId = 1, seasonAccent, seasonGlow, fullscreen = false }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId?: number; seasonAccent?: string; seasonGlow?: string; fullscreen?: boolean }) {
+export function IsometricBoard({ position, absoluteStep, monster, isMoving, movementResult, levelId = 1, seasonAccent, seasonGlow, fullscreen = false }: { position: number; absoluteStep?: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId?: number; seasonAccent?: string; seasonGlow?: string; fullscreen?: boolean }) {
+  // Fall back to `position` if absoluteStep isn't provided (legacy callers).
+  const absStep = absoluteStep ?? position;
   const theme = applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow);
   const recenterRef = useRef(false);
   const lastTapRef = useRef(0);
@@ -1191,12 +1218,12 @@ export function IsometricBoard({ position, monster, isMoving, movementResult, le
       <Canvas shadows camera={{ position: [6, 5, 6], fov: 45, near: 0.1, far: 100 }} gl={{ antialias: true, alpha: false }}>
         <color attach="background" args={[theme.bg]} />
         <fog attach="fog" args={[theme.fog, 12, 28]} />
-        <IsometricBoardScene position={position} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} recenterRef={recenterRef} />
+        <IsometricBoardScene absoluteStep={absStep} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} recenterRef={recenterRef} />
       </Canvas>
       <BoardMinimap
         levelId={levelId}
         tileCount={BOARD_TILES.length}
-        position={position}
+        position={((absStep % BOARD_TILES.length) + BOARD_TILES.length) % BOARD_TILES.length}
         accentColor={theme.ringColor}
       />
       <LevelTransitionCinematic levelId={levelId} accentColor={theme.ringColor} />
