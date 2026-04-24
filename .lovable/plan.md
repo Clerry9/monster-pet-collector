@@ -1,50 +1,72 @@
+# Plan: Board polish, infinite path, longer levels, auto-roll & guest fixes
 
+## 1. Bottom buttons overlap (BetSelector + roll dial + dock)
 
-## Plan: Fix Island Rendering + Stuck Roll Button
+In `src/pages/Index.tsx`, the dial (lifted ~150px) sits on top of the BetSelector pill row, and on small screens the BET pill above the dial collides with the BetSelector row. Restructure the bottom stack:
 
-### Issue 1 — Island theme falls back to Level 1 for all levels above 8
+- Wrap BetSelector + dock in a single `flex flex-col` column (already present) but add `gap` and a transparent spacer for the dial, so the dial's vertical space is reserved.
+- In `src/components/GameBoard.tsx`, change the dial's fullscreen offset from a fixed `150px` to `calc(env(safe-area-inset-bottom,0px) + 4.25rem + 3rem)` and pin it relative to the bottom dock height. Move the AUTO pill from a left side-row into a slot tucked into the dial bottom-left so it stops shoving the BET pill off-center.
+- Hide the standalone `BET ×N` pill above the dial when the BetSelector row is visible (it's redundant) — show it only when BetSelector is collapsed.
+- Reduce dial size on portrait <380px to `w-[76px] h-[76px]` to keep clearance.
 
-In `IsometricBoard.tsx`, `getTheme(levelId)` does `LEVEL_THEMES[levelId] || LEVEL_THEMES[1]`. Since only themes 1-8 exist, **every level from 9 through 1200 silently renders the Goblin Forest theme**, even though the path shape correctly cycles. This makes higher-cycle levels look identical to Level 1 (wrong colors, wrong foliage), which is what's reported as "islands aren't rendering correctly".
+## 2. Make the island path feel infinite
 
-**Fix:** cycle `levelId` through the 8 themes the same way `generatePath` does:
-```ts
-function getTheme(levelId: number): LevelTheme3D {
-  const cycled = ((levelId - 1) % 8) + 1;
-  return LEVEL_THEMES[cycled] || LEVEL_THEMES[1];
-}
-```
+Today `MonsterPawn` (`src/components/IsometricBoard.tsx`) advances `position` modulo `pathPoints.length`. When the player wraps from tile 29 → 0, the monster currently teleports back to the start of the visible island.
 
-### Issue 2 — `forwardRef` warnings on `DeadTree` / `CloudPuff` / `LevelFoliage`
+Approach: build a "rolling chunk" of path tiles around the player so the monster walks forward continuously and the world appears endless.
 
-React-three-fiber attaches refs to elements as part of its reconciler. When `LevelFoliage` (a plain function component) is used as if it were an R3F primitive, R3F may try to forward a ref to it. The console errors are noisy and may suppress some renders. Fix by wrapping `DeadTree`, `CloudPuff`, and `LevelFoliage` with `React.forwardRef` (just accept and ignore the ref, or forward to the inner `<group>`). Lowest-risk fix: wrap all 8 foliage variants and `LevelFoliage` with `forwardRef` and forward to the root `<group>` / `<mesh>`.
+- Replace the fixed `pathPoints = generatePath(BOARD_TILES.length, levelId)` with a chunked generator that returns a window of tiles around the current absolute step (e.g. `[absoluteStep-4 .. absoluteStep+12]`). Keep `BOARD_TILES` semantics for game logic; only the **visual** path becomes infinite.
+- Track an `absoluteSteps` counter (already exists as `totalSteps` in game state) and pass it to `IsometricBoard`. The renderer maps each visible tile to `BOARD_TILES[absIndex % BOARD_TILES.length]` for type/value, but uses a continuous Vector3 path generator seeded by `levelId` that produces points for any integer index (no wrap-around).
+- Update `MonsterPawn` so `stepStart`/`stepEnd` interpolate between consecutive absolute path indices — it never resets to index 0.
+- After each roll, slide the visible chunk forward (drop trailing tiles, append new ones) so the world scrolls under the monster. Camera keeps centering on the monster ref, so the player sees a continuous trail.
+- Add a subtle "horizon fade" at the far end (existing fog already covers this).
 
-### Issue 3 — Roll button gets stuck, requires page refresh
+## 3. Levels 60% longer
 
-Looking at `GameBoard.tsx` `performRoll()`: if a user taps PRESS while `rollsRef.current` is stale at 0 (immediately after a previous roll, before parent re-render), the function returns early WITHOUT clearing `isRolling` — but it also doesn't *set* `isRolling`, so that path is fine. The actual stuck case:
+In `src/data/levels.ts`, `xpForLevel` uses `XP_BASE = 100` with 1.15 growth. Multiply per-level XP gap by 1.6 by setting `XP_BASE = 160`. This makes every level take 60% more XP without changing growth curve, level themes, or prestige math.
 
-- `performRoll` sets `isRolling = true`, runs the dice tick interval (~1 second).
-- After ticking, calls `onRollDice()` (parent reduces rolls + updates state) and `setIsRolling(false)`.
-- **But** `onRollDice()` in the parent is the hook's `rollDice()` which checks `if (state.rolls <= 0) return null` synchronously against possibly-stale closure state. If the user's state save is in flight (we see flooding 409 errors against `game_state`), the React state can lag and `rollDice()` no-ops → the parent's `rolls` prop never decrements → next tap sees `rollsRef.current > 0` and works → BUT if the user double-taps quickly, `performRoll` is re-entered and `setIsRolling(true)` happens before the prior tick interval finishes its cleanup, leaving a stuck `isRolling=true` whose interval is orphaned. Also: any thrown error inside the interval (e.g. failed `sfxDiceTick`) leaves `isRolling=true` permanently because there's no try/finally.
+## 4. Award card after monster lands on the last island of the current roll
 
-**Fixes in `performRoll`:**
-1. Wrap the entire roll lifecycle in a `try/finally` so `setIsRolling(false)` and `isRollingRef.current = false` ALWAYS run.
-2. Store the `setInterval` id in a ref and clear it on unmount + at the start of every new `performRoll` (defensive — prevents orphaned intervals).
-3. Add a "watchdog" `useEffect` that detects `isRolling` stuck for >2 seconds with no dice updates and force-resets it.
+Currently `useGameState.rollDice` decides on a card synchronously the moment the dice is rolled, and `Index.tsx` immediately calls `setDrawnCard(result.card)`, so the CardReveal can pop before the hopping animation finishes.
 
-### Issue 4 — Flooding 409 errors on `game_state` upsert (related to "stuck" feeling)
+- In `src/pages/Index.tsx`, defer the `setDrawnCard(result.card)` call and the toast for `islandStarEarned` until the GameBoard's "landed" event fires.
+- In `src/components/GameBoard.tsx`, expose an `onLanded` callback prop that is fired inside the existing `resultTimerRef` block after `landDelay` (where `setShowResult(true)` already runs). Pass `onLanded={() => { if (lastResult?.card) setDrawnCard(lastResult.card); ... }}` from Index.
+- Also gate card-flip auto-trigger (`pendingCardFlips` effect) so it waits until `isRolling===false` and the landing tick has fired.
 
-Every save is POSTing without specifying `onConflict`, so PostgREST treats it as an insert and trips the unique constraint. The `prefer: resolution=merge-duplicates` header isn't enough on its own — supabase-js needs `.upsert(row, { onConflict: 'user_id' })`. These failed saves don't break gameplay but flood the network panel and may slow re-renders enough to compound the stuck-button feel.
+## 5. Auto-roll won't stop
 
-**Fix:** in `useGameState.ts`, change both upsert calls to `.upsert(stateToDb(...), { onConflict: 'user_id' })`.
+Two issues in `src/components/GameBoard.tsx`:
+- The `useEffect` that schedules the next roll re-fires on every `rolls`/`isRolling` change. If the user taps STOP while a roll is mid-flight, `isRolling` flips false, the effect re-schedules another roll because `isAutoRolling` was still true for one render before React commits the stop.
+- `handlePressStart` toggles stop only on pointer-down, but the dial's `onPointerUp` then runs `handlePressEnd(true)` which can call `performRoll()` again because `justStoppedRef` was cleared too early.
 
-### Files to edit
-- `src/components/IsometricBoard.tsx` — fix `getTheme` to cycle levelId; wrap foliage components with `forwardRef`.
-- `src/components/GameBoard.tsx` — try/finally + interval ref + watchdog in `performRoll`.
-- `src/hooks/useGameState.ts` — add `{ onConflict: 'user_id' }` to both `.upsert` calls.
+Fixes:
+- In the auto-roll effect, also bail out if `isAutoRollingRef.current === false` inside the setTimeout callback (already there) AND clear any pending timer in the effect cleanup synchronously.
+- In `stopAutoRoll`, also set a `lastStopAt = Date.now()` timestamp; in `performRoll`, refuse to start if `Date.now() - lastStopAt < 250` AND `isAutoRollingRef.current === false`. This kills the race between pointer-up and the queued timeout.
+- In `handlePressEnd`, only trigger a single roll if `!isAutoRollingRef.current && !justStoppedRef.current && wasHolding && triggered` — keep `justStoppedRef` set true for ~300ms after a stop, then clear it.
+- The AUTO pill button click handler also needs the same guard so the dedicated STOP button reliably stops.
 
-### End-to-end test
-1. Open game, tap PRESS rapidly 10 times in a row — confirm button never gets stuck on the dice spinner; if it ever does, the watchdog auto-clears within 2 seconds.
-2. Use "🧪 +10,000 XP" to push past level 8 — confirm theme cycles correctly (Level 9 = Goblin Forest II with the **same green wood look as Level 1**, Level 10 = Crystal Caves II in cyan, etc.) and the path shape changes per level.
-3. Open browser network panel — confirm `game_state` POSTs return 201/200 instead of 409.
-4. Confirm console no longer shows the `forwardRef` warnings for `DeadTree`, `CloudPuff`, `LevelFoliage`.
+## 6. Guest username + persisted last position
 
+Today guest users get an anonymous Supabase user with no `display_name`, and `game_state` does load by `user_id`, so position already persists for guests as long as the same anon session is kept. Reinforce this:
+
+- In `src/hooks/useAuth.tsx`, after a successful anonymous sign-in, if `profiles.display_name` is null, generate a random fun handle (`Goblin#1234`, `Slime#7782`) and `upsert` it into `profiles` for that user_id.
+- Add a tiny effect on app start: if `user.is_anonymous && !user.user_metadata.guest_name`, call `supabase.auth.updateUser({ data: { guest_name: <generated> } })` so the name follows the session.
+- Surface the guest name in the `TopHud` (small chip near the level badge) so the user can see it.
+- Confirm `useGameState` already reloads from DB on user change (it does, line 211–249) — no extra work, but ensure the local-storage flush on sign-in upserts the latest guest position before reading the row back. Already implemented.
+
+## 7. Energy bonus → lightning bolt
+
+The `bonus` tile already uses `LightningBolt` in 3D, but its 2D emoji and side panels still use `⚡`. The user wants a clearly stylised lightning bolt. Replace:
+- `TILE_EMOJIS.bonus` in `src/components/GameBoard.tsx` from `"⚡"` to a `<Zap />` lucide icon (render conditionally — change the result-banner code to render a Zap component when `tile.type === "bonus"`).
+- In `IsometricBoard.tsx` `LightningBolt`, replace the cone with a proper extruded zigzag bolt `THREE.Shape` (filled yellow, gold emissive). When the monster lands on a bonus tile, fire a `pointLight` flash + a yellow particle burst (hook into existing `spawnParticles` via a new `onLanded` event for the `bonus` type). Already-existing `triggerSkullEffect` pattern can be mirrored as `triggerBonusEffect`.
+
+## Technical notes
+
+- Files to edit: `src/components/GameBoard.tsx`, `src/components/IsometricBoard.tsx`, `src/pages/Index.tsx`, `src/data/levels.ts`, `src/hooks/useAuth.tsx`, `src/hooks/useGameState.ts` (add `absoluteSteps` accessor; `totalSteps` already exists), `src/components/TopHud.tsx` (guest name chip).
+- No DB migrations required — `total_steps`, `position`, and `profiles.display_name` already exist.
+- No new dependencies.
+
+## Out of scope
+
+- Reshuffling tile distribution or rebalancing rewards.
+- Rewriting the season/battle pass system.
