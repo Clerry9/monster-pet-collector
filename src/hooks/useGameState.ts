@@ -346,6 +346,12 @@ export function useGameState() {
     [update]
   );
 
+  // Energy: can be added (overflow allowed) or subtracted (clamped to 0).
+  const addEnergy = useCallback(
+    (amount: number) => update((s) => ({ ...s, energy: Math.max(0, s.energy + amount) })),
+    [update]
+  );
+
   const grantCard = useCallback(
     (cardId: string) => update((s) => ({
       ...s,
