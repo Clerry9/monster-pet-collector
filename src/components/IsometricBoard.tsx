@@ -1092,6 +1092,9 @@ function applySeasonTint(theme: LevelTheme3D, seasonAccent?: string, seasonGlow?
 // Camera rig — chase camera that tracks the monster's actual interpolated position each frame.
 function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: React.MutableRefObject<THREE.Vector3>; isMoving: boolean; recenterRef: React.MutableRefObject<boolean> }) {
   const lerpedTarget = useRef(monsterPosRef.current.clone());
+  // Pull the camera further back/up while moving so the monster stays in frame
+  // even on tall hops or sharp turns. Distance lerps smoothly between idle/moving.
+  const distRef = useRef(1);
   useFrame((state, delta) => {
     const target = monsterPosRef.current;
     // On manual recenter, snap target & camera fast
@@ -1099,13 +1102,19 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
     if (recenter) recenterRef.current = false;
     const speed = recenter ? 1 : isMoving ? Math.min(1, delta * 7) : Math.min(1, delta * 2.5);
     lerpedTarget.current.lerp(target, speed);
+    const targetDist = isMoving ? 1.55 : 1;
+    distRef.current += (targetDist - distRef.current) * Math.min(1, delta * 3);
+    const d = distRef.current;
     const desiredCam = new THREE.Vector3(
-      lerpedTarget.current.x + 4.5,
-      lerpedTarget.current.y + 3.5,
-      lerpedTarget.current.z + 4.5
+      lerpedTarget.current.x + 4.5 * d,
+      lerpedTarget.current.y + 3.5 * d + (isMoving ? 1.2 : 0),
+      lerpedTarget.current.z + 4.5 * d
     );
     state.camera.position.lerp(desiredCam, recenter ? 1 : isMoving ? Math.min(1, delta * 5) : Math.min(1, delta * 1.8));
-    state.camera.lookAt(lerpedTarget.current);
+    // Look slightly above the monster so its head stays comfortably below the top edge.
+    const lookAt = lerpedTarget.current.clone();
+    lookAt.y += isMoving ? 0.6 : 0.3;
+    state.camera.lookAt(lookAt);
   });
   return null;
 }
