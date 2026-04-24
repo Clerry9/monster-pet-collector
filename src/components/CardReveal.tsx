@@ -172,7 +172,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
 
                 {/* Card name */}
                 <motion.div
-                  className="text-lg font-bold font-display text-foreground text-center"
+                  className={`text-lg font-bold font-display ${colors.nameText} text-center drop-shadow`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
@@ -182,7 +182,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
 
                 {/* Theme */}
                 <motion.div
-                  className="text-xs text-muted-foreground text-center"
+                  className={`text-xs ${colors.subText} text-center`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.6 }}
@@ -192,7 +192,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
 
                 {/* Description */}
                 <motion.div
-                  className="text-[11px] text-muted-foreground/80 text-center italic mt-1"
+                  className={`text-[11px] ${colors.subText} text-center italic mt-1`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.7 }}
