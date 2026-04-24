@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronDown, ChevronUp, BookOpen, Trophy, Dice5, Sparkles } from "lucide-react";
 
@@ -30,13 +30,17 @@ const CARD_RARITY_ODDS = [
   { rarity: "Legendary", chance: "5%", color: "text-gold-deep" },
 ];
 
-export function HelpDialog({ open, onClose, onReplayTutorial }: HelpDialogProps) {
+export const HelpDialog = forwardRef<HTMLDivElement, HelpDialogProps>(function HelpDialog(
+  { open, onClose, onReplayTutorial },
+  ref,
+) {
   const [advanced, setAdvanced] = useState(false);
 
   return (
     <AnimatePresence>
       {open && (
         <motion.div
+          ref={ref}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -164,7 +168,7 @@ export function HelpDialog({ open, onClose, onReplayTutorial }: HelpDialogProps)
       )}
     </AnimatePresence>
   );
-}
+});
 
 function Section({
   icon,

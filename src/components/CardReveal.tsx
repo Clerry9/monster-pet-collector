@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GameCard, CardRarity } from "@/data/cards";
 import { Sparkles } from "lucide-react";
 
-const RARITY_COLORS: Record<CardRarity, { bg: string; border: string; glow: string; text: string }> = {
-  common: { bg: "bg-muted", border: "border-muted-foreground/30", glow: "shadow-muted/20", text: "text-muted-foreground" },
-  rare: { bg: "bg-blue-900/60", border: "border-blue-400", glow: "shadow-blue-400/40", text: "text-blue-300" },
-  epic: { bg: "bg-purple-900/60", border: "border-purple-400", glow: "shadow-purple-400/40", text: "text-purple-300" },
-  legendary: { bg: "bg-amber-900/60", border: "border-amber-400", glow: "shadow-amber-400/50", text: "text-amber-300" },
+const RARITY_COLORS: Record<CardRarity, { bg: string; border: string; glow: string; text: string; nameText: string; subText: string }> = {
+  common:    { bg: "bg-muted",         border: "border-muted-foreground/30", glow: "shadow-muted/20",        text: "text-muted-foreground", nameText: "text-foreground",   subText: "text-muted-foreground" },
+  rare:      { bg: "bg-blue-900/70",   border: "border-blue-400",            glow: "shadow-blue-400/40",     text: "text-blue-200",         nameText: "text-white",        subText: "text-blue-100/90" },
+  epic:      { bg: "bg-purple-900/80", border: "border-purple-400",          glow: "shadow-purple-400/40",   text: "text-purple-200",       nameText: "text-white",        subText: "text-purple-100/90" },
+  legendary: { bg: "bg-amber-900/70",  border: "border-amber-400",           glow: "shadow-amber-400/50",    text: "text-amber-200",        nameText: "text-white",        subText: "text-amber-100/90" },
 };
 
 interface CardRevealProps {
@@ -18,8 +18,19 @@ interface CardRevealProps {
 export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
   const [phase, setPhase] = useState<"pack" | "glow" | "reveal">("pack");
 
-  if (!card) return null;
+  // Auto-advance pack → glow → reveal so the award feedback feels as snappy
+  // as the monster hop. Tap still skips ahead / dismisses.
+  useEffect(() => {
+    if (phase !== "pack") return;
+    const t1 = window.setTimeout(() => setPhase("glow"), 550);
+    const t2 = window.setTimeout(() => setPhase("reveal"), 1150);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
+  }, [phase]);
 
+  // Reset phase when a new card appears so the sequence replays.
+  useEffect(() => { if (card) setPhase("pack"); }, [card?.id]);
+
+  if (!card) return null;
   const colors = RARITY_COLORS[card.rarity];
 
   return (
@@ -161,7 +172,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
 
                 {/* Card name */}
                 <motion.div
-                  className="text-lg font-bold font-display text-foreground text-center"
+                  className={`text-lg font-bold font-display ${colors.nameText} text-center drop-shadow`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
@@ -171,7 +182,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
 
                 {/* Theme */}
                 <motion.div
-                  className="text-xs text-muted-foreground text-center"
+                  className={`text-xs ${colors.subText} text-center`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.6 }}
@@ -181,7 +192,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
 
                 {/* Description */}
                 <motion.div
-                  className="text-[11px] text-muted-foreground/80 text-center italic mt-1"
+                  className={`text-[11px] ${colors.subText} text-center italic mt-1`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.7 }}

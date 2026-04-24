@@ -70,23 +70,27 @@ function generateGuestName(): string {
 async function ensureGuestProfile(user: User) {
   if (!user.is_anonymous) return;
   try {
-    // Use the cached name from user_metadata if present so it survives across sessions for the same anon user.
+    // Source of truth precedence: profiles.display_name (server) → user_metadata.guest_name → newly generated.
+    // We always reconcile so re-auth events for the same anon user end up with the SAME name in
+    // both profiles.display_name AND user_metadata.guest_name.
     const metaName = (user.user_metadata as Record<string, unknown> | null)?.guest_name as string | undefined;
     const { data: profile } = await supabase
       .from("profiles")
       .select("display_name")
       .eq("user_id", user.id)
       .maybeSingle();
-    if (profile?.display_name) {
-      if (!metaName) await supabase.auth.updateUser({ data: { guest_name: profile.display_name } });
-      return;
+
+    const finalName = profile?.display_name || metaName || generateGuestName();
+
+    if (!profile?.display_name) {
+      await supabase.from("profiles").upsert(
+        { user_id: user.id, display_name: finalName },
+        { onConflict: "user_id" }
+      );
     }
-    const name = metaName || generateGuestName();
-    await supabase.from("profiles").upsert(
-      { user_id: user.id, display_name: name },
-      { onConflict: "user_id" }
-    );
-    if (!metaName) await supabase.auth.updateUser({ data: { guest_name: name } });
+    if (metaName !== finalName) {
+      await supabase.auth.updateUser({ data: { guest_name: finalName } });
+    }
   } catch {
     // Non-fatal — guest can still play without a display name.
   }

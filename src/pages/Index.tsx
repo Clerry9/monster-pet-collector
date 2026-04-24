@@ -67,6 +67,8 @@ const Index = () => {
   const [prestigeTier, setPrestigeTier] = useState<number | null>(null);
   const [drawnCard, setDrawnCard] = useState<GameCard | null>(null);
   const prevLevelRef = useRef(game.level);
+  // Quick visual burst when an Island Star is awarded after a hop lands.
+  const [starBurstKey, setStarBurstKey] = useState(0);
 
   // Tutorial + help
   const mainTutorial = useTutorial("main");
@@ -159,6 +161,7 @@ const Index = () => {
       setDrawnCard(result.card);
     }
     if (result.islandStarEarned) {
+      setStarBurstKey((k) => k + 1);
       toast("⭐ Island Star!", {
         description: `${game.islandStars}/5 to a free card flip`,
         duration: 1800,
@@ -356,6 +359,33 @@ const Index = () => {
       </div>
 
       <CardReveal card={drawnCard} onComplete={() => setDrawnCard(null)} />
+
+      {/* Island Star burst — short, snappy, matches the monster hop */}
+      <AnimatePresence>
+        {starBurstKey > 0 && (
+          <motion.div
+            key={starBurstKey}
+            className="pointer-events-none fixed inset-0 z-[95] flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            onAnimationComplete={() => {
+              window.setTimeout(() => setStarBurstKey(0), 700);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.2, rotate: -25, opacity: 0 }}
+              animate={{ scale: [0.2, 1.3, 1], rotate: [-25, 10, 0], opacity: [0, 1, 1] }}
+              transition={{ duration: 0.55, ease: "easeOut" }}
+              className="text-7xl drop-shadow-[0_0_24px_rgba(253,224,71,0.9)]"
+              aria-hidden
+            >
+              ⭐
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="w-full max-w-md flex-1 flex items-start justify-center py-4 overflow-y-auto">
         <AnimatePresence mode="wait">

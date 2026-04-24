@@ -221,9 +221,12 @@ function pathPointAt(absIdx: number, levelId: number = 1): THREE.Vector3 {
   return new THREE.Vector3(x, y, z);
 }
 
-/** Build a window of contiguous path points around the player's absolute step. */
-const WINDOW_BEFORE = 3;
-const WINDOW_AFTER = 14;
+/** Build a window of contiguous path points around the player's absolute step.
+ * WINDOW_BEFORE is generous so trailing tiles stay rendered while the monster
+ * mid-hops several tiles forward (avoids islands "disappearing" during a hop).
+ */
+const WINDOW_BEFORE = 10;
+const WINDOW_AFTER = 16;
 function buildPathWindow(centerAbs: number, levelId: number): { points: THREE.Vector3[]; startAbs: number } {
   const startAbs = Math.max(0, centerAbs - WINDOW_BEFORE);
   const points: THREE.Vector3[] = [];
@@ -308,9 +311,10 @@ function LightningBolt({ isActive }: { isActive: boolean }) {
     ref.current.position.y = 1.18 + Math.sin(s.clock.elapsedTime * 3) * 0.06;
     ref.current.rotation.y = s.clock.elapsedTime * 1.2;
     if (matRef.current) {
+      // Calmer pulse — avoids over-bright flicker on mobile while still reading clearly.
       matRef.current.emissiveIntensity = isActive
-        ? 1.4 + Math.sin(s.clock.elapsedTime * 12) * 0.6
-        : 0.7 + Math.sin(s.clock.elapsedTime * 4) * 0.2;
+        ? 0.95 + Math.sin(s.clock.elapsedTime * 5) * 0.25
+        : 0.55 + Math.sin(s.clock.elapsedTime * 3) * 0.12;
     }
   });
   return (
@@ -318,7 +322,7 @@ function LightningBolt({ isActive }: { isActive: boolean }) {
       <mesh ref={ref} geometry={geometry} castShadow>
         <meshStandardMaterial ref={matRef} color="#FDE047" emissive="#FACC15" emissiveIntensity={0.7} metalness={0.6} roughness={0.15} />
       </mesh>
-      {isActive && <pointLight color="#FDE047" intensity={1.6} distance={1.6} />}
+      {isActive && <pointLight color="#FDE047" intensity={1.0} distance={1.4} decay={2} />}
     </group>
   );
 }
@@ -1126,7 +1130,7 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
   return null;
 }
 
-function IsometricBoardScene({ absoluteStep, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow, recenterRef }: { absoluteStep: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string; recenterRef: React.MutableRefObject<boolean> }) {
+const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string; recenterRef: React.MutableRefObject<boolean> }>(function IsometricBoardScene({ absoluteStep, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow, recenterRef }, _ref) {
   // Pure path function bound to current level
   const pathFn = useMemo(() => (i: number) => pathPointAt(i, levelId), [levelId]);
   const { points: windowPoints, startAbs } = useMemo(
@@ -1190,7 +1194,7 @@ function IsometricBoardScene({ absoluteStep, monster, isMoving, movementResult, 
       />
     </>
   );
-}
+});
 
 export function IsometricBoard({ position, absoluteStep, monster, isMoving, movementResult, levelId = 1, seasonAccent, seasonGlow, fullscreen = false }: { position: number; absoluteStep?: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId?: number; seasonAccent?: string; seasonGlow?: string; fullscreen?: boolean }) {
   // Fall back to `position` if absoluteStep isn't provided (legacy callers).
@@ -1198,6 +1202,20 @@ export function IsometricBoard({ position, absoluteStep, monster, isMoving, move
   const theme = applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow);
   const recenterRef = useRef(false);
   const lastTapRef = useRef(0);
+  const [showDebug, setShowDebug] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("monster.debugBoard") === "1";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("monster.debugBoard", showDebug ? "1" : "0");
+  }, [showDebug]);
+
+  // Debug derivations (cheap; only shown when toggled on)
+  const windowStart = Math.max(0, absStep - WINDOW_BEFORE);
+  const windowEnd = windowStart + WINDOW_BEFORE + WINDOW_AFTER;
+  const activeTileIndex = ((absStep % BOARD_TILES.length) + BOARD_TILES.length) % BOARD_TILES.length;
+  const activeTileType = BOARD_TILES[activeTileIndex]?.type ?? "?";
 
   const handleDoubleTap = () => { recenterRef.current = true; };
   const handlePointerDown = () => {
@@ -1234,6 +1252,21 @@ export function IsometricBoard({ position, absoluteStep, monster, isMoving, move
       >
         🎯
       </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); setShowDebug((v) => !v); }}
+        aria-label="Toggle board debug overlay"
+        className="absolute bottom-3 right-16 z-20 w-10 h-10 rounded-full bg-card/90 border-2 border-wood-dark shadow-chunky-sm flex items-center justify-center text-[10px] font-display hover:scale-105 active:scale-95 transition"
+        title="Dev: show absoluteStep / window / active tile"
+      >
+        DBG
+      </button>
+      {showDebug && (
+        <div className="absolute top-3 right-3 z-20 pointer-events-none rounded-lg bg-black/70 text-cream-light font-mono text-[10px] leading-tight px-2 py-1.5 border border-cream/30">
+          <div>abs: <b>{absStep}</b></div>
+          <div>win: <b>{windowStart}</b>–<b>{windowEnd}</b></div>
+          <div>tile[{activeTileIndex}]: <b>{activeTileType}</b></div>
+        </div>
+      )}
     </div>
   );
 }
