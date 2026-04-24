@@ -589,12 +589,13 @@ interface TileProps {
   index: number;
   playerPosition: number;
   theme: LevelTheme3D;
+  forceVisible?: boolean;
 }
 
-function Tile({ tile, position, isActive, index, playerPosition, theme }: TileProps) {
+function Tile({ tile, position, isActive, index, playerPosition, theme, forceVisible }: TileProps) {
   const islandRef = useRef<THREE.Group>(null);
   const distFromPlayer = Math.abs(index - playerPosition);
-  const isNearby = distFromPlayer <= 5;
+  const isNearby = forceVisible || distFromPlayer <= 5;
   const accent = TILE_ACCENT[tile.type];
   const r = (n: number) => seededRandom(index * 17 + n);
 
