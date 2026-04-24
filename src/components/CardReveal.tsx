@@ -22,6 +22,15 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
 
   const colors = RARITY_COLORS[card.rarity];
 
+  // Auto-advance pack → glow → reveal so the award feedback feels as snappy
+  // as the monster hop. Tap still skips ahead / dismisses.
+  useEffect(() => {
+    if (phase !== "pack") return;
+    const t1 = window.setTimeout(() => setPhase("glow"), 550);
+    const t2 = window.setTimeout(() => setPhase("reveal"), 1150);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
+  }, [phase]);
+
   return (
     <AnimatePresence>
       {card && (
