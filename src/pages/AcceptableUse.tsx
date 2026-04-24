@@ -28,7 +28,7 @@ const AcceptableUse = () => (
 
       <section className="space-y-3">
         <h2 className="text-2xl font-semibold">Reporting</h2>
-        <p>Report violations to <a className="text-primary underline" href="mailto:support@example.com">support@example.com</a> with as much detail as possible (usernames, timestamps, screenshots).</p>
+        <p>Report violations to <a className="text-primary underline" href="mailto:MPetCinfo@proton.me">MPetCinfo@proton.me</a> with as much detail as possible (usernames, timestamps, screenshots).</p>
       </section>
     </article>
   </main>
