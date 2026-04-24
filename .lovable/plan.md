@@ -1,72 +1,101 @@
-# Plan: Board polish, infinite path, longer levels, auto-roll & guest fixes
+## Goal
 
-## 1. Bottom buttons overlap (BetSelector + roll dial + dock)
+1. Replace the misleading "energy" label on the bet pill with a real **Energy resource** that auto-refills every 3 minutes up to a level-scaling cap of 150, and lets earned energy stack above the cap.
+2. Fix the board so the **islands and monster never disappear during a hop** (they currently fade because the dimming opacity is keyed off `isNearby` of the player's pre-hop tile).
+3. Do a **beta-readiness audit** across the 8 base level themes and report findings (renders, level-up flow, prestige, energy, purchases fallback).
 
-In `src/pages/Index.tsx`, the dial (lifted ~150px) sits on top of the BetSelector pill row, and on small screens the BET pill above the dial collides with the BetSelector row. Restructure the bottom stack:
+---
 
-- Wrap BetSelector + dock in a single `flex flex-col` column (already present) but add `gap` and a transparent spacer for the dial, so the dial's vertical space is reserved.
-- In `src/components/GameBoard.tsx`, change the dial's fullscreen offset from a fixed `150px` to `calc(env(safe-area-inset-bottom,0px) + 4.25rem + 3rem)` and pin it relative to the bottom dock height. Move the AUTO pill from a left side-row into a slot tucked into the dial bottom-left so it stops shoving the BET pill off-center.
-- Hide the standalone `BET ×N` pill above the dial when the BetSelector row is visible (it's redundant) — show it only when BetSelector is collapsed.
-- Reduce dial size on portrait <380px to `w-[76px] h-[76px]` to keep clearance.
+## 1. Energy system
 
-## 2. Make the island path feel infinite
+### Rules (from your spec)
 
-Today `MonsterPawn` (`src/components/IsometricBoard.tsx`) advances `position` modulo `pathPoints.length`. When the player wraps from tile 29 → 0, the monster currently teleports back to the start of the visible island.
+- Resource name: **Energy** (the "⚡" pill currently in `BetSelector`).
+- **Cost**: each dice roll costs 1 energy (replaces the existing `rolls` consumption — `rolls` becomes legacy "Free Roll" packs that top up energy instead).
+- **Regen**: +1 energy every **180 seconds** of real time, while `current ≤ cap`.
+- **Soft cap** = `floor(150 × (1 + 0.10 × (level − 1)))`. So L1 = 150, L2 = 165, L3 = 180, L10 = 285, etc.
+- **Overflow**: regen stops at the cap, but energy *granted* by tiles, packs, ads, daily reward, and shop purchases is added on top and persists above the cap (it just stops auto-regenerating until you spend back down).
+- Display: `current / cap` with a "+N over" badge when `current > cap`.
 
-Approach: build a "rolling chunk" of path tiles around the player so the monster walks forward continuously and the world appears endless.
+### Storage
 
-- Replace the fixed `pathPoints = generatePath(BOARD_TILES.length, levelId)` with a chunked generator that returns a window of tiles around the current absolute step (e.g. `[absoluteStep-4 .. absoluteStep+12]`). Keep `BOARD_TILES` semantics for game logic; only the **visual** path becomes infinite.
-- Track an `absoluteSteps` counter (already exists as `totalSteps` in game state) and pass it to `IsometricBoard`. The renderer maps each visible tile to `BOARD_TILES[absIndex % BOARD_TILES.length]` for type/value, but uses a continuous Vector3 path generator seeded by `levelId` that produces points for any integer index (no wrap-around).
-- Update `MonsterPawn` so `stepStart`/`stepEnd` interpolate between consecutive absolute path indices — it never resets to index 0.
-- After each roll, slide the visible chunk forward (drop trailing tiles, append new ones) so the world scrolls under the monster. Camera keeps centering on the monster ref, so the player sees a continuous trail.
-- Add a subtle "horizon fade" at the far end (existing fog already covers this).
+Add to `GameState` in `src/hooks/useGameState.ts`:
 
-## 3. Levels 60% longer
+```ts
+energy: number;          // current value (can exceed cap)
+energyUpdatedAt: string; // ISO timestamp of last regen tick
+```
 
-In `src/data/levels.ts`, `xpForLevel` uses `XP_BASE = 100` with 1.15 growth. Multiply per-level XP gap by 1.6 by setting `XP_BASE = 160`. This makes every level take 60% more XP without changing growth curve, level themes, or prestige math.
+Mirror columns on `game_state` table:
 
-## 4. Award card after monster lands on the last island of the current roll
+```sql
+alter table public.game_state
+  add column if not exists energy integer not null default 150,
+  add column if not exists energy_updated_at timestamptz not null default now();
+```
 
-Currently `useGameState.rollDice` decides on a card synchronously the moment the dice is rolled, and `Index.tsx` immediately calls `setDrawnCard(result.card)`, so the CardReveal can pop before the hopping animation finishes.
+(Migration tool will be used in build mode; no other schema touched.)
 
-- In `src/pages/Index.tsx`, defer the `setDrawnCard(result.card)` call and the toast for `islandStarEarned` until the GameBoard's "landed" event fires.
-- In `src/components/GameBoard.tsx`, expose an `onLanded` callback prop that is fired inside the existing `resultTimerRef` block after `landDelay` (where `setShowResult(true)` already runs). Pass `onLanded={() => { if (lastResult?.card) setDrawnCard(lastResult.card); ... }}` from Index.
-- Also gate card-flip auto-trigger (`pendingCardFlips` effect) so it waits until `isRolling===false` and the landing tick has fired.
+### Hook changes (`useGameState.ts`)
 
-## 5. Auto-roll won't stop
+- New helper `energyCapForLevel(level)` → `Math.floor(150 * (1 + 0.10 * (level - 1)))`.
+- New helper `applyRegen(state, now)` — computes `ticks = floor((now - energyUpdatedAt) / 180_000)`, refills up to cap, advances `energyUpdatedAt` by `ticks * 180_000`. Pure; called on load and on every `update()`.
+- New `useEffect` with `setInterval(60_000)` to re-tick the state once a minute so the UI stays current (and to flush regen to DB via the existing debounced `saveToDb`).
+- `rollDice()` now requires `state.energy >= 1` instead of `state.rolls >= 1`, and decrements `energy` by 1.
+- New `addEnergy(amount)`, `setEnergy(value)` actions. Daily reward, ads, packs, mini-game costs, etc. switch from `addRolls` → `addEnergy`. `addRolls` stays as a no-op alias for one release for safety, marked `@deprecated`.
 
-Two issues in `src/components/GameBoard.tsx`:
-- The `useEffect` that schedules the next roll re-fires on every `rolls`/`isRolling` change. If the user taps STOP while a roll is mid-flight, `isRolling` flips false, the effect re-schedules another roll because `isAutoRolling` was still true for one render before React commits the stop.
-- `handlePressStart` toggles stop only on pointer-down, but the dial's `onPointerUp` then runs `handlePressEnd(true)` which can call `performRoll()` again because `justStoppedRef` was cleared too early.
+### UI changes
 
-Fixes:
-- In the auto-roll effect, also bail out if `isAutoRollingRef.current === false` inside the setTimeout callback (already there) AND clear any pending timer in the effect cleanup synchronously.
-- In `stopAutoRoll`, also set a `lastStopAt = Date.now()` timestamp; in `performRoll`, refuse to start if `Date.now() - lastStopAt < 250` AND `isAutoRollingRef.current === false`. This kills the race between pointer-up and the queued timeout.
-- In `handlePressEnd`, only trigger a single roll if `!isAutoRollingRef.current && !justStoppedRef.current && wasHolding && triggered` — keep `justStoppedRef` set true for ~300ms after a stop, then clear it.
-- The AUTO pill button click handler also needs the same guard so the dedicated STOP button reliably stops.
+- `BetSelector.tsx`: rename the pill class to `pill-energy` (already named that) and bind the meter to `current / cap` instead of `currentBet / maxBet`. Show the numeric `current/cap` and the overflow badge.
+- `TopHud.tsx`: add an energy chip next to coins showing `⚡ current/cap` and a small "next +1 in m:ss" tooltip.
+- `Index.tsx`: replace the `🎲 {game.rolls}` stat readout with `⚡ {game.energy}/{cap}`.
+- `DiceShop.tsx` / `SpecialPacks.tsx` / `LimitedTimeBundle.tsx`: copy update — packs now read "Adds N ⚡ to your energy".
 
-## 6. Guest username + persisted last position
+---
 
-Today guest users get an anonymous Supabase user with no `display_name`, and `game_state` does load by `user_id`, so position already persists for guests as long as the same anon session is kept. Reinforce this:
+## 2. Board / island visibility during hops
 
-- In `src/hooks/useAuth.tsx`, after a successful anonymous sign-in, if `profiles.display_name` is null, generate a random fun handle (`Goblin#1234`, `Slime#7782`) and `upsert` it into `profiles` for that user_id.
-- Add a tiny effect on app start: if `user.is_anonymous && !user.user_metadata.guest_name`, call `supabase.auth.updateUser({ data: { guest_name: <generated> } })` so the name follows the session.
-- Surface the guest name in the `TopHud` (small chip near the level badge) so the user can see it.
-- Confirm `useGameState` already reloads from DB on user change (it does, line 211–249) — no extra work, but ensure the local-storage flush on sign-in upserts the latest guest position before reading the row back. Already implemented.
+**Symptom**: islands and the monster vanish mid-hop on the current build.
 
-## 7. Energy bonus → lightning bolt
+**Root cause** (confirmed in `src/components/IsometricBoard.tsx`):
 
-The `bonus` tile already uses `LightningBolt` in 3D, but its 2D emoji and side panels still use `⚡`. The user wants a clearly stylised lightning bolt. Replace:
-- `TILE_EMOJIS.bonus` in `src/components/GameBoard.tsx` from `"⚡"` to a `<Zap />` lucide icon (render conditionally — change the result-banner code to render a Zap component when `tile.type === "bonus"`).
-- In `IsometricBoard.tsx` `LightningBolt`, replace the cone with a proper extruded zigzag bolt `THREE.Shape` (filled yellow, gold emissive). When the monster lands on a bonus tile, fire a `pointLight` flash + a yellow particle burst (hook into existing `spawnParticles` via a new `onLanded` event for the `bonus` type). Already-existing `triggerSkullEffect` pattern can be mirrored as `triggerBonusEffect`.
+- `Tile` (lines ~620–680) uses `isNearby = Math.abs(absIdx - playerPosition) <= NEARBY_WINDOW`. `playerPosition` updates instantly when `position` changes (before the hop animation finishes), so trailing tiles drop to `opacity 0.3` instantly.
+- `MonsterPawn` is keyed by `absoluteIndex`, so a multi-step roll re-mounts and briefly renders nothing on the first frame after the state change.
+- During hops the `windowPoints` recompute on every `absoluteStep` change, dropping the previous origin tile from the list before the monster has visually arrived there.
 
-## Technical notes
+**Fix**:
 
-- Files to edit: `src/components/GameBoard.tsx`, `src/components/IsometricBoard.tsx`, `src/pages/Index.tsx`, `src/data/levels.ts`, `src/hooks/useAuth.tsx`, `src/hooks/useGameState.ts` (add `absoluteSteps` accessor; `totalSteps` already exists), `src/components/TopHud.tsx` (guest name chip).
-- No DB migrations required — `total_steps`, `position`, and `profiles.display_name` already exist.
-- No new dependencies.
+- Track the monster's interpolated `currentAbsRef` (already maintained in `MonsterPawn`); pass it down to `Tile` via a context/prop so `isNearby` is keyed off the *visual* position, not the *logical* one.
+- Widen `WINDOW_BEFORE` to `max(10, lastSteps + 4)` while `isMoving`, so the previous tiles stay rendered for the entire hop.
+- Stop unmounting `MonsterPawn` on `absoluteIndex` change — let it animate from old → new without a remount (use a ref instead of the index as the key).
+- Keep tile `opacity` ≥ 0.85 for the entire window during `isMoving`; only fade trailing tiles after the hop settles.
 
-## Out of scope
+---
 
-- Reshuffling tile distribution or rebalancing rewards.
-- Rewriting the season/battle pass system.
+## 3. Beta-readiness audit
+
+After the changes above, in build mode I will:
+
+- Programmatically simulate XP from level 1 → 1200 to verify `getLevelForXp` / `xpForLevel` / prestige tier crossings have no NaN, integer overflow, or off-by-ones.
+- Hit each of the 8 base themes (levels 1, 2, 3, 4, 5, 6, 7, 8) by setting `xp` via the `+10000 XP (DEV)` button and confirm:
+  - 3D scene renders (board, ocean, foliage, monster).
+  - Energy regen survives a level-up (cap recomputes, `current` is preserved including overflow).
+  - Tile modifiers fire (e.g. Crystal Caves chest +25%, Lava Peaks star +50%, Celestial Plane double).
+  - Level-up + prestige celebrations don't block input.
+- Verify `/auth`, `/pricing` (live + fallback), `/terms`, `/privacy`, `/refund`, and the in-game shop checkout all reachable.
+- Capture findings in a short "Beta readiness" report at the end of the build turn.
+
+---
+
+## Files to change
+
+- `src/hooks/useGameState.ts` — energy state + regen + actions
+- `src/components/BetSelector.tsx` — energy bar wiring
+- `src/components/TopHud.tsx` — energy chip + countdown
+- `src/components/IsometricBoard.tsx` — visual-position based dimming, wider window during hops, stable monster mount
+- `src/components/GameBoard.tsx` — pass `isMoving` through to dim logic
+- `src/pages/Index.tsx` — replace `🎲 rolls` with energy in the header strip
+- `src/components/DiceShop.tsx`, `SpecialPacks.tsx`, `LimitedTimeBundle.tsx`, `RewardedAdButton.tsx`, `DailyReward.tsx`, `SpinWheel.tsx`, `MiniGame.tsx`, `MiniGameJack.tsx` — switch reward grants from `addRolls` to `addEnergy`
+- One DB migration adding `energy` + `energy_updated_at` columns
+
+No changes to legal pages, Paddle wiring, or auth flows.
