@@ -18,10 +18,6 @@ interface CardRevealProps {
 export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
   const [phase, setPhase] = useState<"pack" | "glow" | "reveal">("pack");
 
-  if (!card) return null;
-
-  const colors = RARITY_COLORS[card.rarity];
-
   // Auto-advance pack → glow → reveal so the award feedback feels as snappy
   // as the monster hop. Tap still skips ahead / dismisses.
   useEffect(() => {
@@ -30,6 +26,12 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
     const t2 = window.setTimeout(() => setPhase("reveal"), 1150);
     return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
   }, [phase]);
+
+  // Reset phase when a new card appears so the sequence replays.
+  useEffect(() => { if (card) setPhase("pack"); }, [card?.id]);
+
+  if (!card) return null;
+  const colors = RARITY_COLORS[card.rarity];
 
   return (
     <AnimatePresence>
