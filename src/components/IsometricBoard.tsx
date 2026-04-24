@@ -227,10 +227,11 @@ function pathPointAt(absIdx: number, levelId: number = 1): THREE.Vector3 {
  */
 const WINDOW_BEFORE = 10;
 const WINDOW_AFTER = 16;
-function buildPathWindow(centerAbs: number, levelId: number): { points: THREE.Vector3[]; startAbs: number } {
-  const startAbs = Math.max(0, centerAbs - WINDOW_BEFORE);
+function buildPathWindow(centerAbs: number, levelId: number, extraBefore = 0): { points: THREE.Vector3[]; startAbs: number } {
+  const before = WINDOW_BEFORE + Math.max(0, extraBefore);
+  const startAbs = Math.max(0, centerAbs - before);
   const points: THREE.Vector3[] = [];
-  for (let i = 0; i < WINDOW_BEFORE + WINDOW_AFTER + 1; i++) {
+  for (let i = 0; i < before + WINDOW_AFTER + 1; i++) {
     points.push(pathPointAt(startAbs + i, levelId));
   }
   return { points, startAbs };
@@ -588,12 +589,13 @@ interface TileProps {
   index: number;
   playerPosition: number;
   theme: LevelTheme3D;
+  forceVisible?: boolean;
 }
 
-function Tile({ tile, position, isActive, index, playerPosition, theme }: TileProps) {
+function Tile({ tile, position, isActive, index, playerPosition, theme, forceVisible }: TileProps) {
   const islandRef = useRef<THREE.Group>(null);
   const distFromPlayer = Math.abs(index - playerPosition);
-  const isNearby = distFromPlayer <= 5;
+  const isNearby = forceVisible || distFromPlayer <= 5;
   const accent = TILE_ACCENT[tile.type];
   const r = (n: number) => seededRandom(index * 17 + n);
 
@@ -1133,9 +1135,12 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
 const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string; recenterRef: React.MutableRefObject<boolean> }>(function IsometricBoardScene({ absoluteStep, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow, recenterRef }, _ref) {
   // Pure path function bound to current level
   const pathFn = useMemo(() => (i: number) => pathPointAt(i, levelId), [levelId]);
+  // Widen the trailing window to cover the most recent hop length, so trailing
+  // islands don't disappear behind the monster while a long roll is in flight.
+  const lastSteps = movementResult?.steps ?? 0;
   const { points: windowPoints, startAbs } = useMemo(
-    () => buildPathWindow(absoluteStep, levelId),
-    [absoluteStep, levelId]
+    () => buildPathWindow(absoluteStep, levelId, lastSteps + 4),
+    [absoluteStep, levelId, lastSteps]
   );
   const currentTilePos = pathFn(absoluteStep);
   const trailPosRef = useRef<THREE.Vector3[]>([]);
@@ -1165,6 +1170,7 @@ const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number
             index={absIdx}
             playerPosition={absoluteStep}
             theme={theme}
+            forceVisible={isMoving}
           />
         );
       })}

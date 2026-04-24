@@ -5,18 +5,27 @@ interface BetSelectorProps {
   coins: number;
   currentBet: number;
   onSetBet: (mult: number) => void;
+  /** Real energy resource — when provided, the ⚡ pill reflects current/cap. */
+  energy?: number;
+  energyCap?: number;
 }
 
-export function BetSelector({ coins, currentBet, onSetBet }: BetSelectorProps) {
+export function BetSelector({ coins, currentBet, onSetBet, energy, energyCap }: BetSelectorProps) {
   const available = getAvailableBets(coins);
-  // Energy bar — visualised from current bet relative to max available
-  const maxBet = available[available.length - 1] ?? 1;
-  const energyPct = Math.max(8, Math.round((currentBet / maxBet) * 100));
+  // Real energy if provided, otherwise fall back to the legacy bet-relative pill.
+  const useReal = typeof energy === "number" && typeof energyCap === "number" && energyCap > 0;
+  const cur = useReal ? Math.min(energy!, energyCap!) : currentBet;
+  const max = useReal ? energyCap! : (available[available.length - 1] ?? 1);
+  const overflow = useReal ? Math.max(0, energy! - energyCap!) : 0;
+  const energyPct = Math.max(6, Math.min(100, Math.round((cur / max) * 100)));
 
   return (
     <div className="flex items-center gap-3" role="radiogroup" aria-label="Bet multiplier">
       {/* Energy pill */}
-      <div className="pill-energy flex items-center gap-1.5 px-3 py-1.5 min-w-[110px]">
+      <div
+        className="pill-energy flex items-center gap-1.5 px-3 py-1.5 min-w-[120px]"
+        title={useReal ? `Energy refills 1 every 3 minutes up to ${energyCap}` : undefined}
+      >
         <span aria-hidden="true">⚡</span>
         <div className="flex-1 h-1.5 rounded-full bg-wood-dark/40 overflow-hidden">
           <motion.div
@@ -26,7 +35,10 @@ export function BetSelector({ coins, currentBet, onSetBet }: BetSelectorProps) {
             transition={{ type: "spring", stiffness: 200, damping: 20 }}
           />
         </div>
-        <span className="text-[11px] font-display leading-none">{currentBet}/{maxBet}</span>
+        <span className="text-[11px] font-display leading-none">
+          {useReal ? `${energy}/${energyCap}` : `${currentBet}/${max}`}
+          {overflow > 0 && <span className="ml-1 text-[9px] opacity-90">+{overflow}</span>}
+        </span>
       </div>
 
       {/* Bet multiplier picker — gold pills */}

@@ -23,6 +23,8 @@ export type Database = {
           coins: number
           collected_cards: string[]
           created_at: string
+          energy: number
+          energy_updated_at: string
           id: string
           island_stars: number
           last_spin_at: string | null
@@ -46,6 +48,8 @@ export type Database = {
           coins?: number
           collected_cards?: string[]
           created_at?: string
+          energy?: number
+          energy_updated_at?: string
           id?: string
           island_stars?: number
           last_spin_at?: string | null
@@ -69,6 +73,8 @@ export type Database = {
           coins?: number
           collected_cards?: string[]
           created_at?: string
+          energy?: number
+          energy_updated_at?: string
           id?: string
           island_stars?: number
           last_spin_at?: string | null

@@ -92,12 +92,46 @@ export interface GameState {
   islandStars: number;
   pendingCardFlips: number;
   lastSpinAt: string | null;
+  energy: number;
+  energyUpdatedAt: string; // ISO timestamp of last regen tick
 }
 
 // Each "island" = ~5 tiles. Stars convert at this ratio.
 export const STARS_PER_FLIP = 5;
 export const TILES_PER_ISLAND = 5;
 export const SPIN_COOLDOWN_MS = 12 * 60 * 60 * 1000;
+
+// --- Energy system ---
+// Auto-regen 1 ⚡ every ENERGY_REGEN_MS up to a level-scaled cap.
+// Cap = floor(150 * (1 + 0.10 * (level - 1))).  L1=150, L2=165, L10=285.
+// Energy may exceed the cap if granted directly (packs, ads, daily reward),
+// in which case regen pauses until the player spends back down.
+export const ENERGY_BASE_CAP = 150;
+export const ENERGY_REGEN_MS = 3 * 60 * 1000;
+export const ENERGY_PER_LEVEL_PCT = 0.10;
+
+export function energyCapForLevel(level: number): number {
+  return Math.floor(ENERGY_BASE_CAP * (1 + ENERGY_PER_LEVEL_PCT * Math.max(0, level - 1)));
+}
+
+/** Pure: advance regen ticks since `state.energyUpdatedAt`.
+ *  Caps at level cap, but leaves overflow energy alone (no auto-tick when at/over cap). */
+function applyRegen(state: GameState, nowMs: number): GameState {
+  const last = Date.parse(state.energyUpdatedAt) || nowMs;
+  const cap = energyCapForLevel(state.level);
+  if (state.energy >= cap) {
+    // Overflow or full — reset the timer so regen resumes only after dropping below cap.
+    return state.energyUpdatedAt === new Date(nowMs).toISOString()
+      ? state
+      : { ...state, energyUpdatedAt: new Date(nowMs).toISOString() };
+  }
+  const elapsed = Math.max(0, nowMs - last);
+  const ticks = Math.floor(elapsed / ENERGY_REGEN_MS);
+  if (ticks <= 0) return state;
+  const next = Math.min(cap, state.energy + ticks);
+  const consumed = (next - state.energy) * ENERGY_REGEN_MS;
+  return { ...state, energy: next, energyUpdatedAt: new Date(last + consumed).toISOString() };
+}
 
 const DEFAULT_STATE: GameState = {
   coins: 50,
@@ -117,6 +151,8 @@ const DEFAULT_STATE: GameState = {
   islandStars: 0,
   pendingCardFlips: 0,
   lastSpinAt: null,
+  energy: ENERGY_BASE_CAP,
+  energyUpdatedAt: new Date(0).toISOString(),
 };
 
 const STORAGE_KEY = "monster-mash-state";
@@ -144,6 +180,8 @@ function loadLocalState(): GameState {
         islandStars: p.islandStars ?? 0,
         pendingCardFlips: p.pendingCardFlips ?? 0,
         lastSpinAt: p.lastSpinAt ?? null,
+        energy: p.energy ?? ENERGY_BASE_CAP,
+        energyUpdatedAt: p.energyUpdatedAt ?? new Date().toISOString(),
       };
     }
   } catch {}
@@ -174,6 +212,8 @@ function dbToState(row: any): GameState {
     islandStars: row.island_stars ?? 0,
     pendingCardFlips: row.pending_card_flips ?? 0,
     lastSpinAt: row.last_spin_at ?? null,
+    energy: row.energy ?? ENERGY_BASE_CAP,
+    energyUpdatedAt: row.energy_updated_at ?? new Date().toISOString(),
   };
 }
 
@@ -197,12 +237,14 @@ function stateToDb(state: GameState, userId: string) {
     island_stars: state.islandStars,
     pending_card_flips: state.pendingCardFlips,
     last_spin_at: state.lastSpinAt,
+    energy: state.energy,
+    energy_updated_at: state.energyUpdatedAt,
   };
 }
 
 export function useGameState() {
   const { user } = useAuth();
-  const [state, setState] = useState<GameState>(loadLocalState);
+  const [state, setState] = useState<GameState>(() => applyRegen(loadLocalState(), Date.now()));
   const [dbLoaded, setDbLoaded] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastUserIdRef = useRef<string | null>(null);
@@ -271,7 +313,7 @@ export function useGameState() {
   const update = useCallback(
     (updater: (prev: GameState) => GameState) => {
       setState((prev) => {
-        const next = updater(prev);
+        const next = applyRegen(updater(prev), Date.now());
         saveLocalState(next);
         saveToDb(next);
         return next;
@@ -280,6 +322,20 @@ export function useGameState() {
     [saveToDb]
   );
 
+  // Tick once a minute to keep the energy counter and timer fresh in the UI.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setState((prev) => {
+        const next = applyRegen(prev, Date.now());
+        if (next === prev) return prev;
+        saveLocalState(next);
+        saveToDb(next);
+        return next;
+      });
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [saveToDb]);
+
   const addCoins = useCallback(
     (amount: number) => update((s) => ({ ...s, coins: Math.max(0, s.coins + amount) })),
     [update]
@@ -287,6 +343,12 @@ export function useGameState() {
 
   const addRolls = useCallback(
     (amount: number) => update((s) => ({ ...s, rolls: Math.max(0, s.rolls + amount) })),
+    [update]
+  );
+
+  // Energy: can be added (overflow allowed) or subtracted (clamped to 0).
+  const addEnergy = useCallback(
+    (amount: number) => update((s) => ({ ...s, energy: Math.max(0, s.energy + amount) })),
     [update]
   );
 
@@ -320,7 +382,7 @@ export function useGameState() {
   // Monster XP is now gained from "food" tiles during rollDice, no more tapping
 
   const rollDice = useCallback((): { steps: number; tile: BoardTile; card?: GameCard; monsterLevelUp?: { name: string; level: number; coinBonus: number }; islandStarEarned?: boolean } | null => {
-    if (state.rolls <= 0) return null;
+    if (state.energy <= 0) return null;
     const tier = DICE_TIERS.find((t) => t.id === state.activeDiceTier) ?? DICE_TIERS[0];
     const steps = Math.floor(Math.random() * tier.maxRoll) + 1;
     const newPosition = (state.position + steps) % BOARD_TILES.length;
@@ -410,7 +472,8 @@ export function useGameState() {
 
       return {
         ...s,
-        rolls: s.rolls - 1,
+        rolls: s.rolls,
+        energy: Math.max(0, s.energy - 1),
         position: newPosition,
         totalSteps: s.totalSteps + steps,
         coins: Math.max(0, s.coins + coinGain + bonusCoins),
@@ -460,7 +523,7 @@ export function useGameState() {
     (packId: string) => {
       const pack = DICE_PACKS.find((p) => p.id === packId);
       if (!pack || state.coins < pack.costCoins) return false;
-      update((s) => ({ ...s, coins: s.coins - pack.costCoins, rolls: s.rolls + pack.rolls }));
+      update((s) => ({ ...s, coins: s.coins - pack.costCoins, energy: s.energy + pack.rolls }));
       return true;
     },
     [state.coins, update]
@@ -564,6 +627,7 @@ export function useGameState() {
     ...state,
     addCoins,
     addRolls,
+    addEnergy,
     rollDice,
     buyDicePack,
     unlockDiceTier,
@@ -585,5 +649,7 @@ export function useGameState() {
     activeEvolution,
     activeDiceTierData: DICE_TIERS.find((t) => t.id === state.activeDiceTier) ?? DICE_TIERS[0],
     levelProgress,
+    energyCap: energyCapForLevel(state.level),
+    energyRegenMs: ENERGY_REGEN_MS,
   };
 }
