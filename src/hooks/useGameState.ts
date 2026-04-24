@@ -523,7 +523,7 @@ export function useGameState() {
     (packId: string) => {
       const pack = DICE_PACKS.find((p) => p.id === packId);
       if (!pack || state.coins < pack.costCoins) return false;
-      update((s) => ({ ...s, coins: s.coins - pack.costCoins, rolls: s.rolls + pack.rolls }));
+      update((s) => ({ ...s, coins: s.coins - pack.costCoins, energy: s.energy + pack.rolls }));
       return true;
     },
     [state.coins, update]
