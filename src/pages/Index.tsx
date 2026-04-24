@@ -53,6 +53,9 @@ const Index = () => {
   const [showLink, setShowLink] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
   const isGuest = user?.is_anonymous === true;
+  const guestName = isGuest
+    ? ((user?.user_metadata as Record<string, unknown> | null)?.guest_name as string | undefined)
+    : undefined;
   const [lastResult, setLastResult] = useState<{
     steps: number;
     tile: BoardTile;
@@ -394,6 +397,7 @@ const Index = () => {
                     xp={game.xp}
                     level={game.level}
                     betMultiplier={game.betMultiplier}
+                    guestName={guestName}
                     onAddCoins={() => setTab("shop")}
                     onAddGems={() => setTab("specials")}
                     onAddKeys={() => setTab("season")}
