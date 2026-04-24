@@ -1130,7 +1130,7 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
   return null;
 }
 
-function IsometricBoardScene({ absoluteStep, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow, recenterRef }: { absoluteStep: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string; recenterRef: React.MutableRefObject<boolean> }) {
+const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string; recenterRef: React.MutableRefObject<boolean> }>(function IsometricBoardScene({ absoluteStep, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow, recenterRef }, _ref) {
   // Pure path function bound to current level
   const pathFn = useMemo(() => (i: number) => pathPointAt(i, levelId), [levelId]);
   const { points: windowPoints, startAbs } = useMemo(
@@ -1194,7 +1194,7 @@ function IsometricBoardScene({ absoluteStep, monster, isMoving, movementResult, 
       />
     </>
   );
-}
+});
 
 export function IsometricBoard({ position, absoluteStep, monster, isMoving, movementResult, levelId = 1, seasonAccent, seasonGlow, fullscreen = false }: { position: number; absoluteStep?: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId?: number; seasonAccent?: string; seasonGlow?: string; fullscreen?: boolean }) {
   // Fall back to `position` if absoluteStep isn't provided (legacy callers).
