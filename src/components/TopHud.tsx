@@ -26,9 +26,9 @@ export function TopHud({
   const { current, progress, xpInLevel, xpNeeded } = getLevelProgress(xp);
 
   return (
-    <div className="w-full flex flex-col gap-2" role="region" aria-label="Player resources">
+    <div className="w-full flex flex-col gap-1.5" role="region" aria-label="Player resources">
       {/* Top counter strip */}
-      <div className="flex items-center justify-between gap-1.5">
+      <div className="flex items-center justify-between gap-1 flex-wrap">
         <Counter
           icon={<Gem size={14} className="text-fuchsia-300" fill="currentColor" />}
           value={gems}
@@ -98,7 +98,7 @@ function Counter({
 }: { icon: React.ReactNode; value: number; onAdd?: () => void; ariaLabel: string; wide?: boolean }) {
   return (
     <div
-      className={`pill-counter flex items-center gap-1 pl-1.5 pr-0.5 py-0.5 ${wide ? "min-w-[110px]" : "min-w-[78px]"}`}
+      className={`pill-counter flex items-center gap-1 pl-1.5 pr-0.5 py-0.5 ${wide ? "min-w-[88px] sm:min-w-[110px]" : "min-w-[64px] sm:min-w-[78px]"}`}
       role="status"
       aria-label={ariaLabel}
     >

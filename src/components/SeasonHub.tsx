@@ -372,9 +372,11 @@ function RewardSlot({
         onClick={onClaim}
         animate={{ boxShadow: ["0 0 0 0 hsl(var(--gold)/0.0)", "0 0 0 4px hsl(var(--gold)/0.4)", "0 0 0 0 hsl(var(--gold)/0.0)"] }}
         transition={{ duration: 1.4, repeat: Infinity }}
-        className={`rounded-md border-2 ${base} px-2 py-1 text-[10px] font-display text-wood-dark hover:brightness-105 active:translate-y-0.5 transition`}
+        className={`rounded-md border-2 ${base} px-2 py-1 text-[10px] font-display text-wood-dark hover:brightness-105 active:translate-y-0.5 transition flex items-center justify-center gap-1`}
+        aria-label={`Claim ${label}`}
       >
-        {label}
+        <Gift size={10} className="text-wood-dark shrink-0" />
+        <span className="truncate">CLAIM • {label}</span>
       </motion.button>
     );
   }

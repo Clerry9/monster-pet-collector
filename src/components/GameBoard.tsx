@@ -292,8 +292,9 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
     if (rolls <= 0) return;
     justStoppedRef.current = false;
     const start = performance.now();
+    const HOLD_MS = 700; // short hold delay (was 2000) — matches reference interaction
     const tick = () => {
-      const p = Math.min(1, (performance.now() - start) / 2000);
+      const p = Math.min(1, (performance.now() - start) / HOLD_MS);
       setHoldProgress(p);
       if (p < 1) holdRafRef.current = requestAnimationFrame(tick);
     };
@@ -303,7 +304,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       setIsAutoRolling(true);
       clearHoldTimers();
       performRoll();
-    }, 2000);
+    }, HOLD_MS);
   };
 
   const handlePressEnd = (triggered: boolean) => {
@@ -383,8 +384,9 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       </AnimatePresence>
       </div>
 
-      {/* Roll dial — Coin-Master style glossy blue circle with BET pill above and AUTO pill on the left */}
-      <div className={`${fullscreen ? "absolute left-1/2 -translate-x-1/2 bottom-24 z-30 pointer-events-auto" : ""} flex flex-col items-center gap-2`}>
+      {/* Roll dial — Coin-Master style glossy blue circle with BET pill above and AUTO pill on the left.
+          In fullscreen we lift the dial above the bottom dock + bet selector so it never overlaps. */}
+      <div className={`${fullscreen ? "absolute left-1/2 -translate-x-1/2 z-30 pointer-events-auto" : ""} flex flex-col items-center gap-1.5`} style={fullscreen ? { bottom: "calc(env(safe-area-inset-bottom, 0px) + 150px)" } : undefined}>
         {/* Green BET pill above the dial */}
         <div className="pill-bet px-4 py-1 text-sm tracking-wider" aria-label={`Current bet ${betMultiplier} times`}>
           BET ×{betMultiplier.toLocaleString()}
