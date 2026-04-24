@@ -99,6 +99,19 @@ export const STARS_PER_FLIP = 5;
 export const TILES_PER_ISLAND = 5;
 export const SPIN_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 
+// --- Energy system ---
+// Auto-regen 1 ⚡ every ENERGY_REGEN_MS up to a level-scaled cap.
+// Cap = floor(150 * (1 + 0.10 * (level - 1))).  L1=150, L2=165, L10=285.
+// Energy may exceed the cap if granted directly (packs, ads, daily reward),
+// in which case regen pauses until the player spends back down.
+export const ENERGY_BASE_CAP = 150;
+export const ENERGY_REGEN_MS = 3 * 60 * 1000;
+export const ENERGY_PER_LEVEL_PCT = 0.10;
+
+export function energyCapForLevel(level: number): number {
+  return Math.floor(ENERGY_BASE_CAP * (1 + ENERGY_PER_LEVEL_PCT * Math.max(0, level - 1)));
+}
+
 const DEFAULT_STATE: GameState = {
   coins: 50,
   rolls: 10,
@@ -117,6 +130,8 @@ const DEFAULT_STATE: GameState = {
   islandStars: 0,
   pendingCardFlips: 0,
   lastSpinAt: null,
+  energy: ENERGY_BASE_CAP,
+  energyUpdatedAt: new Date(0).toISOString(),
 };
 
 const STORAGE_KEY = "monster-mash-state";
