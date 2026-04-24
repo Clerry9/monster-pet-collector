@@ -1202,6 +1202,20 @@ export function IsometricBoard({ position, absoluteStep, monster, isMoving, move
   const theme = applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow);
   const recenterRef = useRef(false);
   const lastTapRef = useRef(0);
+  const [showDebug, setShowDebug] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("monster.debugBoard") === "1";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("monster.debugBoard", showDebug ? "1" : "0");
+  }, [showDebug]);
+
+  // Debug derivations (cheap; only shown when toggled on)
+  const windowStart = Math.max(0, absStep - WINDOW_BEFORE);
+  const windowEnd = windowStart + WINDOW_BEFORE + WINDOW_AFTER;
+  const activeTileIndex = ((absStep % BOARD_TILES.length) + BOARD_TILES.length) % BOARD_TILES.length;
+  const activeTileType = BOARD_TILES[activeTileIndex]?.type ?? "?";
 
   const handleDoubleTap = () => { recenterRef.current = true; };
   const handlePointerDown = () => {
