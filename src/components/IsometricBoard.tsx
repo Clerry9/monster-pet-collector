@@ -1170,6 +1170,7 @@ const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number
             index={absIdx}
             playerPosition={absoluteStep}
             theme={theme}
+            forceVisible={isMoving}
           />
         );
       })}
