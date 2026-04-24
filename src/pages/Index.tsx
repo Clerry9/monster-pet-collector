@@ -67,6 +67,8 @@ const Index = () => {
   const [prestigeTier, setPrestigeTier] = useState<number | null>(null);
   const [drawnCard, setDrawnCard] = useState<GameCard | null>(null);
   const prevLevelRef = useRef(game.level);
+  // Quick visual burst when an Island Star is awarded after a hop lands.
+  const [starBurstKey, setStarBurstKey] = useState(0);
 
   // Tutorial + help
   const mainTutorial = useTutorial("main");
@@ -159,6 +161,7 @@ const Index = () => {
       setDrawnCard(result.card);
     }
     if (result.islandStarEarned) {
+      setStarBurstKey((k) => k + 1);
       toast("⭐ Island Star!", {
         description: `${game.islandStars}/5 to a free card flip`,
         duration: 1800,
