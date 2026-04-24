@@ -26,14 +26,24 @@ export function useSeason() {
   const [loaded, setLoaded] = useState(false);
   const [now, setNow] = useState(Date.now());
 
-  // Refresh time every minute (for countdown + auto rotation)
+  // Refresh time every second (for live countdown timers in HUD + side rails).
+  // Also re-tick whenever the tab regains focus so background-throttled timers
+  // don't leave stale "ends in" values when the user comes back.
   useEffect(() => {
-    const t = setInterval(() => {
+    const tick = () => {
       const next = getCurrentSeason();
       setNow(Date.now());
       setInfo((cur) => (cur.seasonInstanceId !== next.seasonInstanceId ? next : cur));
-    }, 60_000);
-    return () => clearInterval(t);
+    };
+    const t = setInterval(tick, 1000);
+    const onVis = () => { if (document.visibilityState === "visible") tick(); };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", tick);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("focus", tick);
+    };
   }, []);
 
   // Load progress for the current season
