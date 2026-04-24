@@ -232,7 +232,7 @@ const Index = () => {
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-3 py-4 overflow-hidden">
       <LinkAccount open={showLink} onClose={() => setShowLink(false)} />
-      <LevelUpCelebration level={levelUpData} onComplete={() => setLevelUpData(null)} rolls={game.rolls} />
+      <LevelUpCelebration level={levelUpData} onComplete={() => setLevelUpData(null)} rolls={game.energy} />
       <PrestigeCelebration tier={prestigeTier} onComplete={() => setPrestigeTier(null)} />
       <PaymentTestModeBanner />
       <DailyReward
@@ -325,7 +325,7 @@ const Index = () => {
 
         {/* Stats */}
         <div className="w-full max-w-md flex items-center justify-center gap-4 mb-2 text-[11px] font-display text-wood-dark/80">
-          <span>🎲 {game.rolls}</span>
+          <span title={`Refills 1 every 3 min · cap ${game.energyCap}`}>⚡ {game.energy}/{game.energyCap}</span>
           <span>👣 {game.totalSteps}</span>
           <span>🃏 {game.cardsCollected}</span>
         </div>
@@ -402,7 +402,7 @@ const Index = () => {
                   position={game.position}
                   absoluteStep={game.totalSteps}
                   monster={game.activeMonsterData}
-                  rolls={game.rolls}
+                  rolls={game.energy}
                   lastResult={lastResult}
                   onRollDice={handleRollDice}
                   onLanded={handleLanded}
@@ -523,7 +523,7 @@ const Index = () => {
                 coins={game.coins}
                 onPurchase={(rolls, coinsReward) => {
                   game.addCoins(-400 + coinsReward);
-                  game.addRolls(rolls);
+                  game.addEnergy(rolls);
                 }}
               />
               <StarPack
@@ -535,7 +535,7 @@ const Index = () => {
               />
               <DiceShop
                 coins={game.coins}
-                rolls={game.rolls}
+                rolls={game.energy}
                 level={game.level}
                 unlockedDiceTiers={game.unlockedDiceTiers}
                 activeDiceTier={game.activeDiceTier}
@@ -603,7 +603,7 @@ const Index = () => {
                 season={season.season}
                 progress={season.progress}
                 msRemaining={season.msRemaining}
-                rolls={game.rolls}
+                rolls={game.energy}
                 coins={game.coins}
                 islandStars={game.islandStars}
                 playerLevel={game.level}
@@ -613,7 +613,7 @@ const Index = () => {
                 onClaimTier={handleClaimTier}
                 onBuyStreakSaver={handleBuyStreakSaver}
                 onAddCoins={game.addCoins}
-                onAddRolls={game.addRolls}
+                onAddRolls={game.addEnergy}
                 onAddCardFlip={game.addCardFlip}
                 onSpendCoins={(n) => {
                   if (game.coins < n) return false;
