@@ -362,6 +362,7 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
       <div className={fullscreen ? "absolute inset-0" : "relative w-full"}>
         <IsometricBoard
           position={position}
+          absoluteStep={absoluteStep}
           monster={monster}
           isMoving={isRolling}
           movementResult={lastResult}
