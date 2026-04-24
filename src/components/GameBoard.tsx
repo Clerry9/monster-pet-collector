@@ -404,14 +404,13 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, on
       </AnimatePresence>
       </div>
 
-      {/* Roll dial — Coin-Master style glossy blue circle with BET pill above and AUTO pill on the left.
-          In fullscreen we lift the dial above the bottom dock + bet selector so it never overlaps. */}
-      <div className={`${fullscreen ? "absolute left-1/2 -translate-x-1/2 z-30 pointer-events-auto" : ""} flex flex-col items-center gap-1.5`} style={fullscreen ? { bottom: "calc(env(safe-area-inset-bottom, 0px) + 150px)" } : undefined}>
-        {/* Green BET pill above the dial */}
-        <div className="pill-bet px-4 py-1 text-sm tracking-wider" aria-label={`Current bet ${betMultiplier} times`}>
-          BET ×{betMultiplier.toLocaleString()}
-        </div>
-
+      {/* Roll dial — Coin-Master style glossy blue circle with AUTO pill on the left.
+          In fullscreen we lift the dial above the bottom dock + bet selector so it never overlaps.
+          The standalone BET pill was removed to avoid colliding with the BetSelector pill row. */}
+      <div
+        className={`${fullscreen ? "absolute left-1/2 -translate-x-1/2 z-30 pointer-events-auto" : ""} flex flex-col items-center gap-1.5`}
+        style={fullscreen ? { bottom: "calc(env(safe-area-inset-bottom, 0px) + 7.5rem)" } : undefined}
+      >
         {/* Row: AUTO pill | Dial | spacer */}
         <div className="flex items-end gap-2">
           {/* AUTO toggle pill (purple) */}
@@ -424,7 +423,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, on
               setIsAutoRolling(true);
               performRoll();
             }}
-            className={`pill-auto px-3 py-2 text-xs leading-tight flex flex-col items-center min-w-[60px] ${rolls <= 0 && !isAutoRolling ? "opacity-50" : ""}`}
+            className={`pill-auto px-2.5 py-1.5 text-[11px] leading-tight flex flex-col items-center min-w-[52px] sm:min-w-[60px] ${rolls <= 0 && !isAutoRolling ? "opacity-50" : ""}`}
             aria-label={isAutoRolling ? "Stop auto-roll" : "Start auto-roll"}
           >
             <span>{isAutoRolling ? "STOP" : "AUTO"}</span>
@@ -442,7 +441,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, on
               onPointerCancel={() => handlePressEnd(false)}
               disabled={rolls <= 0 && !isAutoRolling}
               aria-label={rolls <= 0 ? "No rolls remaining" : isAutoRolling ? "Auto-rolling. Tap to stop." : isRolling ? "Rolling dice..." : `Roll. Tap or hold to auto-roll. ${rolls} rolls remaining.`}
-              className={`roll-dial relative w-[88px] h-[88px] sm:w-[104px] sm:h-[104px] rounded-full flex flex-col items-center justify-center font-display select-none touch-none ${
+              className={`roll-dial relative w-[76px] h-[76px] sm:w-[96px] sm:h-[96px] rounded-full flex flex-col items-center justify-center font-display select-none touch-none ${
                 rolls <= 0 && !isAutoRolling ? "opacity-60 grayscale cursor-not-allowed" : ""
               }`}
             >
@@ -486,7 +485,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, on
           </div>
 
           {/* Spacer to balance the AUTO pill so the dial stays centered */}
-          <div className="w-[60px]" aria-hidden="true" />
+          <div className="w-[52px] sm:w-[60px]" aria-hidden="true" />
         </div>
 
         {/* Tiny status row */}
