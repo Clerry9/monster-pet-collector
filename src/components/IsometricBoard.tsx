@@ -1134,9 +1134,12 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
 const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string; recenterRef: React.MutableRefObject<boolean> }>(function IsometricBoardScene({ absoluteStep, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow, recenterRef }, _ref) {
   // Pure path function bound to current level
   const pathFn = useMemo(() => (i: number) => pathPointAt(i, levelId), [levelId]);
+  // Widen the trailing window to cover the most recent hop length, so trailing
+  // islands don't disappear behind the monster while a long roll is in flight.
+  const lastSteps = movementResult?.steps ?? 0;
   const { points: windowPoints, startAbs } = useMemo(
-    () => buildPathWindow(absoluteStep, levelId),
-    [absoluteStep, levelId]
+    () => buildPathWindow(absoluteStep, levelId, lastSteps + 4),
+    [absoluteStep, levelId, lastSteps]
   );
   const currentTilePos = pathFn(absoluteStep);
   const trailPosRef = useRef<THREE.Vector3[]>([]);
