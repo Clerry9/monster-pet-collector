@@ -311,9 +311,10 @@ function LightningBolt({ isActive }: { isActive: boolean }) {
     ref.current.position.y = 1.18 + Math.sin(s.clock.elapsedTime * 3) * 0.06;
     ref.current.rotation.y = s.clock.elapsedTime * 1.2;
     if (matRef.current) {
+      // Calmer pulse — avoids over-bright flicker on mobile while still reading clearly.
       matRef.current.emissiveIntensity = isActive
-        ? 1.4 + Math.sin(s.clock.elapsedTime * 12) * 0.6
-        : 0.7 + Math.sin(s.clock.elapsedTime * 4) * 0.2;
+        ? 0.95 + Math.sin(s.clock.elapsedTime * 5) * 0.25
+        : 0.55 + Math.sin(s.clock.elapsedTime * 3) * 0.12;
     }
   });
   return (
@@ -321,7 +322,7 @@ function LightningBolt({ isActive }: { isActive: boolean }) {
       <mesh ref={ref} geometry={geometry} castShadow>
         <meshStandardMaterial ref={matRef} color="#FDE047" emissive="#FACC15" emissiveIntensity={0.7} metalness={0.6} roughness={0.15} />
       </mesh>
-      {isActive && <pointLight color="#FDE047" intensity={1.6} distance={1.6} />}
+      {isActive && <pointLight color="#FDE047" intensity={1.0} distance={1.4} decay={2} />}
     </group>
   );
 }
