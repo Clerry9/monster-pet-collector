@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
@@ -149,6 +150,16 @@ export default function AuthPage() {
           >
             {isLogin ? "Sign up" : "Log in"}
           </button>
+        </p>
+
+        <p className="text-center text-xs text-muted-foreground font-body">
+          <Link to="/pricing" className="text-primary underline">Pricing</Link>
+          {" · "}
+          <Link to="/terms" className="text-primary underline">Terms</Link>
+          {" · "}
+          <Link to="/privacy" className="text-primary underline">Privacy</Link>
+          {" · "}
+          <Link to="/refund" className="text-primary underline">Refunds</Link>
         </p>
       </motion.div>
     </div>
