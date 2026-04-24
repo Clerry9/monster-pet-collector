@@ -163,82 +163,74 @@ function getTheme(levelId: number): LevelTheme3D {
   return LEVEL_THEMES[cycled] || LEVEL_THEMES[1];
 }
 
-function generatePath(tileCount: number, levelId: number = 1): THREE.Vector3[] {
-  const points: THREE.Vector3[] = [];
-  const shape = ((levelId - 1) % 8) + 1;
-  for (let i = 0; i < tileCount; i++) {
-    const t = i / Math.max(1, tileCount - 1);
-    let x = 0, y = 0, z = 0;
-    switch (shape) {
-      case 1: { // Goblin Forest — gentle horizontal zigzag trail
-        const amp = 3.2;
-        x = -8 + t * 16;
-        z = Math.sin(t * Math.PI * 4) * amp;
-        y = i * 0.06;
-        break;
-      }
-      case 2: { // Crystal Caves — infinity / lemniscate trail (open ended along X)
-        const a = -Math.PI + t * Math.PI * 2; // -π..π
-        const denom = 1 + Math.sin(a) * Math.sin(a);
-        const r = 5.5;
-        x = (r * Math.cos(a)) / denom + t * 4 - 2; // drift so it doesn't close
-        z = (r * Math.sin(a) * Math.cos(a)) / denom;
-        y = i * 0.07;
-        break;
-      }
-      case 3: { // Lava Peaks — sharp zigzag climbing north
-        const seg = 6;
-        const s = Math.floor(t * seg);
-        const f = t * seg - s;
-        const dir = s % 2 === 0 ? 1 : -1;
-        x = dir * (4 - f * 8);
-        z = -t * 14 + 7;
-        y = i * 0.13;
-        break;
-      }
-      case 4: { // Haunted Marsh — meander/serpentine trail
-        x = -8 + t * 16;
-        z = Math.sin(t * Math.PI * 6) * 2.4 + Math.cos(t * Math.PI * 2) * 1.2;
-        y = i * 0.05;
-        break;
-      }
-      case 5: { // Sky Citadel — wide zigzag bridge
-        const seg = 4;
-        const s = Math.floor(t * seg);
-        const f = t * seg - s;
-        const dir = s % 2 === 0 ? 1 : -1;
-        x = dir * (5 - f * 10);
-        z = -7 + t * 14;
-        y = i * 0.09 + Math.sin(t * Math.PI * 4) * 0.3;
-        break;
-      }
-      case 6: { // Dragon's Lair — figure-8 infinity drifting forward
-        const a = t * Math.PI * 4;
-        x = Math.sin(a) * 4.5;
-        z = Math.sin(a * 2) * 3 + (-7 + t * 14) * 0.4;
-        y = i * 0.12;
-        break;
-      }
-      case 7: { // Void Realm — chaotic zigzag with vertical drift
-        const seg = 8;
-        const s = Math.floor(t * seg);
-        const f = t * seg - s;
-        const dir = s % 2 === 0 ? 1 : -1;
-        x = dir * (3.5 - f * 7);
-        z = -t * 12 + 6 + Math.sin(t * Math.PI * 3) * 0.8;
-        y = i * 0.08 + Math.sin(t * Math.PI * 5) * 0.4;
-        break;
-      }
-      case 8: { // Celestial Plane — ascending sinusoidal infinity trail
-        x = -8 + t * 16;
-        z = Math.sin(t * Math.PI * 3) * 3.2;
-        y = t * 5 + Math.sin(t * Math.PI * 6) * 0.4;
-        break;
-      }
-    }
-    points.push(new THREE.Vector3(x, y, z));
+/**
+ * Continuous, infinite path generator.
+ *
+ * `pathPointAt(absIdx)` returns a deterministic Vector3 for ANY non-negative integer
+ * index. The path always advances forward (monotonic +Z) so the monster never has
+ * to "rewind" to the start of the loop. Each level shape simply picks a different
+ * sinusoidal X/Y offset for variety.
+ */
+const TILE_SPACING = 1.6;
+function pathPointAt(absIdx: number, levelId: number = 1): THREE.Vector3 {
+  const shape = ((Math.max(1, levelId) - 1) % 8) + 1;
+  const t = absIdx;
+  let x = 0, y = 0, z = 0;
+  switch (shape) {
+    case 1: // Goblin Forest — gentle zigzag
+      x = Math.sin(t * 0.55) * 3.0;
+      z = -t * TILE_SPACING;
+      y = t * 0.04 + Math.sin(t * 0.7) * 0.1;
+      break;
+    case 2: // Crystal Caves — wider sinus
+      x = Math.sin(t * 0.42) * 4.0;
+      z = -t * TILE_SPACING;
+      y = t * 0.05;
+      break;
+    case 3: // Lava Peaks — sharper sawtooth
+      x = ((t % 4) - 1.5) * 2.2;
+      z = -t * TILE_SPACING;
+      y = t * 0.08;
+      break;
+    case 4: // Haunted Marsh — meander
+      x = Math.sin(t * 0.6) * 2.6 + Math.cos(t * 0.27) * 1.0;
+      z = -t * TILE_SPACING;
+      y = t * 0.03;
+      break;
+    case 5: // Sky Citadel — wide bridge zigzag
+      x = Math.sin(t * 0.5) * 4.5;
+      z = -t * TILE_SPACING;
+      y = t * 0.06 + Math.sin(t * 0.9) * 0.25;
+      break;
+    case 6: // Dragon's Lair — figure-8
+      x = Math.sin(t * 0.7) * 3.5 + Math.sin(t * 0.23) * 1.2;
+      z = -t * TILE_SPACING;
+      y = t * 0.07;
+      break;
+    case 7: // Void Realm — drifting chaos
+      x = Math.sin(t * 0.45) * 3.2 + Math.cos(t * 1.1) * 0.7;
+      z = -t * TILE_SPACING;
+      y = t * 0.05 + Math.sin(t * 0.8) * 0.35;
+      break;
+    case 8: // Celestial Plane — ascending sinus
+      x = Math.sin(t * 0.55) * 3.4;
+      z = -t * TILE_SPACING;
+      y = t * 0.12 + Math.sin(t * 0.9) * 0.3;
+      break;
   }
-  return points;
+  return new THREE.Vector3(x, y, z);
+}
+
+/** Build a window of contiguous path points around the player's absolute step. */
+const WINDOW_BEFORE = 3;
+const WINDOW_AFTER = 14;
+function buildPathWindow(centerAbs: number, levelId: number): { points: THREE.Vector3[]; startAbs: number } {
+  const startAbs = Math.max(0, centerAbs - WINDOW_BEFORE);
+  const points: THREE.Vector3[] = [];
+  for (let i = 0; i < WINDOW_BEFORE + WINDOW_AFTER + 1; i++) {
+    points.push(pathPointAt(startAbs + i, levelId));
+  }
+  return { points, startAbs };
 }
 
 // --- Animated tile icons ---
