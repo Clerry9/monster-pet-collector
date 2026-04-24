@@ -49,7 +49,14 @@ export function SideRails({
 function Rail({ items, side }: { items: RailItem[]; side: "left" | "right" }) {
   return (
     <div
-      className={`flex flex-col gap-2 absolute top-1/2 -translate-y-1/2 ${side === "left" ? "left-1" : "right-1"} z-10`}
+      className={`flex flex-col gap-2.5 fixed ${side === "left" ? "left-1" : "right-1"} z-10`}
+      style={{
+        // Sit between the top HUD (~96px) and the bottom dock (~150px) so rails never
+        // overlap either chrome on small landscape phones.
+        top: "calc(env(safe-area-inset-top, 0px) + 110px)",
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + 160px)",
+        justifyContent: "space-around",
+      }}
     >
       {items.map((it) => (
         <motion.button
@@ -57,7 +64,7 @@ function Rail({ items, side }: { items: RailItem[]; side: "left" | "right" }) {
           whileTap={{ scale: 0.92 }}
           whileHover={{ scale: 1.06 }}
           onClick={it.onClick}
-          className="icon-tile-gold w-11 h-11 sm:w-12 sm:h-12 flex flex-col items-center justify-center relative"
+          className="icon-tile-gold w-10 h-10 sm:w-12 sm:h-12 flex flex-col items-center justify-center relative"
           aria-label={it.label}
           title={it.label}
         >
@@ -72,7 +79,10 @@ function Rail({ items, side }: { items: RailItem[]; side: "left" | "right" }) {
             </motion.span>
           )}
           {it.countdownMs !== undefined && (
-            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-wood-dark text-cream-light text-[7px] sm:text-[8px] font-display px-1 rounded-full border border-gold whitespace-nowrap">
+            <span
+              key={Math.floor(it.countdownMs / 1000)}
+              className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-wood-dark text-cream-light text-[7px] sm:text-[8px] font-display px-1 rounded-full border border-gold whitespace-nowrap"
+            >
               {formatTimeRemaining(it.countdownMs)}
             </span>
           )}
