@@ -137,22 +137,30 @@ const Index = () => {
     const result = game.rollDice();
     if (result) {
       setLastResult(result);
-      if (result.card) {
-        setDrawnCard(result.card);
-      }
-      if (result.islandStarEarned) {
-        toast("⭐ Island Star!", {
-          description: `${game.islandStars + 1}/5 to a free card flip`,
-          duration: 1800,
-        });
-      }
-      if (result.monsterLevelUp) {
-        const { name, level, coinBonus } = result.monsterLevelUp;
-        toast(`🍖 ${name} evolved!`, {
-          description: `Level ${level} reached! Now grants +${coinBonus}% coins on all tiles.`,
-          duration: 4000,
-        });
-      }
+      // NOTE: card reveal + island-star toast are deferred to handleLanded()
+      // so they only fire AFTER the monster has finished hopping.
+    }
+  };
+
+  // Fired by GameBoard when the monster has finished hopping for the latest roll.
+  const handleLanded = () => {
+    const result = lastResult;
+    if (!result) return;
+    if (result.card) {
+      setDrawnCard(result.card);
+    }
+    if (result.islandStarEarned) {
+      toast("⭐ Island Star!", {
+        description: `${game.islandStars}/5 to a free card flip`,
+        duration: 1800,
+      });
+    }
+    if (result.monsterLevelUp) {
+      const { name, level, coinBonus } = result.monsterLevelUp;
+      toast(`🍖 ${name} evolved!`, {
+        description: `Level ${level} reached! Now grants +${coinBonus}% coins on all tiles.`,
+        duration: 4000,
+      });
     }
   };
 
@@ -357,6 +365,7 @@ const Index = () => {
                   rolls={game.rolls}
                   lastResult={lastResult}
                   onRollDice={handleRollDice}
+                  onLanded={handleLanded}
                   activeDiceMax={game.activeDiceTierData.maxRoll}
                   levelId={getLevelForXp(game.xp).id}
                   seasonAccent={`hsl(${season.season.palette.accent})`}
