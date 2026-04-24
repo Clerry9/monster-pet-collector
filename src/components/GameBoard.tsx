@@ -83,6 +83,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   const rollsRef = useRef(rolls);
   const isAutoRollingRef = useRef(false);
   const justStoppedRef = useRef(false);
+  const lastStopAtRef = useRef(0);
 
   useEffect(() => { rollsRef.current = rolls; }, [rolls]);
   useEffect(() => { isRollingRef.current = isRolling; }, [isRolling]);
@@ -207,6 +208,8 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       setIsRolling(false);
     }
     if (isRollingRef.current || rollsRef.current <= 0) return;
+    // Bail if user JUST stopped auto-roll — pointer-up / queued timeouts can race in here.
+    if (!isAutoRollingRef.current && Date.now() - lastStopAtRef.current < 350) return;
     // Defensive: clear any orphaned interval before starting a new roll.
     if (rollIntervalRef.current) {
       clearInterval(rollIntervalRef.current);
