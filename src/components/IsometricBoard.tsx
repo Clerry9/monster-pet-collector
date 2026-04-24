@@ -297,16 +297,37 @@ function PulsingStar({ isActive, theme }: { isActive: boolean; theme: LevelTheme
 
 function LightningBolt({ isActive }: { isActive: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
+  const matRef = useRef<THREE.MeshStandardMaterial>(null);
+  // Build a stylised lightning bolt shape (zigzag) and extrude it for depth.
+  const geometry = useMemo(() => {
+    const shape = new THREE.Shape();
+    shape.moveTo( 0.04,  0.20);
+    shape.lineTo(-0.10,  0.02);
+    shape.lineTo(-0.02,  0.02);
+    shape.lineTo(-0.08, -0.20);
+    shape.lineTo( 0.08, -0.04);
+    shape.lineTo( 0.00, -0.04);
+    shape.lineTo( 0.04,  0.20);
+    return new THREE.ExtrudeGeometry(shape, { depth: 0.04, bevelEnabled: true, bevelSize: 0.008, bevelThickness: 0.008, bevelSegments: 2 });
+  }, []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
   useFrame((s) => {
     if (!ref.current) return;
-    ref.current.position.y = 1.1 + Math.sin(s.clock.elapsedTime * 3) * 0.06;
-    (ref.current.material as THREE.MeshStandardMaterial).emissiveIntensity = isActive ? 0.6 + Math.sin(s.clock.elapsedTime * 8) * 0.4 : 0.3;
+    ref.current.position.y = 1.18 + Math.sin(s.clock.elapsedTime * 3) * 0.06;
+    ref.current.rotation.y = s.clock.elapsedTime * 1.2;
+    if (matRef.current) {
+      matRef.current.emissiveIntensity = isActive
+        ? 1.4 + Math.sin(s.clock.elapsedTime * 12) * 0.6
+        : 0.7 + Math.sin(s.clock.elapsedTime * 4) * 0.2;
+    }
   });
   return (
-    <mesh ref={ref} position={[0, 1.1, 0]} rotation={[0, 0, 0.1]}>
-      <coneGeometry args={[0.07, 0.2, 4]} />
-      <meshStandardMaterial color="#E63946" emissive="#E63946" emissiveIntensity={0.4} metalness={0.5} roughness={0.2} />
-    </mesh>
+    <group position={[0, 1.18, 0]}>
+      <mesh ref={ref} geometry={geometry} castShadow>
+        <meshStandardMaterial ref={matRef} color="#FDE047" emissive="#FACC15" emissiveIntensity={0.7} metalness={0.6} roughness={0.15} />
+      </mesh>
+      {isActive && <pointLight color="#FDE047" intensity={1.6} distance={1.6} />}
+    </group>
   );
 }
 
