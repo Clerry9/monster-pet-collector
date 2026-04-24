@@ -92,6 +92,8 @@ export interface GameState {
   islandStars: number;
   pendingCardFlips: number;
   lastSpinAt: string | null;
+  energy: number;
+  energyUpdatedAt: string; // ISO timestamp of last regen tick
 }
 
 // Each "island" = ~5 tiles. Stars convert at this ratio.
@@ -159,6 +161,8 @@ function loadLocalState(): GameState {
         islandStars: p.islandStars ?? 0,
         pendingCardFlips: p.pendingCardFlips ?? 0,
         lastSpinAt: p.lastSpinAt ?? null,
+        energy: p.energy ?? ENERGY_BASE_CAP,
+        energyUpdatedAt: p.energyUpdatedAt ?? new Date().toISOString(),
       };
     }
   } catch {}
@@ -189,6 +193,8 @@ function dbToState(row: any): GameState {
     islandStars: row.island_stars ?? 0,
     pendingCardFlips: row.pending_card_flips ?? 0,
     lastSpinAt: row.last_spin_at ?? null,
+    energy: row.energy ?? ENERGY_BASE_CAP,
+    energyUpdatedAt: row.energy_updated_at ?? new Date().toISOString(),
   };
 }
 
@@ -212,6 +218,8 @@ function stateToDb(state: GameState, userId: string) {
     island_stars: state.islandStars,
     pending_card_flips: state.pendingCardFlips,
     last_spin_at: state.lastSpinAt,
+    energy: state.energy,
+    energy_updated_at: state.energyUpdatedAt,
   };
 }
 
