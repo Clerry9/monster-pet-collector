@@ -627,6 +627,7 @@ export function useGameState() {
     ...state,
     addCoins,
     addRolls,
+    addEnergy,
     rollDice,
     buyDicePack,
     unlockDiceTier,
@@ -648,5 +649,7 @@ export function useGameState() {
     activeEvolution,
     activeDiceTierData: DICE_TIERS.find((t) => t.id === state.activeDiceTier) ?? DICE_TIERS[0],
     levelProgress,
+    energyCap: energyCapForLevel(state.level),
+    energyRegenMs: ENERGY_REGEN_MS,
   };
 }
