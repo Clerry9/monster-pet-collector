@@ -92,10 +92,10 @@ function tier(n: number): string {
  *   gap(k) = BASE * 1.15^(k-1)   for the jump from level k → k+1
  *   xpForLevel(id) = sum_{k=1..id-1} gap(k) = BASE * (1.15^(id-1) - 1) / 0.15
  *
- * BASE = 100 → L2 needs 100 XP, L8 ≈ 1066 XP, L20 ≈ 10,244 XP, L50 ≈ 695k XP.
+ * BASE = 160 → every level requires 60% more XP than the previous 100-base curve.
  * Numbers grow exponentially past L80 — capped only by MAX_LEVEL.
  */
-const XP_BASE = 100;
+const XP_BASE = 160;
 const XP_GROWTH = 1.15;
 export function xpForLevel(id: number): number {
   if (id <= 1) return 0;

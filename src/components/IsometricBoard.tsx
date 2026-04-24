@@ -163,82 +163,74 @@ function getTheme(levelId: number): LevelTheme3D {
   return LEVEL_THEMES[cycled] || LEVEL_THEMES[1];
 }
 
-function generatePath(tileCount: number, levelId: number = 1): THREE.Vector3[] {
-  const points: THREE.Vector3[] = [];
-  const shape = ((levelId - 1) % 8) + 1;
-  for (let i = 0; i < tileCount; i++) {
-    const t = i / Math.max(1, tileCount - 1);
-    let x = 0, y = 0, z = 0;
-    switch (shape) {
-      case 1: { // Goblin Forest — gentle horizontal zigzag trail
-        const amp = 3.2;
-        x = -8 + t * 16;
-        z = Math.sin(t * Math.PI * 4) * amp;
-        y = i * 0.06;
-        break;
-      }
-      case 2: { // Crystal Caves — infinity / lemniscate trail (open ended along X)
-        const a = -Math.PI + t * Math.PI * 2; // -π..π
-        const denom = 1 + Math.sin(a) * Math.sin(a);
-        const r = 5.5;
-        x = (r * Math.cos(a)) / denom + t * 4 - 2; // drift so it doesn't close
-        z = (r * Math.sin(a) * Math.cos(a)) / denom;
-        y = i * 0.07;
-        break;
-      }
-      case 3: { // Lava Peaks — sharp zigzag climbing north
-        const seg = 6;
-        const s = Math.floor(t * seg);
-        const f = t * seg - s;
-        const dir = s % 2 === 0 ? 1 : -1;
-        x = dir * (4 - f * 8);
-        z = -t * 14 + 7;
-        y = i * 0.13;
-        break;
-      }
-      case 4: { // Haunted Marsh — meander/serpentine trail
-        x = -8 + t * 16;
-        z = Math.sin(t * Math.PI * 6) * 2.4 + Math.cos(t * Math.PI * 2) * 1.2;
-        y = i * 0.05;
-        break;
-      }
-      case 5: { // Sky Citadel — wide zigzag bridge
-        const seg = 4;
-        const s = Math.floor(t * seg);
-        const f = t * seg - s;
-        const dir = s % 2 === 0 ? 1 : -1;
-        x = dir * (5 - f * 10);
-        z = -7 + t * 14;
-        y = i * 0.09 + Math.sin(t * Math.PI * 4) * 0.3;
-        break;
-      }
-      case 6: { // Dragon's Lair — figure-8 infinity drifting forward
-        const a = t * Math.PI * 4;
-        x = Math.sin(a) * 4.5;
-        z = Math.sin(a * 2) * 3 + (-7 + t * 14) * 0.4;
-        y = i * 0.12;
-        break;
-      }
-      case 7: { // Void Realm — chaotic zigzag with vertical drift
-        const seg = 8;
-        const s = Math.floor(t * seg);
-        const f = t * seg - s;
-        const dir = s % 2 === 0 ? 1 : -1;
-        x = dir * (3.5 - f * 7);
-        z = -t * 12 + 6 + Math.sin(t * Math.PI * 3) * 0.8;
-        y = i * 0.08 + Math.sin(t * Math.PI * 5) * 0.4;
-        break;
-      }
-      case 8: { // Celestial Plane — ascending sinusoidal infinity trail
-        x = -8 + t * 16;
-        z = Math.sin(t * Math.PI * 3) * 3.2;
-        y = t * 5 + Math.sin(t * Math.PI * 6) * 0.4;
-        break;
-      }
-    }
-    points.push(new THREE.Vector3(x, y, z));
+/**
+ * Continuous, infinite path generator.
+ *
+ * `pathPointAt(absIdx)` returns a deterministic Vector3 for ANY non-negative integer
+ * index. The path always advances forward (monotonic +Z) so the monster never has
+ * to "rewind" to the start of the loop. Each level shape simply picks a different
+ * sinusoidal X/Y offset for variety.
+ */
+const TILE_SPACING = 1.6;
+function pathPointAt(absIdx: number, levelId: number = 1): THREE.Vector3 {
+  const shape = ((Math.max(1, levelId) - 1) % 8) + 1;
+  const t = absIdx;
+  let x = 0, y = 0, z = 0;
+  switch (shape) {
+    case 1: // Goblin Forest — gentle zigzag
+      x = Math.sin(t * 0.55) * 3.0;
+      z = -t * TILE_SPACING;
+      y = t * 0.04 + Math.sin(t * 0.7) * 0.1;
+      break;
+    case 2: // Crystal Caves — wider sinus
+      x = Math.sin(t * 0.42) * 4.0;
+      z = -t * TILE_SPACING;
+      y = t * 0.05;
+      break;
+    case 3: // Lava Peaks — sharper sawtooth
+      x = ((t % 4) - 1.5) * 2.2;
+      z = -t * TILE_SPACING;
+      y = t * 0.08;
+      break;
+    case 4: // Haunted Marsh — meander
+      x = Math.sin(t * 0.6) * 2.6 + Math.cos(t * 0.27) * 1.0;
+      z = -t * TILE_SPACING;
+      y = t * 0.03;
+      break;
+    case 5: // Sky Citadel — wide bridge zigzag
+      x = Math.sin(t * 0.5) * 4.5;
+      z = -t * TILE_SPACING;
+      y = t * 0.06 + Math.sin(t * 0.9) * 0.25;
+      break;
+    case 6: // Dragon's Lair — figure-8
+      x = Math.sin(t * 0.7) * 3.5 + Math.sin(t * 0.23) * 1.2;
+      z = -t * TILE_SPACING;
+      y = t * 0.07;
+      break;
+    case 7: // Void Realm — drifting chaos
+      x = Math.sin(t * 0.45) * 3.2 + Math.cos(t * 1.1) * 0.7;
+      z = -t * TILE_SPACING;
+      y = t * 0.05 + Math.sin(t * 0.8) * 0.35;
+      break;
+    case 8: // Celestial Plane — ascending sinus
+      x = Math.sin(t * 0.55) * 3.4;
+      z = -t * TILE_SPACING;
+      y = t * 0.12 + Math.sin(t * 0.9) * 0.3;
+      break;
   }
-  return points;
+  return new THREE.Vector3(x, y, z);
+}
+
+/** Build a window of contiguous path points around the player's absolute step. */
+const WINDOW_BEFORE = 3;
+const WINDOW_AFTER = 14;
+function buildPathWindow(centerAbs: number, levelId: number): { points: THREE.Vector3[]; startAbs: number } {
+  const startAbs = Math.max(0, centerAbs - WINDOW_BEFORE);
+  const points: THREE.Vector3[] = [];
+  for (let i = 0; i < WINDOW_BEFORE + WINDOW_AFTER + 1; i++) {
+    points.push(pathPointAt(startAbs + i, levelId));
+  }
+  return { points, startAbs };
 }
 
 // --- Animated tile icons ---
@@ -297,16 +289,37 @@ function PulsingStar({ isActive, theme }: { isActive: boolean; theme: LevelTheme
 
 function LightningBolt({ isActive }: { isActive: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
+  const matRef = useRef<THREE.MeshStandardMaterial>(null);
+  // Build a stylised lightning bolt shape (zigzag) and extrude it for depth.
+  const geometry = useMemo(() => {
+    const shape = new THREE.Shape();
+    shape.moveTo( 0.04,  0.20);
+    shape.lineTo(-0.10,  0.02);
+    shape.lineTo(-0.02,  0.02);
+    shape.lineTo(-0.08, -0.20);
+    shape.lineTo( 0.08, -0.04);
+    shape.lineTo( 0.00, -0.04);
+    shape.lineTo( 0.04,  0.20);
+    return new THREE.ExtrudeGeometry(shape, { depth: 0.04, bevelEnabled: true, bevelSize: 0.008, bevelThickness: 0.008, bevelSegments: 2 });
+  }, []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
   useFrame((s) => {
     if (!ref.current) return;
-    ref.current.position.y = 1.1 + Math.sin(s.clock.elapsedTime * 3) * 0.06;
-    (ref.current.material as THREE.MeshStandardMaterial).emissiveIntensity = isActive ? 0.6 + Math.sin(s.clock.elapsedTime * 8) * 0.4 : 0.3;
+    ref.current.position.y = 1.18 + Math.sin(s.clock.elapsedTime * 3) * 0.06;
+    ref.current.rotation.y = s.clock.elapsedTime * 1.2;
+    if (matRef.current) {
+      matRef.current.emissiveIntensity = isActive
+        ? 1.4 + Math.sin(s.clock.elapsedTime * 12) * 0.6
+        : 0.7 + Math.sin(s.clock.elapsedTime * 4) * 0.2;
+    }
   });
   return (
-    <mesh ref={ref} position={[0, 1.1, 0]} rotation={[0, 0, 0.1]}>
-      <coneGeometry args={[0.07, 0.2, 4]} />
-      <meshStandardMaterial color="#E63946" emissive="#E63946" emissiveIntensity={0.4} metalness={0.5} roughness={0.2} />
-    </mesh>
+    <group position={[0, 1.18, 0]}>
+      <mesh ref={ref} geometry={geometry} castShadow>
+        <meshStandardMaterial ref={matRef} color="#FDE047" emissive="#FACC15" emissiveIntensity={0.7} metalness={0.6} roughness={0.15} />
+      </mesh>
+      {isActive && <pointLight color="#FDE047" intensity={1.6} distance={1.6} />}
+    </group>
   );
 }
 
@@ -783,65 +796,58 @@ function MonsterTrail({ positions, theme }: { positions: THREE.Vector3[]; theme:
 
 interface MonsterPawnProps {
   monsterPosRef?: React.MutableRefObject<THREE.Vector3>;
-  pathPoints: THREE.Vector3[];
-  position: number;
+  /** Absolute index the monster should currently be on (monotonic, never wraps). */
+  absoluteIndex: number;
+  /** Pure function: absolute index → world-space Vector3. */
+  pathPointAt: (absIdx: number) => THREE.Vector3;
   monster: Monster;
   movementResult: { steps: number; tile: BoardTile } | null;
   trailPosRef: React.MutableRefObject<THREE.Vector3[]>;
   activeLift: number;
 }
 
-function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRef, activeLift, monsterPosRef }: MonsterPawnProps) {
+function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trailPosRef, activeLift, monsterPosRef }: MonsterPawnProps) {
   const groupRef = useRef<THREE.Group>(null);
   const bodyRef = useRef<THREE.Mesh>(null);
   const leftFootRef = useRef<THREE.Mesh>(null);
   const rightFootRef = useRef<THREE.Mesh>(null);
-  const currentPos = useRef(pathPoints[position]?.clone() || new THREE.Vector3());
-  const scheduledPosition = useRef(position);
-  const queuedTiles = useRef<number[]>([]);
-  const activeTile = useRef<number | null>(null);
-  const stepStart = useRef(pathPoints[position]?.clone() || new THREE.Vector3());
-  const stepEnd = useRef(pathPoints[position]?.clone() || new THREE.Vector3());
+  const currentPos = useRef(pathPointAt(absoluteIndex).clone());
+  /** Absolute index the pawn is currently AT (the latest tile it has fully arrived on). */
+  const arrivedIdx = useRef(absoluteIndex);
+  /** Absolute index the pawn is currently animating TOWARD. */
+  const activeTargetIdx = useRef<number | null>(null);
+  const stepStart = useRef(pathPointAt(absoluteIndex).clone());
+  const stepEnd = useRef(pathPointAt(absoluteIndex).clone());
   const stepProgress = useRef(1);
   const stepDuration = useRef(0.1);
   const texture = useLoader(THREE.TextureLoader, monster.image);
   const liftRef = useRef(0);
 
   useEffect(() => {
-    if (!movementResult || movementResult.steps <= 0) return;
-    const startIndex = scheduledPosition.current;
-    const nextTiles = Array.from({ length: movementResult.steps }, (_, index) => (
-      (startIndex + index + 1) % pathPoints.length
-    ));
-    queuedTiles.current.push(...nextTiles);
-    scheduledPosition.current = position;
-    // Slower, more deliberate hops — easier to follow visually
-    stepDuration.current = THREE.MathUtils.clamp(0.38 - movementResult.steps * 0.004, 0.18, 0.32);
-  }, [movementResult, pathPoints, position]);
+    // Slower, more deliberate hops — easier to follow visually.
+    if (movementResult && movementResult.steps > 0) {
+      stepDuration.current = THREE.MathUtils.clamp(0.38 - movementResult.steps * 0.004, 0.18, 0.32);
+    }
+  }, [movementResult]);
 
+  // If we ever fall WAY behind (e.g. tab restored after long sleep), snap forward.
   useEffect(() => {
-    if (movementResult || activeTile.current !== null || queuedTiles.current.length > 0) return;
-    const settledPoint = pathPoints[position] || pathPoints[0];
-    currentPos.current.copy(settledPoint);
-    stepStart.current.copy(settledPoint);
-    stepEnd.current.copy(settledPoint);
-    scheduledPosition.current = position;
-  }, [movementResult, pathPoints, position]);
+    if (absoluteIndex - arrivedIdx.current > 50) {
+      arrivedIdx.current = absoluteIndex - 6; // catch up most of the way; animate the last 6 hops
+    }
+  }, [absoluteIndex]);
 
   const startNextStep = () => {
-    if (activeTile.current !== null || queuedTiles.current.length === 0) return;
-    const nextTile = queuedTiles.current.shift();
-    if (nextTile === undefined) return;
-    activeTile.current = nextTile;
+    if (activeTargetIdx.current !== null) return;
+    if (arrivedIdx.current >= absoluteIndex) return;
+    const nextIdx = arrivedIdx.current + 1;
+    activeTargetIdx.current = nextIdx;
     stepStart.current.copy(currentPos.current);
-    stepEnd.current.copy(pathPoints[nextTile] || pathPoints[0]);
+    stepEnd.current.copy(pathPointAt(nextIdx));
     stepProgress.current = 0;
   };
 
-  useEffect(() => { startNextStep(); }, [movementResult]);
   useEffect(() => { texture.colorSpace = THREE.SRGBColorSpace; }, [texture]);
-  useEffect(() => { scheduledPosition.current = position; }, [position]);
-  useEffect(() => { if (!pathPoints.length) currentPos.current.set(0, 0, 0); }, [pathPoints.length]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
@@ -850,9 +856,9 @@ function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRe
     let hopY = 0;
     let hopScale = 1;
     let hopRotZ = 0;
-    const isAnimating = activeTile.current !== null || queuedTiles.current.length > 0;
+    const isAnimating = activeTargetIdx.current !== null || arrivedIdx.current < absoluteIndex;
 
-    if (activeTile.current !== null) {
+    if (activeTargetIdx.current !== null) {
       stepProgress.current = Math.min(1, stepProgress.current + delta / stepDuration.current);
       const easedProgress = THREE.MathUtils.smootherstep(stepProgress.current, 0, 1);
       currentPos.current.lerpVectors(stepStart.current, stepEnd.current, easedProgress);
@@ -862,7 +868,8 @@ function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRe
       hopRotZ = Math.sin(stepProgress.current * Math.PI * 2) * 0.08;
       if (stepProgress.current >= 1) {
         currentPos.current.copy(stepEnd.current);
-        activeTile.current = null;
+        arrivedIdx.current = activeTargetIdx.current;
+        activeTargetIdx.current = null;
       }
     }
 
@@ -1119,9 +1126,14 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
   return null;
 }
 
-function IsometricBoardScene({ position, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow, recenterRef }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string; recenterRef: React.MutableRefObject<boolean> }) {
-  const pathPoints = useMemo(() => generatePath(BOARD_TILES.length, levelId), [levelId]);
-  const currentTilePos = pathPoints[position] || pathPoints[0];
+function IsometricBoardScene({ absoluteStep, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow, recenterRef }: { absoluteStep: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string; recenterRef: React.MutableRefObject<boolean> }) {
+  // Pure path function bound to current level
+  const pathFn = useMemo(() => (i: number) => pathPointAt(i, levelId), [levelId]);
+  const { points: windowPoints, startAbs } = useMemo(
+    () => buildPathWindow(absoluteStep, levelId),
+    [absoluteStep, levelId]
+  );
+  const currentTilePos = pathFn(absoluteStep);
   const trailPosRef = useRef<THREE.Vector3[]>([]);
   const monsterPosRef = useRef<THREE.Vector3>(new THREE.Vector3(currentTilePos.x, currentTilePos.y + 1, currentTilePos.z));
   const theme = useMemo(() => applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow), [levelId, seasonAccent, seasonGlow]);
@@ -1135,14 +1147,34 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
 
       <Ocean theme={theme} />
       <FloatingParticles theme={theme} />
-      <PathConnector points={pathPoints} theme={theme} />
+      <PathConnector points={windowPoints} theme={theme} />
 
-      {BOARD_TILES.map((tile, index) => (
-        <Tile key={tile.id} tile={tile} position={pathPoints[index]} isActive={index === position} index={index} playerPosition={position} theme={theme} />
-      ))}
+      {windowPoints.map((p, i) => {
+        const absIdx = startAbs + i;
+        const tile = BOARD_TILES[((absIdx % BOARD_TILES.length) + BOARD_TILES.length) % BOARD_TILES.length];
+        return (
+          <Tile
+            key={absIdx}
+            tile={tile}
+            position={p}
+            isActive={absIdx === absoluteStep}
+            index={absIdx}
+            playerPosition={absoluteStep}
+            theme={theme}
+          />
+        );
+      })}
 
       <MonsterTrail positions={trailPosRef.current} theme={theme} />
-      <MonsterPawn pathPoints={pathPoints} position={position} monster={monster} movementResult={movementResult} trailPosRef={trailPosRef} activeLift={ACTIVE_LIFT_VALUE} monsterPosRef={monsterPosRef} />
+      <MonsterPawn
+        pathPointAt={pathFn}
+        absoluteIndex={absoluteStep}
+        monster={monster}
+        movementResult={movementResult}
+        trailPosRef={trailPosRef}
+        activeLift={ACTIVE_LIFT_VALUE}
+        monsterPosRef={monsterPosRef}
+      />
 
       <CameraRig monsterPosRef={monsterPosRef} isMoving={isMoving} recenterRef={recenterRef} />
       <OrbitControls
@@ -1160,7 +1192,9 @@ function IsometricBoardScene({ position, monster, isMoving, movementResult, leve
   );
 }
 
-export function IsometricBoard({ position, monster, isMoving, movementResult, levelId = 1, seasonAccent, seasonGlow, fullscreen = false }: { position: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId?: number; seasonAccent?: string; seasonGlow?: string; fullscreen?: boolean }) {
+export function IsometricBoard({ position, absoluteStep, monster, isMoving, movementResult, levelId = 1, seasonAccent, seasonGlow, fullscreen = false }: { position: number; absoluteStep?: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId?: number; seasonAccent?: string; seasonGlow?: string; fullscreen?: boolean }) {
+  // Fall back to `position` if absoluteStep isn't provided (legacy callers).
+  const absStep = absoluteStep ?? position;
   const theme = applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow);
   const recenterRef = useRef(false);
   const lastTapRef = useRef(0);
@@ -1184,12 +1218,12 @@ export function IsometricBoard({ position, monster, isMoving, movementResult, le
       <Canvas shadows camera={{ position: [6, 5, 6], fov: 45, near: 0.1, far: 100 }} gl={{ antialias: true, alpha: false }}>
         <color attach="background" args={[theme.bg]} />
         <fog attach="fog" args={[theme.fog, 12, 28]} />
-        <IsometricBoardScene position={position} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} recenterRef={recenterRef} />
+        <IsometricBoardScene absoluteStep={absStep} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} recenterRef={recenterRef} />
       </Canvas>
       <BoardMinimap
         levelId={levelId}
         tileCount={BOARD_TILES.length}
-        position={position}
+        position={((absStep % BOARD_TILES.length) + BOARD_TILES.length) % BOARD_TILES.length}
         accentColor={theme.ringColor}
       />
       <LevelTransitionCinematic levelId={levelId} accentColor={theme.ringColor} />

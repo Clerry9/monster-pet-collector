@@ -53,7 +53,16 @@ const Index = () => {
   const [showLink, setShowLink] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
   const isGuest = user?.is_anonymous === true;
-  const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile; card?: GameCard } | null>(null);
+  const guestName = isGuest
+    ? ((user?.user_metadata as Record<string, unknown> | null)?.guest_name as string | undefined)
+    : undefined;
+  const [lastResult, setLastResult] = useState<{
+    steps: number;
+    tile: BoardTile;
+    card?: GameCard;
+    islandStarEarned?: boolean;
+    monsterLevelUp?: { name: string; level: number; coinBonus: number };
+  } | null>(null);
   const [levelUpData, setLevelUpData] = useState<ReturnType<typeof getLevelForXp> | null>(null);
   const [prestigeTier, setPrestigeTier] = useState<number | null>(null);
   const [drawnCard, setDrawnCard] = useState<GameCard | null>(null);
@@ -137,22 +146,30 @@ const Index = () => {
     const result = game.rollDice();
     if (result) {
       setLastResult(result);
-      if (result.card) {
-        setDrawnCard(result.card);
-      }
-      if (result.islandStarEarned) {
-        toast("⭐ Island Star!", {
-          description: `${game.islandStars + 1}/5 to a free card flip`,
-          duration: 1800,
-        });
-      }
-      if (result.monsterLevelUp) {
-        const { name, level, coinBonus } = result.monsterLevelUp;
-        toast(`🍖 ${name} evolved!`, {
-          description: `Level ${level} reached! Now grants +${coinBonus}% coins on all tiles.`,
-          duration: 4000,
-        });
-      }
+      // NOTE: card reveal + island-star toast are deferred to handleLanded()
+      // so they only fire AFTER the monster has finished hopping.
+    }
+  };
+
+  // Fired by GameBoard when the monster has finished hopping for the latest roll.
+  const handleLanded = () => {
+    const result = lastResult;
+    if (!result) return;
+    if (result.card) {
+      setDrawnCard(result.card);
+    }
+    if (result.islandStarEarned) {
+      toast("⭐ Island Star!", {
+        description: `${game.islandStars}/5 to a free card flip`,
+        duration: 1800,
+      });
+    }
+    if (result.monsterLevelUp) {
+      const { name, level, coinBonus } = result.monsterLevelUp;
+      toast(`🍖 ${name} evolved!`, {
+        description: `Level ${level} reached! Now grants +${coinBonus}% coins on all tiles.`,
+        duration: 4000,
+      });
     }
   };
 
@@ -353,10 +370,12 @@ const Index = () => {
               <div className="absolute inset-0" data-tutorial="board" data-level={getLevelForXp(game.xp).id}>
                 <GameBoard
                   position={game.position}
+                  absoluteStep={game.totalSteps}
                   monster={game.activeMonsterData}
                   rolls={game.rolls}
                   lastResult={lastResult}
                   onRollDice={handleRollDice}
+                  onLanded={handleLanded}
                   activeDiceMax={game.activeDiceTierData.maxRoll}
                   levelId={getLevelForXp(game.xp).id}
                   seasonAccent={`hsl(${season.season.palette.accent})`}
@@ -379,6 +398,7 @@ const Index = () => {
                     xp={game.xp}
                     level={game.level}
                     betMultiplier={game.betMultiplier}
+                    guestName={guestName}
                     onAddCoins={() => setTab("shop")}
                     onAddGems={() => setTab("specials")}
                     onAddKeys={() => setTab("season")}

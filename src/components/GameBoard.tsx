@@ -8,10 +8,12 @@ import { Zap } from "lucide-react";
 
 interface GameBoardProps {
   position: number;
+  absoluteStep?: number;
   monster: Monster;
   rolls: number;
   lastResult: { steps: number; tile: BoardTile; islandStarEarned?: boolean } | null;
   onRollDice: () => void;
+  onLanded?: () => void;
   activeDiceMax: number;
   levelId?: number;
   seasonAccent?: string;
@@ -25,7 +27,7 @@ interface GameBoardProps {
 
 const TILE_EMOJIS: Record<TileType, string> = {
   coins: "🪙",
-  bonus: "⚡",
+  bonus: "⚡", // overridden in result banner with a styled <Zap /> icon
   chest: "🎁",
   food: "🍖",
   skull: "💀",
@@ -61,7 +63,7 @@ interface Particle {
 const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
 let particleIdCounter = 0;
 
-export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1 }: GameBoardProps) {
+export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, onRollDice, onLanded, activeDiceMax, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1 }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -83,6 +85,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   const rollsRef = useRef(rolls);
   const isAutoRollingRef = useRef(false);
   const justStoppedRef = useRef(false);
+  const lastStopAtRef = useRef(0);
 
   useEffect(() => { rollsRef.current = rolls; }, [rolls]);
   useEffect(() => { isRollingRef.current = isRolling; }, [isRolling]);
@@ -195,9 +198,11 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       if (seasonSymbol && rollCounterRef.current % 3 === 0) {
         setSeasonBurstKey((k) => k + 1);
       }
+      // Notify parent so card reveals + island-star toasts only fire after landing.
+      onLanded?.();
     }, landDelay);
     return () => { if (resultTimerRef.current) clearTimeout(resultTimerRef.current); };
-  }, [lastResult, isRolling, seasonSymbol]);
+  }, [lastResult, isRolling, seasonSymbol, onLanded]);
 
   const performRoll = () => {
     // Self-heal: if a stale isRolling flag is blocking us but no interval is actually running,
@@ -207,6 +212,8 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       setIsRolling(false);
     }
     if (isRollingRef.current || rollsRef.current <= 0) return;
+    // Bail if user JUST stopped auto-roll — pointer-up / queued timeouts can race in here.
+    if (!isAutoRollingRef.current && Date.now() - lastStopAtRef.current < 350) return;
     // Defensive: clear any orphaned interval before starting a new roll.
     if (rollIntervalRef.current) {
       clearInterval(rollIntervalRef.current);
@@ -257,11 +264,16 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   // Effect-based auto-roll scheduling — reacts to the live `rolls` prop
   // so we never act on a stale ref between renders.
   useEffect(() => {
-    if (!isAutoRolling) return;
+    if (!isAutoRolling || !isAutoRollingRef.current) return;
     if (isRolling) return;
     if (rolls <= 0) { setIsAutoRolling(false); return; }
     const t = setTimeout(() => {
-      if (isAutoRollingRef.current && !isRollingRef.current && rollsRef.current > 0) {
+      if (
+        isAutoRollingRef.current &&
+        !isRollingRef.current &&
+        rollsRef.current > 0 &&
+        Date.now() - lastStopAtRef.current > 350
+      ) {
         performRoll();
       }
     }, 900);
@@ -274,10 +286,15 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
     isAutoRollingRef.current = false;
     setIsAutoRolling(false);
     justStoppedRef.current = true;
+    lastStopAtRef.current = Date.now();
     if (autoRollTimerRef.current) {
       clearTimeout(autoRollTimerRef.current);
       autoRollTimerRef.current = null;
     }
+    // Clear hold timers so any in-flight hold doesn't immediately re-arm auto.
+    clearHoldTimers();
+    // Drop justStopped after the roll-debounce window
+    setTimeout(() => { justStoppedRef.current = false; }, 400);
   };
 
   const clearHoldTimers = () => {
@@ -345,6 +362,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       <div className={fullscreen ? "absolute inset-0" : "relative w-full"}>
         <IsometricBoard
           position={position}
+          absoluteStep={absoluteStep}
           monster={monster}
           isMoving={isRolling}
           movementResult={lastResult}
@@ -362,7 +380,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       </div>
 
       {/* Result display — only after monster lands */}
-      <div className={fullscreen ? "absolute left-1/2 -translate-x-1/2 bottom-[10rem] z-30 flex flex-col items-center gap-2 pointer-events-none" : "contents"}>
+      <div className={fullscreen ? "absolute left-1/2 -translate-x-1/2 bottom-[12.5rem] z-30 flex flex-col items-center gap-2 pointer-events-none" : "contents"}>
       <AnimatePresence>
         {lastResult && showResult && (
           <motion.div
@@ -374,7 +392,11 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
             aria-live="polite"
             aria-label={`Moved ${lastResult.steps} steps. ${lastResult.tile.value >= 0 ? "Gained" : "Lost"} ${Math.abs(lastResult.tile.value)} coins.`}
           >
-            <span className="text-lg" aria-hidden="true">{TILE_EMOJIS[lastResult.tile.type]}</span>
+            <span className="text-lg" aria-hidden="true">
+              {lastResult.tile.type === "bonus"
+                ? <Zap size={18} className="text-yellow-500 drop-shadow-[0_1px_0_rgba(0,0,0,0.4)]" fill="currentColor" />
+                : TILE_EMOJIS[lastResult.tile.type]}
+            </span>
             <span className="font-display text-sm">+{lastResult.steps}</span>
             <span className={`font-display ${lastResult.tile.value >= 0 ? "text-wood-dark" : "text-destructive"}`}>
               {lastResult.tile.value >= 0 ? `+${lastResult.tile.value}` : lastResult.tile.value} 🪙
@@ -384,14 +406,13 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       </AnimatePresence>
       </div>
 
-      {/* Roll dial — Coin-Master style glossy blue circle with BET pill above and AUTO pill on the left.
-          In fullscreen we lift the dial above the bottom dock + bet selector so it never overlaps. */}
-      <div className={`${fullscreen ? "absolute left-1/2 -translate-x-1/2 z-30 pointer-events-auto" : ""} flex flex-col items-center gap-1.5`} style={fullscreen ? { bottom: "calc(env(safe-area-inset-bottom, 0px) + 150px)" } : undefined}>
-        {/* Green BET pill above the dial */}
-        <div className="pill-bet px-4 py-1 text-sm tracking-wider" aria-label={`Current bet ${betMultiplier} times`}>
-          BET ×{betMultiplier.toLocaleString()}
-        </div>
-
+      {/* Roll dial — Coin-Master style glossy blue circle with AUTO pill on the left.
+          In fullscreen we lift the dial above the bottom dock + bet selector so it never overlaps.
+          The standalone BET pill was removed to avoid colliding with the BetSelector pill row. */}
+      <div
+        className={`${fullscreen ? "absolute left-1/2 -translate-x-1/2 z-30 pointer-events-auto" : ""} flex flex-col items-center gap-1.5`}
+        style={fullscreen ? { bottom: "calc(env(safe-area-inset-bottom, 0px) + 7.5rem)" } : undefined}
+      >
         {/* Row: AUTO pill | Dial | spacer */}
         <div className="flex items-end gap-2">
           {/* AUTO toggle pill (purple) */}
@@ -404,7 +425,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
               setIsAutoRolling(true);
               performRoll();
             }}
-            className={`pill-auto px-3 py-2 text-xs leading-tight flex flex-col items-center min-w-[60px] ${rolls <= 0 && !isAutoRolling ? "opacity-50" : ""}`}
+            className={`pill-auto px-2.5 py-1.5 text-[11px] leading-tight flex flex-col items-center min-w-[52px] sm:min-w-[60px] ${rolls <= 0 && !isAutoRolling ? "opacity-50" : ""}`}
             aria-label={isAutoRolling ? "Stop auto-roll" : "Start auto-roll"}
           >
             <span>{isAutoRolling ? "STOP" : "AUTO"}</span>
@@ -422,7 +443,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
               onPointerCancel={() => handlePressEnd(false)}
               disabled={rolls <= 0 && !isAutoRolling}
               aria-label={rolls <= 0 ? "No rolls remaining" : isAutoRolling ? "Auto-rolling. Tap to stop." : isRolling ? "Rolling dice..." : `Roll. Tap or hold to auto-roll. ${rolls} rolls remaining.`}
-              className={`roll-dial relative w-[88px] h-[88px] sm:w-[104px] sm:h-[104px] rounded-full flex flex-col items-center justify-center font-display select-none touch-none ${
+              className={`roll-dial relative w-[76px] h-[76px] sm:w-[96px] sm:h-[96px] rounded-full flex flex-col items-center justify-center font-display select-none touch-none ${
                 rolls <= 0 && !isAutoRolling ? "opacity-60 grayscale cursor-not-allowed" : ""
               }`}
             >
@@ -466,7 +487,7 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
           </div>
 
           {/* Spacer to balance the AUTO pill so the dial stays centered */}
-          <div className="w-[60px]" aria-hidden="true" />
+          <div className="w-[52px] sm:w-[60px]" aria-hidden="true" />
         </div>
 
         {/* Tiny status row */}
