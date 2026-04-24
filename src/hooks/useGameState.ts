@@ -114,6 +114,25 @@ export function energyCapForLevel(level: number): number {
   return Math.floor(ENERGY_BASE_CAP * (1 + ENERGY_PER_LEVEL_PCT * Math.max(0, level - 1)));
 }
 
+/** Pure: advance regen ticks since `state.energyUpdatedAt`.
+ *  Caps at level cap, but leaves overflow energy alone (no auto-tick when at/over cap). */
+function applyRegen(state: GameState, nowMs: number): GameState {
+  const last = Date.parse(state.energyUpdatedAt) || nowMs;
+  const cap = energyCapForLevel(state.level);
+  if (state.energy >= cap) {
+    // Overflow or full — reset the timer so regen resumes only after dropping below cap.
+    return state.energyUpdatedAt === new Date(nowMs).toISOString()
+      ? state
+      : { ...state, energyUpdatedAt: new Date(nowMs).toISOString() };
+  }
+  const elapsed = Math.max(0, nowMs - last);
+  const ticks = Math.floor(elapsed / ENERGY_REGEN_MS);
+  if (ticks <= 0) return state;
+  const next = Math.min(cap, state.energy + ticks);
+  const consumed = (next - state.energy) * ENERGY_REGEN_MS;
+  return { ...state, energy: next, energyUpdatedAt: new Date(last + consumed).toISOString() };
+}
+
 const DEFAULT_STATE: GameState = {
   coins: 50,
   rolls: 10,
