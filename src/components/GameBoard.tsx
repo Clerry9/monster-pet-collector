@@ -260,11 +260,16 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
   // Effect-based auto-roll scheduling — reacts to the live `rolls` prop
   // so we never act on a stale ref between renders.
   useEffect(() => {
-    if (!isAutoRolling) return;
+    if (!isAutoRolling || !isAutoRollingRef.current) return;
     if (isRolling) return;
     if (rolls <= 0) { setIsAutoRolling(false); return; }
     const t = setTimeout(() => {
-      if (isAutoRollingRef.current && !isRollingRef.current && rollsRef.current > 0) {
+      if (
+        isAutoRollingRef.current &&
+        !isRollingRef.current &&
+        rollsRef.current > 0 &&
+        Date.now() - lastStopAtRef.current > 350
+      ) {
         performRoll();
       }
     }, 900);
@@ -277,10 +282,15 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
     isAutoRollingRef.current = false;
     setIsAutoRolling(false);
     justStoppedRef.current = true;
+    lastStopAtRef.current = Date.now();
     if (autoRollTimerRef.current) {
       clearTimeout(autoRollTimerRef.current);
       autoRollTimerRef.current = null;
     }
+    // Clear hold timers so any in-flight hold doesn't immediately re-arm auto.
+    clearHoldTimers();
+    // Drop justStopped after the roll-debounce window
+    setTimeout(() => { justStoppedRef.current = false; }, 400);
   };
 
   const clearHoldTimers = () => {
