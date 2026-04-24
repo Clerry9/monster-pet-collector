@@ -134,7 +134,7 @@ function CardItem({ card, owned, count, onTrade }: { card: GameCard; owned: bool
   return (
     <motion.div
       whileHover={owned ? { scale: 1.03 } : undefined}
-      className={`relative rounded-lg border-2 p-2.5 transition-all ${
+      className={`relative rounded-xl border-[3px] p-2 transition-all overflow-hidden ${
         owned
           ? `${RARITY_COLORS[card.rarity]} ${RARITY_GLOW[card.rarity]}`
           : "border-border/40 bg-muted/20 opacity-50"
@@ -148,31 +148,38 @@ function CardItem({ card, owned, count, onTrade }: { card: GameCard; owned: bool
 
       {/* Duplicate badge */}
       {count > 1 && (
-        <div className="absolute -top-1.5 -right-1.5 z-20 bg-accent text-accent-foreground text-[9px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md">
+        <div className="absolute -top-1.5 -right-1.5 z-20 bg-accent text-accent-foreground text-[10px] font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-md border-2 border-wood-dark">
           x{count}
         </div>
       )}
 
-      <div className="flex flex-col items-center gap-1 text-center">
-        <span className="text-2xl">{card.emoji}</span>
-        <span className="text-[11px] font-bold font-body text-foreground leading-tight">{card.name}</span>
-        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-          card.rarity === "legendary" ? "bg-accent/20 text-accent"
-            : card.rarity === "epic" ? "bg-secondary/20 text-secondary"
-            : card.rarity === "rare" ? "bg-primary/20 text-primary"
-            : "bg-muted text-muted-foreground"
-        }`}>
-          {rarityLabel[card.rarity]}
-        </span>
-        {owned && (
-          <span className="text-[9px] text-muted-foreground leading-tight">{card.description}</span>
-        )}
-        {owned && card.reward.type === "coins" && (
-          <span className="text-[9px] font-bold text-accent">+{card.reward.amount} 🪙</span>
-        )}
-        {owned && card.reward.type === "monster" && (
-          <span className="text-[9px] font-bold text-secondary">🔓 Monster</span>
-        )}
+      <div className="flex flex-col items-center gap-1.5 text-center">
+        {/* Big emoji "art" panel — solid cream backdrop so it's readable on any rarity color */}
+        <div className="w-full aspect-square rounded-lg bg-cream-light border-2 border-wood-dark/60 flex items-center justify-center shadow-inner">
+          <span className="text-5xl sm:text-6xl drop-shadow-md leading-none" aria-hidden="true">{card.emoji}</span>
+        </div>
+
+        {/* Title + meta on a solid cream pill so it stays readable on purple/red/gold rarity backgrounds */}
+        <div className="w-full rounded-md bg-cream-light/95 border border-wood-dark/30 px-1.5 py-1 flex flex-col items-center gap-0.5">
+          <span className="text-[12px] sm:text-[13px] font-bold font-body text-wood-dark leading-tight">{card.name}</span>
+          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+            card.rarity === "legendary" ? "bg-accent text-wood-dark"
+              : card.rarity === "epic" ? "bg-secondary text-cream-light"
+              : card.rarity === "rare" ? "bg-primary text-cream-light"
+              : "bg-muted text-wood-dark"
+          }`}>
+            {rarityLabel[card.rarity]}
+          </span>
+          {owned && (
+            <span className="text-[10px] text-wood-dark/80 leading-snug font-body">{card.description}</span>
+          )}
+          {owned && card.reward.type === "coins" && (
+            <span className="text-[11px] font-bold text-gold-deep">+{card.reward.amount} 🪙</span>
+          )}
+          {owned && card.reward.type === "monster" && (
+            <span className="text-[11px] font-bold text-wood-dark">🔓 Monster</span>
+          )}
+        </div>
 
         {/* Trade button */}
         {hasDuplicate && onTrade && (
@@ -182,7 +189,7 @@ function CardItem({ card, owned, count, onTrade }: { card: GameCard; owned: bool
               e.stopPropagation();
               onTrade(card.id);
             }}
-            className="mt-1 flex items-center gap-1 px-2 py-1 rounded-md bg-accent/20 hover:bg-accent/30 transition-colors text-accent text-[9px] font-bold"
+            className="mt-0.5 flex items-center gap-1 px-2 py-1 rounded-md bg-accent hover:brightness-110 transition text-wood-dark text-[10px] font-bold border-2 border-wood-dark shadow-chunky-sm"
           >
             <ArrowRightLeft size={10} />
             Trade for {tradeValue} 🪙
