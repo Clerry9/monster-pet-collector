@@ -14,9 +14,27 @@ interface Tier {
   currency: string;
 }
 
+// Static fallback pricing shown when the live pricing API is unavailable
+// (e.g., during Paddle domain review before the function is fully configured).
+// Keep amounts in sync with the Paddle catalog.
+const FALLBACK_TIERS: Tier[] = [
+  { externalId: "value_pack_price", name: "Value Pack", description: "Starter bundle of coins and dice", priceFormatted: "$4.99", amountCents: 499, currency: "USD" },
+  { externalId: "mega_pack_price", name: "Mega Pack", description: "Larger coin and dice bundle", priceFormatted: "$9.99", amountCents: 999, currency: "USD" },
+  { externalId: "ultra_pack_price", name: "Ultra Pack", description: "Premium coin and dice bundle", priceFormatted: "$19.99", amountCents: 1999, currency: "USD" },
+  { externalId: "silver_dice_price", name: "Silver Dice", description: "Refill your dice with silver tier", priceFormatted: "$2.99", amountCents: 299, currency: "USD" },
+  { externalId: "gold_dice_price", name: "Gold Dice", description: "Refill your dice with gold tier", priceFormatted: "$7.99", amountCents: 799, currency: "USD" },
+  { externalId: "star_pack_price", name: "Star Pack", description: "Bonus stars for season progression", priceFormatted: "$4.99", amountCents: 499, currency: "USD" },
+  { externalId: "season_pass_price", name: "Season Pass", description: "Unlock premium season rewards track", priceFormatted: "$9.99", amountCents: 999, currency: "USD" },
+  { externalId: "special_starter_price", name: "Special Starter", description: "Limited starter offer for new players", priceFormatted: "$2.99", amountCents: 299, currency: "USD" },
+  { externalId: "special_card_price", name: "Special Card Pack", description: "Curated card pack with rare drops", priceFormatted: "$6.99", amountCents: 699, currency: "USD" },
+  { externalId: "special_monster_price", name: "Special Monster Pack", description: "Exclusive monster bundle", priceFormatted: "$12.99", amountCents: 1299, currency: "USD" },
+  { externalId: "special_vip_price", name: "VIP Bundle", description: "Top-tier bundle with all premium perks", priceFormatted: "$29.99", amountCents: 2999, currency: "USD" },
+];
+
 const Pricing = () => {
   const [tiers, setTiers] = useState<Tier[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [usingFallback, setUsingFallback] = useState(false);
 
   useEffect(() => {
     const environment = clientToken?.startsWith("test_") ? "sandbox" : "live";
@@ -25,14 +43,22 @@ const Pricing = () => {
       .then(({ data, error }) => {
         if (error) {
           setError(error.message);
-          setTiers([]);
+          setTiers(FALLBACK_TIERS);
+          setUsingFallback(true);
           return;
         }
-        setTiers(data?.tiers ?? []);
+        const live = data?.tiers ?? [];
+        if (live.length === 0) {
+          setTiers(FALLBACK_TIERS);
+          setUsingFallback(true);
+        } else {
+          setTiers(live);
+        }
       })
       .catch((e) => {
         setError(e?.message ?? "Failed to load pricing");
-        setTiers([]);
+        setTiers(FALLBACK_TIERS);
+        setUsingFallback(true);
       });
   }, []);
 
@@ -51,15 +77,13 @@ const Pricing = () => {
           </div>
         )}
 
-        {tiers !== null && tiers.length === 0 && (
-          <div className="rounded-lg border border-border bg-card p-6 text-center text-muted-foreground">
-            Pricing is being prepared. Please check back shortly.
-            {error && <div className="mt-2 text-xs opacity-70">{error}</div>}
-          </div>
-        )}
-
         {tiers && tiers.length > 0 && (
           <div className="space-y-3">
+            {usingFallback && (
+              <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                Showing reference pricing in USD. Final prices, currency, and taxes are calculated at checkout based on your location.
+              </div>
+            )}
             {tiers.map((t) => (
               <div key={t.externalId} className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card p-4">
                 <div className="min-w-0">
