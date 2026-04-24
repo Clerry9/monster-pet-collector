@@ -455,6 +455,8 @@ const Index = () => {
                     coins={game.coins}
                     currentBet={game.betMultiplier}
                     onSetBet={game.setBetMultiplier}
+                    energy={game.energy}
+                    energyCap={game.energyCap}
                   />
                 </div>
                 <div className="dock-wood w-full px-3 py-2 pointer-events-auto pb-[max(0.5rem,env(safe-area-inset-bottom))]">
