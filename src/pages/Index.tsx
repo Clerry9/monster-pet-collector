@@ -53,7 +53,13 @@ const Index = () => {
   const [showLink, setShowLink] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
   const isGuest = user?.is_anonymous === true;
-  const [lastResult, setLastResult] = useState<{ steps: number; tile: BoardTile; card?: GameCard } | null>(null);
+  const [lastResult, setLastResult] = useState<{
+    steps: number;
+    tile: BoardTile;
+    card?: GameCard;
+    islandStarEarned?: boolean;
+    monsterLevelUp?: { name: string; level: number; coinBonus: number };
+  } | null>(null);
   const [levelUpData, setLevelUpData] = useState<ReturnType<typeof getLevelForXp> | null>(null);
   const [prestigeTier, setPrestigeTier] = useState<number | null>(null);
   const [drawnCard, setDrawnCard] = useState<GameCard | null>(null);
