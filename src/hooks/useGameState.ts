@@ -313,7 +313,7 @@ export function useGameState() {
   const update = useCallback(
     (updater: (prev: GameState) => GameState) => {
       setState((prev) => {
-        const next = updater(prev);
+        const next = applyRegen(updater(prev), Date.now());
         saveLocalState(next);
         saveToDb(next);
         return next;
@@ -321,6 +321,20 @@ export function useGameState() {
     },
     [saveToDb]
   );
+
+  // Tick once a minute to keep the energy counter and timer fresh in the UI.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setState((prev) => {
+        const next = applyRegen(prev, Date.now());
+        if (next === prev) return prev;
+        saveLocalState(next);
+        saveToDb(next);
+        return next;
+      });
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [saveToDb]);
 
   const addCoins = useCallback(
     (amount: number) => update((s) => ({ ...s, coins: Math.max(0, s.coins + amount) })),
@@ -362,7 +376,7 @@ export function useGameState() {
   // Monster XP is now gained from "food" tiles during rollDice, no more tapping
 
   const rollDice = useCallback((): { steps: number; tile: BoardTile; card?: GameCard; monsterLevelUp?: { name: string; level: number; coinBonus: number }; islandStarEarned?: boolean } | null => {
-    if (state.rolls <= 0) return null;
+    if (state.energy <= 0) return null;
     const tier = DICE_TIERS.find((t) => t.id === state.activeDiceTier) ?? DICE_TIERS[0];
     const steps = Math.floor(Math.random() * tier.maxRoll) + 1;
     const newPosition = (state.position + steps) % BOARD_TILES.length;
@@ -452,7 +466,8 @@ export function useGameState() {
 
       return {
         ...s,
-        rolls: s.rolls - 1,
+        rolls: s.rolls,
+        energy: Math.max(0, s.energy - 1),
         position: newPosition,
         totalSteps: s.totalSteps + steps,
         coins: Math.max(0, s.coins + coinGain + bonusCoins),
