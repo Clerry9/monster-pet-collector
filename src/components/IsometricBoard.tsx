@@ -227,10 +227,11 @@ function pathPointAt(absIdx: number, levelId: number = 1): THREE.Vector3 {
  */
 const WINDOW_BEFORE = 10;
 const WINDOW_AFTER = 16;
-function buildPathWindow(centerAbs: number, levelId: number): { points: THREE.Vector3[]; startAbs: number } {
-  const startAbs = Math.max(0, centerAbs - WINDOW_BEFORE);
+function buildPathWindow(centerAbs: number, levelId: number, extraBefore = 0): { points: THREE.Vector3[]; startAbs: number } {
+  const before = WINDOW_BEFORE + Math.max(0, extraBefore);
+  const startAbs = Math.max(0, centerAbs - before);
   const points: THREE.Vector3[] = [];
-  for (let i = 0; i < WINDOW_BEFORE + WINDOW_AFTER + 1; i++) {
+  for (let i = 0; i < before + WINDOW_AFTER + 1; i++) {
     points.push(pathPointAt(startAbs + i, levelId));
   }
   return { points, startAbs };
