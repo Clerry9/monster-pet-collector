@@ -1252,6 +1252,21 @@ export function IsometricBoard({ position, absoluteStep, monster, isMoving, move
       >
         🎯
       </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); setShowDebug((v) => !v); }}
+        aria-label="Toggle board debug overlay"
+        className="absolute bottom-3 right-16 z-20 w-10 h-10 rounded-full bg-card/90 border-2 border-wood-dark shadow-chunky-sm flex items-center justify-center text-[10px] font-display hover:scale-105 active:scale-95 transition"
+        title="Dev: show absoluteStep / window / active tile"
+      >
+        DBG
+      </button>
+      {showDebug && (
+        <div className="absolute top-3 right-3 z-20 pointer-events-none rounded-lg bg-black/70 text-cream-light font-mono text-[10px] leading-tight px-2 py-1.5 border border-cream/30">
+          <div>abs: <b>{absStep}</b></div>
+          <div>win: <b>{windowStart}</b>–<b>{windowEnd}</b></div>
+          <div>tile[{activeTileIndex}]: <b>{activeTileType}</b></div>
+        </div>
+      )}
     </div>
   );
 }
