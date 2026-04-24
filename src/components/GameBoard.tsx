@@ -12,6 +12,7 @@ interface GameBoardProps {
   rolls: number;
   lastResult: { steps: number; tile: BoardTile; islandStarEarned?: boolean } | null;
   onRollDice: () => void;
+  onLanded?: () => void;
   activeDiceMax: number;
   levelId?: number;
   seasonAccent?: string;
@@ -61,7 +62,7 @@ interface Particle {
 const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
 let particleIdCounter = 0;
 
-export function GameBoard({ position, monster, rolls, lastResult, onRollDice, activeDiceMax, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1 }: GameBoardProps) {
+export function GameBoard({ position, monster, rolls, lastResult, onRollDice, onLanded, activeDiceMax, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1 }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -196,9 +197,11 @@ export function GameBoard({ position, monster, rolls, lastResult, onRollDice, ac
       if (seasonSymbol && rollCounterRef.current % 3 === 0) {
         setSeasonBurstKey((k) => k + 1);
       }
+      // Notify parent so card reveals + island-star toasts only fire after landing.
+      onLanded?.();
     }, landDelay);
     return () => { if (resultTimerRef.current) clearTimeout(resultTimerRef.current); };
-  }, [lastResult, isRolling, seasonSymbol]);
+  }, [lastResult, isRolling, seasonSymbol, onLanded]);
 
   const performRoll = () => {
     // Self-heal: if a stale isRolling flag is blocking us but no interval is actually running,
