@@ -225,7 +225,7 @@ function stateToDb(state: GameState, userId: string) {
 
 export function useGameState() {
   const { user } = useAuth();
-  const [state, setState] = useState<GameState>(loadLocalState);
+  const [state, setState] = useState<GameState>(() => applyRegen(loadLocalState(), Date.now()));
   const [dbLoaded, setDbLoaded] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastUserIdRef = useRef<string | null>(null);
