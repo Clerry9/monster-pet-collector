@@ -77,9 +77,10 @@ const Pricing = () => {
         <section className="space-y-3 pt-4">
           <h2 className="text-2xl font-semibold">Payment & Billing</h2>
           <p>
-            Payments are processed securely by Paddle, our Merchant of Record. One-time purchases only — no subscriptions or auto-renewals. See our{" "}
+            Payments are processed securely by <strong>Paddle.com</strong>, the Merchant of Record for all orders placed with JAC Consulting. Paddle handles checkout, billing, tax, invoicing, and refund decisions. One-time purchases only — no subscriptions or auto-renewals. See our{" "}
             <Link to="/refund" className="text-primary underline">Refund Policy</Link> and{" "}
-            <Link to="/terms" className="text-primary underline">Terms of Service</Link>.
+            <Link to="/terms" className="text-primary underline">Terms of Service</Link>. For billing questions, contact{" "}
+            <a className="text-primary underline" href="mailto:MPetCinfo@proton.me">MPetCinfo@proton.me</a>.
           </p>
         </section>
 
