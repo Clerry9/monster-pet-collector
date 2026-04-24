@@ -370,6 +370,7 @@ const Index = () => {
               <div className="absolute inset-0" data-tutorial="board" data-level={getLevelForXp(game.xp).id}>
                 <GameBoard
                   position={game.position}
+                  absoluteStep={game.totalSteps}
                   monster={game.activeMonsterData}
                   rolls={game.rolls}
                   lastResult={lastResult}
