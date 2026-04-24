@@ -8,6 +8,7 @@ import { Zap } from "lucide-react";
 
 interface GameBoardProps {
   position: number;
+  absoluteStep?: number;
   monster: Monster;
   rolls: number;
   lastResult: { steps: number; tile: BoardTile; islandStarEarned?: boolean } | null;
