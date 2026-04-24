@@ -796,65 +796,58 @@ function MonsterTrail({ positions, theme }: { positions: THREE.Vector3[]; theme:
 
 interface MonsterPawnProps {
   monsterPosRef?: React.MutableRefObject<THREE.Vector3>;
-  pathPoints: THREE.Vector3[];
-  position: number;
+  /** Absolute index the monster should currently be on (monotonic, never wraps). */
+  absoluteIndex: number;
+  /** Pure function: absolute index → world-space Vector3. */
+  pathPointAt: (absIdx: number) => THREE.Vector3;
   monster: Monster;
   movementResult: { steps: number; tile: BoardTile } | null;
   trailPosRef: React.MutableRefObject<THREE.Vector3[]>;
   activeLift: number;
 }
 
-function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRef, activeLift, monsterPosRef }: MonsterPawnProps) {
+function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trailPosRef, activeLift, monsterPosRef }: MonsterPawnProps) {
   const groupRef = useRef<THREE.Group>(null);
   const bodyRef = useRef<THREE.Mesh>(null);
   const leftFootRef = useRef<THREE.Mesh>(null);
   const rightFootRef = useRef<THREE.Mesh>(null);
-  const currentPos = useRef(pathPoints[position]?.clone() || new THREE.Vector3());
-  const scheduledPosition = useRef(position);
-  const queuedTiles = useRef<number[]>([]);
-  const activeTile = useRef<number | null>(null);
-  const stepStart = useRef(pathPoints[position]?.clone() || new THREE.Vector3());
-  const stepEnd = useRef(pathPoints[position]?.clone() || new THREE.Vector3());
+  const currentPos = useRef(pathPointAt(absoluteIndex).clone());
+  /** Absolute index the pawn is currently AT (the latest tile it has fully arrived on). */
+  const arrivedIdx = useRef(absoluteIndex);
+  /** Absolute index the pawn is currently animating TOWARD. */
+  const activeTargetIdx = useRef<number | null>(null);
+  const stepStart = useRef(pathPointAt(absoluteIndex).clone());
+  const stepEnd = useRef(pathPointAt(absoluteIndex).clone());
   const stepProgress = useRef(1);
   const stepDuration = useRef(0.1);
   const texture = useLoader(THREE.TextureLoader, monster.image);
   const liftRef = useRef(0);
 
   useEffect(() => {
-    if (!movementResult || movementResult.steps <= 0) return;
-    const startIndex = scheduledPosition.current;
-    const nextTiles = Array.from({ length: movementResult.steps }, (_, index) => (
-      (startIndex + index + 1) % pathPoints.length
-    ));
-    queuedTiles.current.push(...nextTiles);
-    scheduledPosition.current = position;
-    // Slower, more deliberate hops — easier to follow visually
-    stepDuration.current = THREE.MathUtils.clamp(0.38 - movementResult.steps * 0.004, 0.18, 0.32);
-  }, [movementResult, pathPoints, position]);
+    // Slower, more deliberate hops — easier to follow visually.
+    if (movementResult && movementResult.steps > 0) {
+      stepDuration.current = THREE.MathUtils.clamp(0.38 - movementResult.steps * 0.004, 0.18, 0.32);
+    }
+  }, [movementResult]);
 
+  // If we ever fall WAY behind (e.g. tab restored after long sleep), snap forward.
   useEffect(() => {
-    if (movementResult || activeTile.current !== null || queuedTiles.current.length > 0) return;
-    const settledPoint = pathPoints[position] || pathPoints[0];
-    currentPos.current.copy(settledPoint);
-    stepStart.current.copy(settledPoint);
-    stepEnd.current.copy(settledPoint);
-    scheduledPosition.current = position;
-  }, [movementResult, pathPoints, position]);
+    if (absoluteIndex - arrivedIdx.current > 50) {
+      arrivedIdx.current = absoluteIndex - 6; // catch up most of the way; animate the last 6 hops
+    }
+  }, [absoluteIndex]);
 
   const startNextStep = () => {
-    if (activeTile.current !== null || queuedTiles.current.length === 0) return;
-    const nextTile = queuedTiles.current.shift();
-    if (nextTile === undefined) return;
-    activeTile.current = nextTile;
+    if (activeTargetIdx.current !== null) return;
+    if (arrivedIdx.current >= absoluteIndex) return;
+    const nextIdx = arrivedIdx.current + 1;
+    activeTargetIdx.current = nextIdx;
     stepStart.current.copy(currentPos.current);
-    stepEnd.current.copy(pathPoints[nextTile] || pathPoints[0]);
+    stepEnd.current.copy(pathPointAt(nextIdx));
     stepProgress.current = 0;
   };
 
-  useEffect(() => { startNextStep(); }, [movementResult]);
   useEffect(() => { texture.colorSpace = THREE.SRGBColorSpace; }, [texture]);
-  useEffect(() => { scheduledPosition.current = position; }, [position]);
-  useEffect(() => { if (!pathPoints.length) currentPos.current.set(0, 0, 0); }, [pathPoints.length]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
@@ -863,9 +856,9 @@ function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRe
     let hopY = 0;
     let hopScale = 1;
     let hopRotZ = 0;
-    const isAnimating = activeTile.current !== null || queuedTiles.current.length > 0;
+    const isAnimating = activeTargetIdx.current !== null || arrivedIdx.current < absoluteIndex;
 
-    if (activeTile.current !== null) {
+    if (activeTargetIdx.current !== null) {
       stepProgress.current = Math.min(1, stepProgress.current + delta / stepDuration.current);
       const easedProgress = THREE.MathUtils.smootherstep(stepProgress.current, 0, 1);
       currentPos.current.lerpVectors(stepStart.current, stepEnd.current, easedProgress);
@@ -875,7 +868,8 @@ function MonsterPawn({ pathPoints, position, monster, movementResult, trailPosRe
       hopRotZ = Math.sin(stepProgress.current * Math.PI * 2) * 0.08;
       if (stepProgress.current >= 1) {
         currentPos.current.copy(stepEnd.current);
-        activeTile.current = null;
+        arrivedIdx.current = activeTargetIdx.current;
+        activeTargetIdx.current = null;
       }
     }
 
