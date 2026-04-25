@@ -93,9 +93,16 @@ describe("applyRegen", () => {
   });
 
   it("treats invalid timestamps as 'now' instead of NaN", () => {
+    // Invalid anchor → treated as `now`; first call is a no-op (elapsed=0),
+    // and a subsequent call after a full interval still grants regen correctly.
     const s = baseState({ energy: 100, energyUpdatedAt: "not-a-date" });
-    const out = applyRegen(s, T0);
-    expect(out.energy).toBe(100);
+    const noop = applyRegen(s, T0);
+    expect(noop.energy).toBe(100);
+    // After ENERGY_REGEN_MS more, anchor (now T0) is still in the past and we
+    // should regen exactly 1 energy — proving NaN didn't poison the math.
+    const after: GameState = { ...noop, energyUpdatedAt: new Date(T0).toISOString() };
+    const out = applyRegen(after, T0 + ENERGY_REGEN_MS);
+    expect(out.energy).toBe(101);
     expect(Number.isFinite(Date.parse(out.energyUpdatedAt))).toBe(true);
   });
 });
