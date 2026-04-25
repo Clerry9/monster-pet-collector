@@ -115,22 +115,36 @@ export function energyCapForLevel(level: number): number {
 }
 
 /** Pure: advance regen ticks since `state.energyUpdatedAt`.
- *  Caps at level cap, but leaves overflow energy alone (no auto-tick when at/over cap). */
-function applyRegen(state: GameState, nowMs: number): GameState {
-  const last = Date.parse(state.energyUpdatedAt) || nowMs;
+ *  Caps at level cap, but leaves overflow energy alone (no auto-tick when at/over cap).
+ *  When energy >= cap, the regen anchor is held at `nowMs` so that the very moment
+ *  energy drops below cap (e.g. after a roll), regen resumes from a fresh full interval. */
+export function applyRegen(state: GameState, nowMs: number): GameState {
   const cap = energyCapForLevel(state.level);
+  const parsed = Date.parse(state.energyUpdatedAt);
+  const last = Number.isFinite(parsed) ? parsed : nowMs;
+
   if (state.energy >= cap) {
-    // Overflow or full — reset the timer so regen resumes only after dropping below cap.
-    return state.energyUpdatedAt === new Date(nowMs).toISOString()
-      ? state
-      : { ...state, energyUpdatedAt: new Date(nowMs).toISOString() };
+    // At or over cap — pin the anchor to "now" so the next tick is a full interval away.
+    if (last === nowMs) return state;
+    return { ...state, energyUpdatedAt: new Date(nowMs).toISOString() };
   }
+
   const elapsed = Math.max(0, nowMs - last);
   const ticks = Math.floor(elapsed / ENERGY_REGEN_MS);
   if (ticks <= 0) return state;
   const next = Math.min(cap, state.energy + ticks);
-  const consumed = (next - state.energy) * ENERGY_REGEN_MS;
-  return { ...state, energy: next, energyUpdatedAt: new Date(last + consumed).toISOString() };
+  const gained = next - state.energy;
+  // Advance anchor by exactly the time consumed by the granted ticks.
+  const newAnchor = last + gained * ENERGY_REGEN_MS;
+  return { ...state, energy: next, energyUpdatedAt: new Date(newAnchor).toISOString() };
+}
+
+/** Sanitize an energy delta — reject NaN, Infinity, non-numbers.
+ *  Returns a safe integer delta (rounded toward zero). */
+export function sanitizeEnergyDelta(amount: unknown): number {
+  const n = typeof amount === "number" ? amount : Number(amount);
+  if (!Number.isFinite(n)) return 0;
+  return Math.trunc(n);
 }
 
 const DEFAULT_STATE: GameState = {
@@ -276,7 +290,10 @@ export function useGameState() {
         .single();
 
       if (data) {
-        const dbState = dbToState(data);
+        // Server is source of truth for energy_updated_at — apply regen using
+        // the DB anchor so offline regen counts but we never overwrite a newer
+        // (higher) DB energy value with a stale local one.
+        const dbState = applyRegen(dbToState(data), Date.now());
         setState(dbState);
         saveLocalState(dbState);
       } else {
@@ -348,7 +365,19 @@ export function useGameState() {
 
   // Energy: can be added (overflow allowed) or subtracted (clamped to 0).
   const addEnergy = useCallback(
-    (amount: number) => update((s) => ({ ...s, energy: Math.max(0, s.energy + amount) })),
+    (amount: number) => {
+      const delta = sanitizeEnergyDelta(amount);
+      if (delta === 0) return;
+      update((s) => {
+        const cap = energyCapForLevel(s.level);
+        const next = s.energy + delta;
+        // Clamp lower bound to 0. Upper bound: positive grants may push above cap
+        // (overflow), but we never let regen-style additions exceed cap implicitly —
+        // overflow only comes from explicit positive grants here, which is the
+        // intended behavior. Negative deltas just clamp at 0.
+        return { ...s, energy: Math.max(0, next) };
+      });
+    },
     [update]
   );
 
