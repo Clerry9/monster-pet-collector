@@ -81,13 +81,34 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
       };
     }
     const vh = window.innerHeight;
-    const showBelow = rect.bottom + 180 < vh;
-    const top = showBelow ? rect.bottom + 14 : Math.max(12, rect.top - 14);
-    const transform = showBelow ? "translateX(-50%)" : "translate(-50%, -100%)";
+    const vw = window.innerWidth;
+    // Reserve space for the tooltip card. We don't know its exact height, so
+    // pick a conservative estimate and clamp the final top inside the viewport
+    // so it can never fall off the top or bottom edge.
+    const ESTIMATED_HEIGHT = 200;
+    const MARGIN = 12;
+    const spaceBelow = vh - rect.bottom;
+    const spaceAbove = rect.top;
+    const showBelow = spaceBelow >= ESTIMATED_HEIGHT + MARGIN || spaceBelow >= spaceAbove;
+    let top: number;
+    let transformY: string;
+    if (showBelow) {
+      top = rect.bottom + 14;
+      transformY = "0%";
+      // Clamp so the bottom of the tooltip doesn't exceed the viewport.
+      top = Math.min(top, vh - ESTIMATED_HEIGHT - MARGIN);
+      top = Math.max(MARGIN, top);
+    } else {
+      top = rect.top - 14;
+      transformY = "-100%";
+      // Clamp so the top edge after translate stays on screen.
+      top = Math.max(MARGIN + ESTIMATED_HEIGHT, top);
+      top = Math.min(top, vh - MARGIN);
+    }
     return {
       top,
-      left: Math.min(window.innerWidth - 20, Math.max(20, rect.left + rect.width / 2)),
-      transform,
+      left: Math.min(vw - 20, Math.max(20, rect.left + rect.width / 2)),
+      transform: `translate(-50%, ${transformY})`,
       maxWidth: "min(340px, 90vw)",
     };
   })();
