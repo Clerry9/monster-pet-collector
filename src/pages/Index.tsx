@@ -67,6 +67,10 @@ const Index = () => {
   const [prestigeTier, setPrestigeTier] = useState<number | null>(null);
   const [drawnCard, setDrawnCard] = useState<GameCard | null>(null);
   const prevLevelRef = useRef(game.level);
+  // Stash a level-up that happened while the monster is still hopping,
+  // so the celebration only plays after handleLanded() fires.
+  const pendingLevelUpRef = useRef<ReturnType<typeof getLevelForXp> | null>(null);
+  const pendingPrestigeRef = useRef<number | null>(null);
   // Quick visual burst when an Island Star is awarded after a hop lands.
   const [starBurstKey, setStarBurstKey] = useState(0);
 
@@ -134,15 +138,24 @@ const Index = () => {
     return () => stopBgm();
   }, []);
 
-  // Detect level-up + prestige milestones (every 100 levels)
+  // Detect level-up + prestige milestones (every 100 levels). The actual
+  // celebration is deferred until the monster finishes its hop so that all
+  // post-roll feedback (cards, stars, level-up) appears together.
   useEffect(() => {
     if (game.level > prevLevelRef.current) {
-      setLevelUpData(getLevelForXp(game.xp));
+      const lvl = getLevelForXp(game.xp);
       const tier = prestigeTierUnlocked(prevLevelRef.current, game.level);
-      if (tier > 0) setPrestigeTier(tier);
+      if (lastResult) {
+        pendingLevelUpRef.current = lvl;
+        if (tier > 0) pendingPrestigeRef.current = tier;
+      } else {
+        // No active hop (e.g. XP granted from a non-roll source) — show now.
+        setLevelUpData(lvl);
+        if (tier > 0) setPrestigeTier(tier);
+      }
     }
     prevLevelRef.current = game.level;
-  }, [game.level, game.xp]);
+  }, [game.level, game.xp, lastResult]);
 
   const handleRollDice = () => {
     const result = game.rollDice();
@@ -174,10 +187,22 @@ const Index = () => {
         duration: 4000,
       });
     }
+    // Flush any deferred level-up / prestige celebrations now that the hop is done.
+    if (pendingLevelUpRef.current) {
+      setLevelUpData(pendingLevelUpRef.current);
+      pendingLevelUpRef.current = null;
+    }
+    if (pendingPrestigeRef.current) {
+      setPrestigeTier(pendingPrestigeRef.current);
+      pendingPrestigeRef.current = null;
+    }
   };
 
-  // Auto-trigger card flip reward when player has pending flips
+  // Auto-trigger card flip reward when player has pending flips.
+  // Skip while the season mini-game is open — otherwise the CardReveal
+  // overlay stacks on top of the mini-game modal and feels like a freeze.
   useEffect(() => {
+    if (tab === "season") return;
     if (game.pendingCardFlips > 0 && !drawnCard) {
       const card = drawRandomCard();
       game.consumeCardFlip();
@@ -185,7 +210,7 @@ const Index = () => {
       setDrawnCard(card);
       toast.success("🌟 Free Card Flip!", { description: "From your collected island stars" });
     }
-  }, [game.pendingCardFlips, drawnCard]);
+  }, [game.pendingCardFlips, drawnCard, tab]);
 
   // Mini-game costs 1 roll to play
   const handlePlayMiniGame = (): boolean => {
