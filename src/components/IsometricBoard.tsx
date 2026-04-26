@@ -1241,7 +1241,9 @@ export function IsometricBoard({ position, absoluteStep, monster, isMoving, move
     >
       <Canvas shadows camera={{ position: [6, 5, 6], fov: 45, near: 0.1, far: 100 }} gl={{ antialias: true, alpha: false }}>
         <color attach="background" args={[theme.bg]} />
-        <fog attach="fog" args={[theme.fog, 12, 28]} />
+        {/* Push the fog further out while the monster is hopping so it can't
+            get swallowed mid-jump on long rolls. */}
+        <fog attach="fog" args={[theme.fog, isMoving ? 22 : 14, isMoving ? 60 : 32]} />
         <IsometricBoardScene absoluteStep={absStep} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} recenterRef={recenterRef} />
       </Canvas>
       <BoardMinimap

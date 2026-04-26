@@ -44,6 +44,61 @@ import { Footer } from "@/components/Footer";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season";
 
+/**
+ * Big, centered ⚡ energy pill displayed at the top-center of the board view.
+ * Mirrors the BetSelector's energy logic but rendered larger so players can
+ * always see their stamina at a glance.
+ */
+function CenterEnergyPill({
+  energy, energyCap, energyUpdatedAt, energyRegenMs = 180_000,
+}: { energy: number; energyCap: number; energyUpdatedAt?: string; energyRegenMs?: number }) {
+  const cur = Math.min(energy, energyCap);
+  const overflow = Math.max(0, energy - energyCap);
+  const pct = energyCap > 0 ? Math.max(6, Math.min(100, Math.round((cur / energyCap) * 100))) : 0;
+  const belowCap = energy < energyCap;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!belowCap || !energyUpdatedAt) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [belowCap, energyUpdatedAt]);
+  const countdown = (() => {
+    if (!belowCap || !energyUpdatedAt) return null;
+    const last = Date.parse(energyUpdatedAt);
+    if (!Number.isFinite(last)) return null;
+    const elapsed = Math.max(0, now - last);
+    const remaining = Math.max(0, energyRegenMs - (elapsed % energyRegenMs));
+    const m = Math.floor(remaining / 60_000);
+    const s = Math.floor((remaining % 60_000) / 1000);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  })();
+  return (
+    <div
+      className="pill-energy flex items-center gap-2 px-4 py-1.5 min-w-[200px] max-w-[80vw] shadow-chunky-sm"
+      role="status"
+      aria-label={`Energy ${energy} of ${energyCap}${countdown ? `, next in ${countdown}` : ""}`}
+      title={`Refills 1 every 3 minutes up to ${energyCap}${countdown ? ` — next +1 in ${countdown}` : ""}`}
+    >
+      <span aria-hidden="true" className="text-base leading-none">⚡</span>
+      <div className="flex-1 h-2 rounded-full bg-wood-dark/40 overflow-hidden">
+        <div
+          className="h-full bg-cream-light rounded-full transition-[width] duration-300"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-[12px] font-display leading-none tabular-nums text-cream-light">
+        {energy}/{energyCap}
+        {overflow > 0 && <span className="ml-1 text-[10px] opacity-90">+{overflow}</span>}
+      </span>
+      {countdown && (
+        <span className="text-[10px] font-display opacity-80 tabular-nums text-cream-light/90">
+          +1 in {countdown}
+        </span>
+      )}
+    </div>
+  );
+}
+
 const Index = () => {
   const game = useGameState();
   const daily = useDailyReward(game.addCoins);
@@ -67,6 +122,10 @@ const Index = () => {
   const [prestigeTier, setPrestigeTier] = useState<number | null>(null);
   const [drawnCard, setDrawnCard] = useState<GameCard | null>(null);
   const prevLevelRef = useRef(game.level);
+  // Stash a level-up that happened while the monster is still hopping,
+  // so the celebration only plays after handleLanded() fires.
+  const pendingLevelUpRef = useRef<ReturnType<typeof getLevelForXp> | null>(null);
+  const pendingPrestigeRef = useRef<number | null>(null);
   // Quick visual burst when an Island Star is awarded after a hop lands.
   const [starBurstKey, setStarBurstKey] = useState(0);
 
@@ -134,15 +193,24 @@ const Index = () => {
     return () => stopBgm();
   }, []);
 
-  // Detect level-up + prestige milestones (every 100 levels)
+  // Detect level-up + prestige milestones (every 100 levels). The actual
+  // celebration is deferred until the monster finishes its hop so that all
+  // post-roll feedback (cards, stars, level-up) appears together.
   useEffect(() => {
     if (game.level > prevLevelRef.current) {
-      setLevelUpData(getLevelForXp(game.xp));
+      const lvl = getLevelForXp(game.xp);
       const tier = prestigeTierUnlocked(prevLevelRef.current, game.level);
-      if (tier > 0) setPrestigeTier(tier);
+      if (lastResult) {
+        pendingLevelUpRef.current = lvl;
+        if (tier > 0) pendingPrestigeRef.current = tier;
+      } else {
+        // No active hop (e.g. XP granted from a non-roll source) — show now.
+        setLevelUpData(lvl);
+        if (tier > 0) setPrestigeTier(tier);
+      }
     }
     prevLevelRef.current = game.level;
-  }, [game.level, game.xp]);
+  }, [game.level, game.xp, lastResult]);
 
   const handleRollDice = () => {
     const result = game.rollDice();
@@ -174,10 +242,22 @@ const Index = () => {
         duration: 4000,
       });
     }
+    // Flush any deferred level-up / prestige celebrations now that the hop is done.
+    if (pendingLevelUpRef.current) {
+      setLevelUpData(pendingLevelUpRef.current);
+      pendingLevelUpRef.current = null;
+    }
+    if (pendingPrestigeRef.current) {
+      setPrestigeTier(pendingPrestigeRef.current);
+      pendingPrestigeRef.current = null;
+    }
   };
 
-  // Auto-trigger card flip reward when player has pending flips
+  // Auto-trigger card flip reward when player has pending flips.
+  // Skip while the season mini-game is open — otherwise the CardReveal
+  // overlay stacks on top of the mini-game modal and feels like a freeze.
   useEffect(() => {
+    if (tab === "season") return;
     if (game.pendingCardFlips > 0 && !drawnCard) {
       const card = drawRandomCard();
       game.consumeCardFlip();
@@ -185,7 +265,7 @@ const Index = () => {
       setDrawnCard(card);
       toast.success("🌟 Free Card Flip!", { description: "From your collected island stars" });
     }
-  }, [game.pendingCardFlips, drawnCard]);
+  }, [game.pendingCardFlips, drawnCard, tab]);
 
   // Mini-game costs 1 roll to play
   const handlePlayMiniGame = (): boolean => {
@@ -433,6 +513,15 @@ const Index = () => {
                     onAddGems={() => setTab("specials")}
                     onAddKeys={() => setTab("season")}
                     onAddStars={() => setTab("specials")}
+                  />
+                </div>
+                {/* Prominent centered ⚡ energy pill — main on-screen energy indicator */}
+                <div className="pointer-events-auto mt-2 flex justify-center">
+                  <CenterEnergyPill
+                    energy={game.energy}
+                    energyCap={game.energyCap}
+                    energyUpdatedAt={game.energyUpdatedAt}
+                    energyRegenMs={game.energyRegenMs}
                   />
                 </div>
                 <div className="pointer-events-auto mt-2">

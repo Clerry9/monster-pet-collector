@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CARD_SETS, GameCard, RARITY_COLORS, RARITY_GLOW, CardRarity, TRADE_VALUES } from "@/data/cards";
 import { CheckCircle, Lock, Gift, ChevronDown, ChevronUp, ArrowRightLeft } from "lucide-react";
+import { MONSTER_PIECES_REQUIRED } from "@/hooks/useGameState";
 
 interface Props {
   collectedCards: string[];
@@ -176,8 +177,11 @@ function CardItem({ card, owned, count, onTrade }: { card: GameCard; owned: bool
           {owned && card.reward.type === "coins" && (
             <span className="text-[11px] font-bold text-gold-deep">+{card.reward.amount} 🪙</span>
           )}
-          {owned && card.reward.type === "monster" && (
-            <span className="text-[11px] font-bold text-wood-dark">🔓 Monster</span>
+          {card.reward.type === "monster" && (
+            <span className="text-[11px] font-bold text-wood-dark">
+              🧩 {Math.min(count, MONSTER_PIECES_REQUIRED)}/{MONSTER_PIECES_REQUIRED}
+              {count >= MONSTER_PIECES_REQUIRED ? " 🔓" : " pieces"}
+            </span>
           )}
         </div>
 

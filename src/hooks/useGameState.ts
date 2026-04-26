@@ -98,6 +98,8 @@ export interface GameState {
 
 // Each "island" = ~5 tiles. Stars convert at this ratio.
 export const STARS_PER_FLIP = 5;
+/** Number of duplicate monster-card "pieces" required to unlock the monster. */
+export const MONSTER_PIECES_REQUIRED = 5;
 export const TILES_PER_ISLAND = 5;
 export const SPIN_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 
@@ -461,12 +463,21 @@ export function useGameState() {
         if (isNew) {
           if (drawnCard.reward.type === "coins" && drawnCard.reward.amount) {
             bonusCoins += drawnCard.reward.amount;
-          } else if (drawnCard.reward.type === "monster" && drawnCard.reward.monsterId) {
-            if (!s.unlockedMonsters.includes(drawnCard.reward.monsterId)) {
-              newUnlockedMonsters = [...s.unlockedMonsters, drawnCard.reward.monsterId];
+          }
+        }
+        // Monster cards must be collected MONSTER_PIECES_REQUIRED times
+        // (duplicates allowed) before the playable monster is unlocked.
+        if (drawnCard.reward.type === "monster" && drawnCard.reward.monsterId) {
+          const monsterId = drawnCard.reward.monsterId;
+          if (!s.unlockedMonsters.includes(monsterId)) {
+            const pieces = newCollectedCards.filter((id) => id === drawnCard.id).length;
+            if (pieces >= MONSTER_PIECES_REQUIRED) {
+              newUnlockedMonsters = [...s.unlockedMonsters, monsterId];
             }
           }
+        }
 
+        if (isNew) {
           for (const set of CARD_SETS) {
             const allSetCards = set.cards.map((c) => c.id);
             const hadAllBefore = allSetCards.every((id) => s.collectedCards.includes(id));
