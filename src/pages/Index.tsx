@@ -44,6 +44,61 @@ import { Footer } from "@/components/Footer";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season";
 
+/**
+ * Big, centered ⚡ energy pill displayed at the top-center of the board view.
+ * Mirrors the BetSelector's energy logic but rendered larger so players can
+ * always see their stamina at a glance.
+ */
+function CenterEnergyPill({
+  energy, energyCap, energyUpdatedAt, energyRegenMs = 180_000,
+}: { energy: number; energyCap: number; energyUpdatedAt?: string; energyRegenMs?: number }) {
+  const cur = Math.min(energy, energyCap);
+  const overflow = Math.max(0, energy - energyCap);
+  const pct = energyCap > 0 ? Math.max(6, Math.min(100, Math.round((cur / energyCap) * 100))) : 0;
+  const belowCap = energy < energyCap;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!belowCap || !energyUpdatedAt) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [belowCap, energyUpdatedAt]);
+  const countdown = (() => {
+    if (!belowCap || !energyUpdatedAt) return null;
+    const last = Date.parse(energyUpdatedAt);
+    if (!Number.isFinite(last)) return null;
+    const elapsed = Math.max(0, now - last);
+    const remaining = Math.max(0, energyRegenMs - (elapsed % energyRegenMs));
+    const m = Math.floor(remaining / 60_000);
+    const s = Math.floor((remaining % 60_000) / 1000);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  })();
+  return (
+    <div
+      className="pill-energy flex items-center gap-2 px-4 py-1.5 min-w-[200px] max-w-[80vw] shadow-chunky-sm"
+      role="status"
+      aria-label={`Energy ${energy} of ${energyCap}${countdown ? `, next in ${countdown}` : ""}`}
+      title={`Refills 1 every 3 minutes up to ${energyCap}${countdown ? ` — next +1 in ${countdown}` : ""}`}
+    >
+      <span aria-hidden="true" className="text-base leading-none">⚡</span>
+      <div className="flex-1 h-2 rounded-full bg-wood-dark/40 overflow-hidden">
+        <div
+          className="h-full bg-cream-light rounded-full transition-[width] duration-300"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-[12px] font-display leading-none tabular-nums text-cream-light">
+        {energy}/{energyCap}
+        {overflow > 0 && <span className="ml-1 text-[10px] opacity-90">+{overflow}</span>}
+      </span>
+      {countdown && (
+        <span className="text-[10px] font-display opacity-80 tabular-nums text-cream-light/90">
+          +1 in {countdown}
+        </span>
+      )}
+    </div>
+  );
+}
+
 const Index = () => {
   const game = useGameState();
   const daily = useDailyReward(game.addCoins);
