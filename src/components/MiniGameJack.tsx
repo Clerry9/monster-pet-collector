@@ -209,8 +209,8 @@ export function MiniGameJack({
               <div className="rounded-xl border-2 border-gold bg-gradient-to-br from-gold/30 to-gold/10 p-2.5 text-wood-dark text-[11px] flex items-start gap-2">
                 <Lightbulb size={14} className="mt-0.5 shrink-0" />
                 <div>
-                  <div className="font-display text-[11px]">FIND PAIRS BEHIND PUZZLE PIECES</div>
-                  <p>Tap two pieces to peek. Match {season.symbol} pairs (+2 symbols each) and rare bonus items below. {MAX_FLIPS} flips total.</p>
+                  <div className="font-display text-[11px]">MATCH PAIRS TO WIN PRIZES</div>
+                  <p>Flip two cards. Match {season.symbol} pairs to earn season tokens (+2 each). Match bonus items to claim them instantly. You get {MAX_FLIPS} flips.</p>
                 </div>
               </div>
               <div className="bg-cream/95 rounded-xl border-2 border-wood-dark p-3 text-wood-dark text-xs space-y-1">
