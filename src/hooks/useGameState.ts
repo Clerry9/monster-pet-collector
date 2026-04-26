@@ -98,6 +98,8 @@ export interface GameState {
 
 // Each "island" = ~5 tiles. Stars convert at this ratio.
 export const STARS_PER_FLIP = 5;
+/** Number of duplicate monster-card "pieces" required to unlock the monster. */
+export const MONSTER_PIECES_REQUIRED = 5;
 export const TILES_PER_ISLAND = 5;
 export const SPIN_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 
