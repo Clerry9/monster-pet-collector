@@ -460,6 +460,15 @@ const Index = () => {
                     onAddStars={() => setTab("specials")}
                   />
                 </div>
+                {/* Prominent centered ⚡ energy pill — main on-screen energy indicator */}
+                <div className="pointer-events-auto mt-2 flex justify-center">
+                  <CenterEnergyPill
+                    energy={game.energy}
+                    energyCap={game.energyCap}
+                    energyUpdatedAt={game.energyUpdatedAt}
+                    energyRegenMs={game.energyRegenMs}
+                  />
+                </div>
                 <div className="pointer-events-auto mt-2">
                   <SideRails
                     msRemaining={season.msRemaining}
