@@ -207,7 +207,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.8, type: "spring" }}
                 >
-                  {card.reward.type === "coins" ? `+${card.reward.amount} 🪙` : "🔓 Monster Unlock!"}
+                  {card.reward.type === "coins" ? `+${card.reward.amount} 🪙` : "🧩 Monster Piece"}
                 </motion.div>
               </div>
 
