@@ -935,26 +935,61 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
       <mesh ref={bodyRef} visible={false}><sphereGeometry args={[0.01, 4, 4]} /><meshBasicMaterial /></mesh>
       <mesh ref={leftFootRef} visible={false}><sphereGeometry args={[0.01, 4, 4]} /><meshBasicMaterial /></mesh>
       <mesh ref={rightFootRef} visible={false}><sphereGeometry args={[0.01, 4, 4]} /><meshBasicMaterial /></mesh>
-      {/* Glow halo behind the sprite (rarity tinted) */}
+      {/* --- Layered billboard stack (back → front) ---
+          1. Soft outer glow disc (additive) — visible against fog & daylight.
+          2. Rim glow disc just behind sprite — fakes a backlit silhouette.
+          3. Main sprite — soft alpha (low alphaTest) for clean fur edges.
+          4. Brightness pass on top (additive, low opacity) — pops eyes/marks. */}
       <Billboard>
-        <mesh position={[0, 0.05, -0.05]}>
-          <circleGeometry args={[0.7, 32]} />
-          <meshBasicMaterial color={rarityColor} transparent opacity={0.22} />
+        {/* 1. Outer rarity glow — additive so it reads on both bright & dark scenes */}
+        <mesh position={[0, 0.05, -0.45]} renderOrder={1}>
+          <circleGeometry args={[0.85, 32]} />
+          <meshBasicMaterial
+            color={rarityColor}
+            transparent
+            opacity={0.35}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
         </mesh>
-      </Billboard>
-      {/* Main monster — high-fidelity sprite that always faces the camera so it
-          stays readable from any orbit angle and renders in front of the fog. */}
-      <Billboard>
+        {/* 2. Tight rim halo right behind the sprite */}
+        <mesh position={[0, 0.04, -0.08]} renderOrder={2}>
+          <circleGeometry args={[0.62, 32]} />
+          <meshBasicMaterial
+            color={rarityColor}
+            transparent
+            opacity={0.55}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+        {/* 3. Main monster sprite — soft alpha edges via low alphaTest */}
         <mesh position={[0, 0, 0]} renderOrder={10}>
-          <planeGeometry args={[1.05, 1.05]} />
-          <meshBasicMaterial map={texture} transparent alphaTest={0.5} depthWrite={false} toneMapped={false} />
+          <planeGeometry args={[1.1, 1.1]} />
+          <meshBasicMaterial
+            map={texture}
+            transparent
+            alphaTest={0.08}
+            depthWrite={false}
+            toneMapped={false}
+          />
         </mesh>
-      </Billboard>
-      {/* Aura ring */}
-      <Billboard>
-        <mesh position={[0, 0, -0.4]}>
-          <circleGeometry args={[0.55, 24]} />
-          <meshBasicMaterial color={rarityColor} transparent opacity={0.18} />
+        {/* 4. Brightness/contrast pass — additive copy of the sprite at low opacity
+            makes eyes, teeth & bright marks pop in dim (fog) scenes without
+            blowing out daylight scenes. */}
+        <mesh position={[0, 0, 0.01]} renderOrder={11}>
+          <planeGeometry args={[1.1, 1.1]} />
+          <meshBasicMaterial
+            map={texture}
+            transparent
+            alphaTest={0.5}
+            opacity={0.35}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
         </mesh>
       </Billboard>
       {/* Ground shadow */}
