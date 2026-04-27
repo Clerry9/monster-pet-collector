@@ -931,59 +931,26 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
 
   return (
     <group ref={groupRef}>
-      {/* True 3D body — sphere with rarity-tinted glow */}
-      <mesh ref={bodyRef} position={[0, 0, 0]} castShadow>
-        <sphereGeometry args={[0.32, 28, 28]} />
-        <meshStandardMaterial
-          color={rarityColor}
-          emissive={rarityColor}
-          emissiveIntensity={0.45}
-          roughness={0.35}
-          metalness={0.25}
-        />
-      </mesh>
-      {/* Belly */}
-      <mesh position={[0, -0.05, 0.18]}>
-        <sphereGeometry args={[0.22, 20, 20]} />
-        <meshStandardMaterial color="#fef3c7" emissive={rarityColor} emissiveIntensity={0.1} roughness={0.6} />
-      </mesh>
-      {/* Eyes */}
-      <mesh position={[-0.11, 0.1, 0.27]}>
-        <sphereGeometry args={[0.07, 16, 16]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.2} />
-      </mesh>
-      <mesh position={[0.11, 0.1, 0.27]}>
-        <sphereGeometry args={[0.07, 16, 16]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.2} />
-      </mesh>
-      {/* Pupils */}
-      <mesh position={[-0.11, 0.1, 0.33]}>
-        <sphereGeometry args={[0.035, 12, 12]} />
-        <meshStandardMaterial color="#0a0a0a" />
-      </mesh>
-      <mesh position={[0.11, 0.1, 0.33]}>
-        <sphereGeometry args={[0.035, 12, 12]} />
-        <meshStandardMaterial color="#0a0a0a" />
-      </mesh>
-      {/* Horns/ears */}
-      <mesh position={[-0.18, 0.28, 0]} rotation={[0, 0, -0.4]}>
-        <coneGeometry args={[0.08, 0.22, 8]} />
-        <meshStandardMaterial color={rarityColor} emissive={rarityColor} emissiveIntensity={0.3} roughness={0.5} />
-      </mesh>
-      <mesh position={[0.18, 0.28, 0]} rotation={[0, 0, 0.4]}>
-        <coneGeometry args={[0.08, 0.22, 8]} />
-        <meshStandardMaterial color={rarityColor} emissive={rarityColor} emissiveIntensity={0.3} roughness={0.5} />
-      </mesh>
-      {/* Feet */}
-      <mesh ref={leftFootRef} position={[-0.14, -0.32, 0.05]}>
-        <sphereGeometry args={[0.1, 12, 12]} />
-        <meshStandardMaterial color={rarityColor} roughness={0.6} />
-      </mesh>
-      <mesh ref={rightFootRef} position={[0.14, -0.32, 0.05]}>
-        <sphereGeometry args={[0.1, 12, 12]} />
-        <meshStandardMaterial color={rarityColor} roughness={0.6} />
-      </mesh>
-      {/* Aura ring (still billboarded for readability) */}
+      {/* Hidden refs kept for the existing animation hooks (no visual impact) */}
+      <mesh ref={bodyRef} visible={false}><sphereGeometry args={[0.01, 4, 4]} /><meshBasicMaterial /></mesh>
+      <mesh ref={leftFootRef} visible={false}><sphereGeometry args={[0.01, 4, 4]} /><meshBasicMaterial /></mesh>
+      <mesh ref={rightFootRef} visible={false}><sphereGeometry args={[0.01, 4, 4]} /><meshBasicMaterial /></mesh>
+      {/* Glow halo behind the sprite (rarity tinted) */}
+      <Billboard>
+        <mesh position={[0, 0.05, -0.05]}>
+          <circleGeometry args={[0.7, 32]} />
+          <meshBasicMaterial color={rarityColor} transparent opacity={0.22} />
+        </mesh>
+      </Billboard>
+      {/* Main monster — high-fidelity sprite that always faces the camera so it
+          stays readable from any orbit angle and renders in front of the fog. */}
+      <Billboard>
+        <mesh position={[0, 0, 0]} renderOrder={10}>
+          <planeGeometry args={[1.05, 1.05]} />
+          <meshBasicMaterial map={texture} transparent alphaTest={0.5} depthWrite={false} toneMapped={false} />
+        </mesh>
+      </Billboard>
+      {/* Aura ring */}
       <Billboard>
         <mesh position={[0, 0, -0.4]}>
           <circleGeometry args={[0.55, 24]} />
@@ -1001,8 +968,6 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
           {monster.name}
         </Text>
       </Billboard>
-      {/* Sprite hint (kept tiny so legacy texture isn't wasted) — uncomment if desired */}
-      {/* <mesh position={[0, 0, 0.34]}><planeGeometry args={[0.15, 0.15]} /><meshBasicMaterial map={texture} transparent /></mesh> */}
     </group>
   );
 }
@@ -1250,7 +1215,9 @@ export function IsometricBoard({ position, absoluteStep, monster, isMoving, move
         <color attach="background" args={[theme.bg]} />
         {/* Push the fog further out while the monster is hopping so it can't
             get swallowed mid-jump on long rolls. */}
-        <fog attach="fog" args={[theme.fog, isMoving ? 22 : 14, isMoving ? 60 : 32]} />
+        {/* Fog start pushed well past the chase camera distance (~11 units when
+            moving) so the monster sprite is NEVER inside the fog band. */}
+        <fog attach="fog" args={[theme.fog, isMoving ? 30 : 18, isMoving ? 70 : 38]} />
         <IsometricBoardScene absoluteStep={absStep} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} recenterRef={recenterRef} />
       </Canvas>
       <BoardMinimap
