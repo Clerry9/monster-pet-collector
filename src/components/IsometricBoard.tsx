@@ -935,26 +935,61 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
       <mesh ref={bodyRef} visible={false}><sphereGeometry args={[0.01, 4, 4]} /><meshBasicMaterial /></mesh>
       <mesh ref={leftFootRef} visible={false}><sphereGeometry args={[0.01, 4, 4]} /><meshBasicMaterial /></mesh>
       <mesh ref={rightFootRef} visible={false}><sphereGeometry args={[0.01, 4, 4]} /><meshBasicMaterial /></mesh>
-      {/* Glow halo behind the sprite (rarity tinted) */}
+      {/* --- Layered billboard stack (back → front) ---
+          1. Soft outer glow disc (additive) — visible against fog & daylight.
+          2. Rim glow disc just behind sprite — fakes a backlit silhouette.
+          3. Main sprite — soft alpha (low alphaTest) for clean fur edges.
+          4. Brightness pass on top (additive, low opacity) — pops eyes/marks. */}
       <Billboard>
-        <mesh position={[0, 0.05, -0.05]}>
-          <circleGeometry args={[0.7, 32]} />
-          <meshBasicMaterial color={rarityColor} transparent opacity={0.22} />
+        {/* 1. Outer rarity glow — additive so it reads on both bright & dark scenes */}
+        <mesh position={[0, 0.05, -0.45]} renderOrder={1}>
+          <circleGeometry args={[0.85, 32]} />
+          <meshBasicMaterial
+            color={rarityColor}
+            transparent
+            opacity={0.35}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
         </mesh>
-      </Billboard>
-      {/* Main monster — high-fidelity sprite that always faces the camera so it
-          stays readable from any orbit angle and renders in front of the fog. */}
-      <Billboard>
+        {/* 2. Tight rim halo right behind the sprite */}
+        <mesh position={[0, 0.04, -0.08]} renderOrder={2}>
+          <circleGeometry args={[0.62, 32]} />
+          <meshBasicMaterial
+            color={rarityColor}
+            transparent
+            opacity={0.55}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+        {/* 3. Main monster sprite — soft alpha edges via low alphaTest */}
         <mesh position={[0, 0, 0]} renderOrder={10}>
-          <planeGeometry args={[1.05, 1.05]} />
-          <meshBasicMaterial map={texture} transparent alphaTest={0.5} depthWrite={false} toneMapped={false} />
+          <planeGeometry args={[1.1, 1.1]} />
+          <meshBasicMaterial
+            map={texture}
+            transparent
+            alphaTest={0.08}
+            depthWrite={false}
+            toneMapped={false}
+          />
         </mesh>
-      </Billboard>
-      {/* Aura ring */}
-      <Billboard>
-        <mesh position={[0, 0, -0.4]}>
-          <circleGeometry args={[0.55, 24]} />
-          <meshBasicMaterial color={rarityColor} transparent opacity={0.18} />
+        {/* 4. Brightness/contrast pass — additive copy of the sprite at low opacity
+            makes eyes, teeth & bright marks pop in dim (fog) scenes without
+            blowing out daylight scenes. */}
+        <mesh position={[0, 0, 0.01]} renderOrder={11}>
+          <planeGeometry args={[1.1, 1.1]} />
+          <meshBasicMaterial
+            map={texture}
+            transparent
+            alphaTest={0.5}
+            opacity={0.35}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
         </mesh>
       </Billboard>
       {/* Ground shadow */}
@@ -1073,21 +1108,31 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
   // Pull the camera further back/up while moving so the monster stays in frame
   // even on tall hops or sharp turns. Distance lerps smoothly between idle/moving.
   const distRef = useRef(1);
+  // Lock-on mode: while the monster is hopping we hard-snap the look-at target
+  // to the monster every frame and clamp the camera distance so the monster
+  // can NEVER fall behind into the fog band, even on very long jumps.
+  const wasMovingRef = useRef(false);
   useFrame((state, delta) => {
     const target = monsterPosRef.current;
     // On manual recenter, snap target & camera fast
     const recenter = recenterRef.current;
     if (recenter) recenterRef.current = false;
-    // While moving, track much more aggressively so long hops can't lag the
-    // camera into the fog band behind the monster.
-    const speed = recenter ? 1 : isMoving ? Math.min(1, delta * 14) : Math.min(1, delta * 2.5);
-    lerpedTarget.current.lerp(target, speed);
-    // Hard safety: if we ever drift more than ~3 world units from the monster
-    // (e.g. tab regained focus after a long hop), snap.
-    if (lerpedTarget.current.distanceTo(target) > 3) {
+    // Entering lock-on: snap target onto monster so the hop starts perfectly framed.
+    if (isMoving && !wasMovingRef.current) {
       lerpedTarget.current.copy(target);
     }
-    const targetDist = isMoving ? 1.4 : 1;
+    wasMovingRef.current = isMoving;
+
+    // While moving, lock-on: hard follow with no lag (target = monster).
+    // Idle: smooth follow.
+    if (isMoving) {
+      lerpedTarget.current.copy(target);
+    } else {
+      const speed = recenter ? 1 : Math.min(1, delta * 2.5);
+      lerpedTarget.current.lerp(target, speed);
+      if (lerpedTarget.current.distanceTo(target) > 2) lerpedTarget.current.copy(target);
+    }
+    const targetDist = isMoving ? 1.25 : 1;
     distRef.current += (targetDist - distRef.current) * Math.min(1, delta * 3);
     const d = distRef.current;
     const desiredCam = new THREE.Vector3(
@@ -1095,7 +1140,13 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
       lerpedTarget.current.y + 3.5 * d + (isMoving ? 1.2 : 0),
       lerpedTarget.current.z + 4.5 * d
     );
-    state.camera.position.lerp(desiredCam, recenter ? 1 : isMoving ? Math.min(1, delta * 9) : Math.min(1, delta * 1.8));
+    // Lock-on: snap camera into place while moving so the monster always stays
+    // perfectly centered AND inside the safe zone in front of the fog band.
+    if (isMoving || recenter) {
+      state.camera.position.copy(desiredCam);
+    } else {
+      state.camera.position.lerp(desiredCam, Math.min(1, delta * 1.8));
+    }
     // Look slightly above the monster so its head stays comfortably below the top edge.
     const lookAt = lerpedTarget.current.clone();
     lookAt.y += isMoving ? 0.6 : 0.3;

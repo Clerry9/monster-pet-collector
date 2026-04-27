@@ -632,6 +632,7 @@ const Index = () => {
                 level={game.level}
                 unlockedDiceTiers={game.unlockedDiceTiers}
                 activeDiceTier={game.activeDiceTier}
+                pendingPurchases={game.pendingPurchases}
                 onBuyPack={game.buyDicePack}
                 onUnlockTier={game.unlockDiceTier}
                 onSelectTier={game.setActiveDiceTier}
