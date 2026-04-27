@@ -1113,9 +1113,16 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
     // On manual recenter, snap target & camera fast
     const recenter = recenterRef.current;
     if (recenter) recenterRef.current = false;
-    const speed = recenter ? 1 : isMoving ? Math.min(1, delta * 7) : Math.min(1, delta * 2.5);
+    // While moving, track much more aggressively so long hops can't lag the
+    // camera into the fog band behind the monster.
+    const speed = recenter ? 1 : isMoving ? Math.min(1, delta * 14) : Math.min(1, delta * 2.5);
     lerpedTarget.current.lerp(target, speed);
-    const targetDist = isMoving ? 1.55 : 1;
+    // Hard safety: if we ever drift more than ~3 world units from the monster
+    // (e.g. tab regained focus after a long hop), snap.
+    if (lerpedTarget.current.distanceTo(target) > 3) {
+      lerpedTarget.current.copy(target);
+    }
+    const targetDist = isMoving ? 1.4 : 1;
     distRef.current += (targetDist - distRef.current) * Math.min(1, delta * 3);
     const d = distRef.current;
     const desiredCam = new THREE.Vector3(
@@ -1123,7 +1130,7 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
       lerpedTarget.current.y + 3.5 * d + (isMoving ? 1.2 : 0),
       lerpedTarget.current.z + 4.5 * d
     );
-    state.camera.position.lerp(desiredCam, recenter ? 1 : isMoving ? Math.min(1, delta * 5) : Math.min(1, delta * 1.8));
+    state.camera.position.lerp(desiredCam, recenter ? 1 : isMoving ? Math.min(1, delta * 9) : Math.min(1, delta * 1.8));
     // Look slightly above the monster so its head stays comfortably below the top edge.
     const lookAt = lerpedTarget.current.clone();
     lookAt.y += isMoving ? 0.6 : 0.3;
