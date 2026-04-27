@@ -262,6 +262,9 @@ export function useGameState() {
   const { user } = useAuth();
   const [state, setState] = useState<GameState>(() => applyRegen(loadLocalState(), Date.now()));
   const [dbLoaded, setDbLoaded] = useState(false);
+  // Track in-flight server-side purchases so the UI can disable paid buttons
+  // until the RPC confirms (or fails). Each entry is the pack/tier id.
+  const [pendingPurchases, setPendingPurchases] = useState<Set<string>>(new Set());
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastUserIdRef = useRef<string | null>(null);
 
@@ -563,19 +566,21 @@ export function useGameState() {
     (packId: string) => {
       const pack = DICE_PACKS.find((p) => p.id === packId);
       if (!pack || state.coins < pack.costCoins) return false;
-      // Optimistic local update for instant UI feedback. The authoritative
-      // server-side mutation happens via the buy_dice_pack RPC; the next DB
-      // sync (debounced save) will reconcile if anything is off.
-      update((s) => ({ ...s, coins: s.coins - pack.costCoins, energy: s.energy + pack.rolls }));
       if (user) {
-        // Fire-and-forget: server enforces price + stock; ignore failure (UI
-        // already reflects optimistic state and will be reconciled on reload).
+        // Server-authoritative path: do NOT touch local state until the RPC
+        // confirms the purchase. This prevents bypassing the server price
+        // check via direct table writes (now blocked by RLS anyway).
+        setPendingPurchases((prev) => { const n = new Set(prev); n.add(`pack:${packId}`); return n; });
         supabase.rpc("buy_dice_pack", { p_pack_id: packId }).then(({ data, error }) => {
+          setPendingPurchases((prev) => { const n = new Set(prev); n.delete(`pack:${packId}`); return n; });
           if (error || !data) return;
           const fresh = applyRegen(dbToState(data as any), Date.now());
           setState(fresh);
           saveLocalState(fresh);
         });
+      } else {
+        // Anonymous (no user) — optimistic local-only path for offline play.
+        update((s) => ({ ...s, coins: s.coins - pack.costCoins, rolls: s.rolls + pack.rolls }));
       }
       return true;
     },
@@ -587,8 +592,10 @@ export function useGameState() {
       const tier = DICE_TIERS.find((t) => t.id === tierId);
       if (!tier || state.unlockedDiceTiers.includes(tierId) || state.coins < tier.costCoins) return false;
       if (user && (tierId === "silver" || tierId === "gold")) {
-        // Server-validated unlock — RLS now blocks direct array growth.
+        // Server-validated unlock — RLS blocks direct array growth.
+        setPendingPurchases((prev) => { const n = new Set(prev); n.add(`tier:${tierId}`); return n; });
         supabase.rpc("unlock_dice_tier", { p_tier_id: tierId }).then(({ data, error }) => {
+          setPendingPurchases((prev) => { const n = new Set(prev); n.delete(`tier:${tierId}`); return n; });
           if (error || !data) return;
           const fresh = applyRegen(dbToState(data as any), Date.now());
           // Auto-select the newly purchased tier locally.
@@ -692,6 +699,7 @@ export function useGameState() {
 
   return {
     ...state,
+    pendingPurchases,
     addCoins,
     addRolls,
     addEnergy,
