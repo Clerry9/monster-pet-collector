@@ -563,16 +563,43 @@ export function useGameState() {
     (packId: string) => {
       const pack = DICE_PACKS.find((p) => p.id === packId);
       if (!pack || state.coins < pack.costCoins) return false;
+      // Optimistic local update for instant UI feedback. The authoritative
+      // server-side mutation happens via the buy_dice_pack RPC; the next DB
+      // sync (debounced save) will reconcile if anything is off.
       update((s) => ({ ...s, coins: s.coins - pack.costCoins, energy: s.energy + pack.rolls }));
+      if (user) {
+        // Fire-and-forget: server enforces price + stock; ignore failure (UI
+        // already reflects optimistic state and will be reconciled on reload).
+        supabase.rpc("buy_dice_pack", { p_pack_id: packId }).then(({ data, error }) => {
+          if (error || !data) return;
+          const fresh = applyRegen(dbToState(data as any), Date.now());
+          setState(fresh);
+          saveLocalState(fresh);
+        });
+      }
       return true;
     },
-    [state.coins, update]
+    [state.coins, update, user]
   );
 
   const unlockDiceTier = useCallback(
     (tierId: string) => {
       const tier = DICE_TIERS.find((t) => t.id === tierId);
       if (!tier || state.unlockedDiceTiers.includes(tierId) || state.coins < tier.costCoins) return false;
+      if (user && (tierId === "silver" || tierId === "gold")) {
+        // Server-validated unlock — RLS now blocks direct array growth.
+        supabase.rpc("unlock_dice_tier", { p_tier_id: tierId }).then(({ data, error }) => {
+          if (error || !data) return;
+          const fresh = applyRegen(dbToState(data as any), Date.now());
+          // Auto-select the newly purchased tier locally.
+          const next = { ...fresh, activeDiceTier: tierId };
+          setState(next);
+          saveLocalState(next);
+          saveToDb(next);
+        });
+        return true;
+      }
+      // Free tiers (e.g. seeded "basic") fall through to local update.
       update((s) => ({
         ...s,
         coins: s.coins - tier.costCoins,
@@ -581,7 +608,7 @@ export function useGameState() {
       }));
       return true;
     },
-    [state.unlockedDiceTiers, state.coins, update]
+    [state.unlockedDiceTiers, state.coins, update, user, saveToDb]
   );
 
   const setActiveDiceTier = useCallback(
