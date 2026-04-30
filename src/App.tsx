@@ -12,6 +12,7 @@ import Refund from "./pages/Refund";
 import AcceptableUse from "./pages/AcceptableUse";
 import Pricing from "./pages/Pricing";
 import { CookieConsent } from "./components/CookieConsent";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -38,32 +39,47 @@ function AuthRoute() {
 }
 
 const App = () => (
-  <AuthProvider>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/auth" element={<AuthRoute />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Index />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/refund" element={<Refund />} />
-          <Route path="/acceptable-use" element={<AcceptableUse />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <CookieConsent />
-      </BrowserRouter>
-    </TooltipProvider>
-  </AuthProvider>
+  <ErrorBoundary
+    title="Application error"
+    message="The app hit a runtime error. Reload the page to clear any stale app bundle and try again."
+  >
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route
+              path="/auth"
+              element={
+                <ErrorBoundary
+                  title="Authentication page error"
+                  message="The sign-in page hit a runtime error. Reload the page to clear any stale app bundle and try again."
+                >
+                  <AuthRoute />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Index />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/refund" element={<Refund />} />
+            <Route path="/acceptable-use" element={<AcceptableUse />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <CookieConsent />
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
+  </ErrorBoundary>
 );
 
 export default App;
