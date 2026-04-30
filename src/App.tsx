@@ -40,8 +40,8 @@ function AuthRoute() {
 
 const App = () => (
   <ErrorBoundary
-    title="Authentication page error"
-    message="The sign-in page hit a runtime error. Reload the page to clear any stale app bundle and try again."
+    title="Application error"
+    message="The app hit a runtime error. Reload the page to clear any stale app bundle and try again."
   >
     <AuthProvider>
       <TooltipProvider>
@@ -49,7 +49,17 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/auth" element={<AuthRoute />} />
+            <Route
+              path="/auth"
+              element={
+                <ErrorBoundary
+                  title="Authentication page error"
+                  message="The sign-in page hit a runtime error. Reload the page to clear any stale app bundle and try again."
+                >
+                  <AuthRoute />
+                </ErrorBoundary>
+              }
+            />
             <Route
               path="/"
               element={
