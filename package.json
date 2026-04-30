@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
+    "check:react": "node scripts/check-react-deps.mjs",
+    "build": "npm run check:react && vite build",
+    "build:dev": "npm run check:react && vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
