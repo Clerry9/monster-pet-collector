@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState, useEffect } from "react";
+import React, { useRef, useMemo, useState, useEffect, Suspense } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { OrbitControls, Text, Float, Billboard } from "@react-three/drei";
 import { TOUCH } from "three";
@@ -1209,15 +1209,20 @@ const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number
       })}
 
       <MonsterTrail positions={trailPosRef.current} theme={theme} />
-      <MonsterPawn
-        pathPointAt={pathFn}
-        absoluteIndex={absoluteStep}
-        monster={monster}
-        movementResult={movementResult}
-        trailPosRef={trailPosRef}
-        activeLift={ACTIVE_LIFT_VALUE}
-        monsterPosRef={monsterPosRef}
-      />
+      {/* Suspense boundary around the pawn so a texture swap (e.g. monster
+          evolves / new monster) cannot unmount the entire scene and leave the
+          board "blank" with an invisible monster while the new texture loads. */}
+      <Suspense fallback={null}>
+        <MonsterPawn
+          pathPointAt={pathFn}
+          absoluteIndex={absoluteStep}
+          monster={monster}
+          movementResult={movementResult}
+          trailPosRef={trailPosRef}
+          activeLift={ACTIVE_LIFT_VALUE}
+          monsterPosRef={monsterPosRef}
+        />
+      </Suspense>
 
       <CameraRig monsterPosRef={monsterPosRef} isMoving={isMoving} recenterRef={recenterRef} />
       <OrbitControls
@@ -1279,7 +1284,9 @@ export function IsometricBoard({ position, absoluteStep, monster, isMoving, move
         {/* Fog start pushed well past the chase camera distance (~11 units when
             moving) so the monster sprite is NEVER inside the fog band. */}
         <fog attach="fog" args={[theme.fog, isMoving ? 30 : 18, isMoving ? 70 : 38]} />
-        <IsometricBoardScene absoluteStep={absStep} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} recenterRef={recenterRef} />
+        <Suspense fallback={null}>
+          <IsometricBoardScene absoluteStep={absStep} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} recenterRef={recenterRef} />
+        </Suspense>
       </Canvas>
       <BoardMinimap
         levelId={levelId}

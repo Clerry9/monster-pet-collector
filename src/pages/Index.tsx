@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Gift, Volume2, VolumeX, HelpCircle, Menu, X as XIcon } from "lucide-react";
+import { Gift, Volume2, VolumeX, HelpCircle, Menu, X as XIcon, Settings as SettingsIcon } from "lucide-react";
 import { TutorialCoachmark, CoachStep } from "@/components/TutorialCoachmark";
 import { HelpDialog } from "@/components/HelpDialog";
+import { SettingsDialog } from "@/components/SettingsDialog";
 import { useTutorial } from "@/hooks/useTutorial";
 import { toast } from "sonner";
 import { isMuted, setMuted, startBgm, stopBgm } from "@/lib/sfx";
@@ -133,6 +134,7 @@ const Index = () => {
   // Tutorial + help
   const mainTutorial = useTutorial("main");
   const [helpOpen, setHelpOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -387,6 +389,14 @@ const Index = () => {
               aria-label="How to play"
             >
               <HelpCircle size={16} />
+            </button>
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="icon-tile-gold w-9 h-9 flex items-center justify-center"
+              title="Settings"
+              aria-label="Open settings"
+            >
+              <SettingsIcon size={16} />
             </button>
             <AuthStatusBadge compact />
           </div>
@@ -736,6 +746,7 @@ const Index = () => {
           setCoachOpen(true);
         }}
       />
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <TutorialCoachmark
         open={coachOpen}
         steps={tutorialSteps}
