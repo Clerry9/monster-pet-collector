@@ -1,5 +1,11 @@
 import { toast } from "sonner";
 
+/** Per-context throttle: ignore retry callbacks fired more than once within
+ *  this window (ms). Prevents users from spamming Supabase by mashing
+ *  the "Retry" toast action. */
+const RETRY_THROTTLE_MS = 2500;
+const lastRetryAt = new Map<string, number>();
+
 /**
  * Map raw Supabase / network auth errors to user-friendly messages.
  * Logged errors are forwarded to the console so they remain debuggable.
@@ -41,10 +47,30 @@ export function reportAuthError(
   // eslint-disable-next-line no-console
   console.error(`[auth:${context}]`, err);
   const message = friendlyAuthMessage(err);
+
+  // Wrap retry with a throttle so rapid toast-clicks can't spam Supabase.
+  const throttledRetry = retry
+    ? () => {
+        const now = Date.now();
+        const prev = lastRetryAt.get(context) ?? 0;
+        if (now - prev < RETRY_THROTTLE_MS) {
+          toast.info("Hang on — already retrying…", { duration: 2000 });
+          return;
+        }
+        lastRetryAt.set(context, now);
+        try {
+          void retry();
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error(`[auth:${context}] retry threw`, e);
+        }
+      }
+    : undefined;
+
   toast.error(message, {
     description: `(${context})`,
-    action: retry
-      ? { label: "Retry", onClick: () => void retry() }
+    action: throttledRetry
+      ? { label: "Try again", onClick: throttledRetry }
       : undefined,
     duration: 6000,
   });
