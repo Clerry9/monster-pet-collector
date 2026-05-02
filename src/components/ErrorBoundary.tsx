@@ -33,9 +33,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 text-foreground">
         <section className="w-full max-w-md space-y-5 rounded-lg border border-border bg-card p-6 text-center shadow-lg">
           <div className="space-y-2">
-            <h1 className="font-display text-3xl text-primary">{this.props.title ?? "Something went wrong"}</h1>
+            <h1 className="font-display text-3xl text-primary">
+              {this.props.title ?? "Something went wrong"}
+            </h1>
             <p className="font-body text-sm text-muted-foreground">
-              {this.props.message ?? "The page hit a runtime error. Reloading usually clears stale development bundles."}
+              {this.props.message ?? "The app hit an unexpected error. Reloading will give it a fresh start."}
             </p>
           </div>
 
