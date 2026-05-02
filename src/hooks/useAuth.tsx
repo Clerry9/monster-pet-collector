@@ -20,31 +20,83 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initError, setInitError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+    let subscription: { unsubscribe: () => void } | null = null;
+    try {
+      const result = supabase.auth.onAuthStateChange((_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
         // Defer side-effects (DB write) so we don't deadlock the auth state listener.
         if (session?.user) setTimeout(() => ensureGuestProfile(session.user), 0);
-      }
-    );
+      });
+      subscription = result.data.subscription;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      supabase.auth
+        .getSession()
+        .then(({ data: { session } }) => {
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+          if (session?.user) setTimeout(() => ensureGuestProfile(session.user), 0);
+        })
+        .catch((err) => {
+          console.error("Auth initialization failed:", err);
+          setInitError(err instanceof Error ? err : new Error(String(err)));
+          setLoading(false);
+        });
+    } catch (err) {
+      console.error("Auth subscription failed:", err);
+      setInitError(err instanceof Error ? err : new Error(String(err)));
       setLoading(false);
-      if (session?.user) setTimeout(() => ensureGuestProfile(session.user), 0);
-    });
+    }
 
-    return () => subscription.unsubscribe();
+    return () => {
+      try {
+        subscription?.unsubscribe();
+      } catch {
+        // ignore
+      }
+    };
   }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="font-display text-2xl text-primary text-glow-green animate-pulse">
+          Loading...
+        </div>
+      </div>
+    );
+  }
+
+  if (initError) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 text-foreground">
+        <section className="w-full max-w-md space-y-5 rounded-lg border border-border bg-card p-6 text-center shadow-lg">
+          <div className="space-y-2">
+            <h1 className="font-display text-3xl text-primary">Authentication unavailable</h1>
+            <p className="font-body text-sm text-muted-foreground">
+              We couldn't initialize your session. Please reload the page to try again.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="inline-flex min-h-10 w-full items-center justify-center rounded-md bg-primary px-4 py-2 font-body text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Reload page
+          </button>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{ user, session, loading, signOut }}>
