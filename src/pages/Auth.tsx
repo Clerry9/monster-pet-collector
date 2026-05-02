@@ -197,8 +197,6 @@ export default function AuthPage() {
       </div>
     );
   }
-    }
-  };
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
