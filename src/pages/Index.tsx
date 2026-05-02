@@ -41,6 +41,7 @@ import { useSeason } from "@/hooks/useSeason";
 import { useSeasonNotice } from "@/hooks/useSeasonNotice";
 import { SeasonRotationModal } from "@/components/SeasonRotationModal";
 import { Footer } from "@/components/Footer";
+import { AuthStatusBadge } from "@/components/AuthStatusBadge";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season";
 
@@ -387,14 +388,7 @@ const Index = () => {
             >
               <HelpCircle size={16} />
             </button>
-            <button
-              onClick={signOut}
-              className="icon-tile-gold w-9 h-9 flex items-center justify-center"
-              title="Sign Out"
-              aria-label="Sign Out"
-            >
-              <LogOut size={16} />
-            </button>
+            <AuthStatusBadge compact />
           </div>
         </div>
 
