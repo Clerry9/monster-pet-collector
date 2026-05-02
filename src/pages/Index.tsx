@@ -390,6 +390,14 @@ const Index = () => {
             >
               <HelpCircle size={16} />
             </button>
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="icon-tile-gold w-9 h-9 flex items-center justify-center"
+              title="Settings"
+              aria-label="Open settings"
+            >
+              <SettingsIcon size={16} />
+            </button>
             <AuthStatusBadge compact />
           </div>
         </div>
