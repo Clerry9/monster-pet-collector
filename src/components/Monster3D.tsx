@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { Float, Environment, ContactShadows } from "@react-three/drei";
 import * as THREE from "three";
@@ -9,6 +9,49 @@ interface Monster3DProps {
   glow?: string; // CSS color for the glow halo behind the sprite
   /** When true, renders without the floating glow halo / shadows for thumbnails */
   compact?: boolean;
+}
+
+/** Persisted across the app: once we've decided to drop to 2D we keep that
+ *  decision for the rest of the session so we don't churn between modes. */
+let SESSION_LOW_POWER: boolean | null = null;
+const LOW_POWER_QUERY = "(max-width: 640px), (prefers-reduced-motion: reduce)";
+
+function detectInitialLowPower(): boolean {
+  if (SESSION_LOW_POWER !== null) return SESSION_LOW_POWER;
+  if (typeof window === "undefined") return false;
+  try {
+    if (window.matchMedia(LOW_POWER_QUERY).matches) {
+      SESSION_LOW_POWER = true;
+      return true;
+    }
+    // Hardware concurrency is a coarse but useful signal.
+    const cores = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
+    if (cores <= 4) {
+      SESSION_LOW_POWER = true;
+      return true;
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+/** FPS sampler — switches to 2D fallback if we drop below ~30fps for a sec. */
+function FpsWatcher({ onLowFps }: { onLowFps: () => void }) {
+  const frames = useRef(0);
+  const start = useRef(performance.now());
+  useFrame(() => {
+    frames.current += 1;
+    const now = performance.now();
+    const elapsed = now - start.current;
+    if (elapsed >= 1000) {
+      const fps = (frames.current * 1000) / elapsed;
+      if (fps < 30) onLowFps();
+      frames.current = 0;
+      start.current = now;
+    }
+  });
+  return null;
 }
 
 /**
@@ -65,6 +108,46 @@ function MonsterPlane({ src }: { src: string }) {
 }
 
 export function Monster3D({ src, size = 220, glow, compact = false }: Monster3DProps) {
+  const [lowPower, setLowPower] = useState<boolean>(() => detectInitialLowPower());
+
+  // React to viewport changes (e.g. rotation) so we re-evaluate on resize.
+  useEffect(() => {
+    if (lowPower) return;
+    const mql = window.matchMedia(LOW_POWER_QUERY);
+    const handler = () => { if (mql.matches) { SESSION_LOW_POWER = true; setLowPower(true); } };
+    mql.addEventListener?.("change", handler);
+    return () => mql.removeEventListener?.("change", handler);
+  }, [lowPower]);
+
+  if (lowPower) {
+    // 2D fallback — uses the existing sprite directly. Keeps the glow halo
+    // for visual parity with the 3D version.
+    return (
+      <div
+        className="relative flex items-center justify-center"
+        style={{ width: size, height: size }}
+        role="img"
+        aria-label="Monster"
+      >
+        {!compact && glow && (
+          <div
+            className="absolute inset-0 rounded-full blur-3xl opacity-50 pointer-events-none"
+            style={{ background: glow }}
+            aria-hidden="true"
+          />
+        )}
+        <img
+          src={src}
+          alt=""
+          width={size}
+          height={size}
+          loading="lazy"
+          className="relative z-10 w-full h-full object-contain drop-shadow-2xl"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className="relative"
@@ -85,6 +168,7 @@ export function Monster3D({ src, size = 220, glow, compact = false }: Monster3DP
         gl={{ antialias: true, alpha: true, preserveDrawingBuffer: false }}
         style={{ background: "transparent" }}
       >
+        <FpsWatcher onLowFps={() => { SESSION_LOW_POWER = true; setLowPower(true); }} />
         <ambientLight intensity={0.85} />
         <directionalLight position={[2, 3, 4]} intensity={0.9} />
         <directionalLight position={[-3, -1, 2]} intensity={0.35} color="#a78bfa" />

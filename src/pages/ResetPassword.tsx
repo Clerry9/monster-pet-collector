@@ -27,7 +27,7 @@ export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ password?: string; confirm?: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -45,16 +45,13 @@ export default function ResetPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    const next: { password?: string; confirm?: string } = {};
     const parsed = passwordSchema.safeParse(password);
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Invalid password");
-      return;
-    }
-    if (password !== confirm) {
-      setError("Passwords don't match");
-      return;
-    }
+    if (!parsed.success) next.password = parsed.error.issues[0]?.message ?? "Invalid password";
+    if (!confirm) next.confirm = "Please confirm your new password";
+    else if (password !== confirm) next.confirm = "Passwords don't match";
+    setErrors(next);
+    if (next.password || next.confirm) return;
     setSubmitting(true);
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password });
@@ -118,25 +115,37 @@ export default function ResetPasswordPage() {
                 type="password"
                 placeholder="New password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
                 autoComplete="new-password"
                 disabled={!ready}
+                aria-invalid={!!errors.password}
                 className="pl-10 bg-card border-border text-foreground"
               />
             </div>
+            {errors.password && (
+              <p className="text-xs text-destructive font-body" role="alert">{errors.password}</p>
+            )}
+            {!errors.password && (
+              <p className="text-xs text-muted-foreground font-body">
+                At least 8 characters, with a letter and a number.
+              </p>
+            )}
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="password"
                 placeholder="Confirm new password"
                 value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
+                onChange={(e) => { setConfirm(e.target.value); setErrors((p) => ({ ...p, confirm: undefined })); }}
                 autoComplete="new-password"
                 disabled={!ready}
+                aria-invalid={!!errors.confirm}
                 className="pl-10 bg-card border-border text-foreground"
               />
             </div>
-            {error && <p className="text-xs text-destructive font-body">{error}</p>}
+            {errors.confirm && (
+              <p className="text-xs text-destructive font-body" role="alert">{errors.confirm}</p>
+            )}
             <Button
               type="submit"
               disabled={!ready || submitting}

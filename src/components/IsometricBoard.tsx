@@ -930,7 +930,10 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
     monster.rarity === "rare" ? "#22d3ee" : "#22c55e";
 
   return (
-    <group ref={groupRef}>
+    // `frustumCulled={false}` on the group: when the pawn animates upward
+    // during a hop, frustum culling against a stale bounding box can briefly
+    // mark the sprite off-screen and hide it ("invisible during hop" bug).
+    <group ref={groupRef} frustumCulled={false}>
       {/* Hidden refs kept for the existing animation hooks (no visual impact) */}
       <mesh ref={bodyRef} visible={false}><sphereGeometry args={[0.01, 4, 4]} /><meshBasicMaterial /></mesh>
       <mesh ref={leftFootRef} visible={false}><sphereGeometry args={[0.01, 4, 4]} /><meshBasicMaterial /></mesh>
@@ -942,7 +945,7 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
           4. Brightness pass on top (additive, low opacity) — pops eyes/marks. */}
       <Billboard>
         {/* 1. Outer rarity glow — additive so it reads on both bright & dark scenes */}
-        <mesh position={[0, 0.05, -0.45]} renderOrder={1}>
+        <mesh position={[0, 0.05, -0.45]} renderOrder={9000} frustumCulled={false}>
           <circleGeometry args={[0.85, 32]} />
           <meshBasicMaterial
             color={rarityColor}
@@ -950,11 +953,12 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
             opacity={0.35}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
+            depthTest={false}
             toneMapped={false}
           />
         </mesh>
         {/* 2. Tight rim halo right behind the sprite */}
-        <mesh position={[0, 0.04, -0.08]} renderOrder={2}>
+        <mesh position={[0, 0.04, -0.08]} renderOrder={9001} frustumCulled={false}>
           <circleGeometry args={[0.62, 32]} />
           <meshBasicMaterial
             color={rarityColor}
@@ -962,24 +966,29 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
             opacity={0.55}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
+            depthTest={false}
             toneMapped={false}
           />
         </mesh>
         {/* 3. Main monster sprite — soft alpha edges via low alphaTest */}
-        <mesh position={[0, 0, 0]} renderOrder={10}>
+        {/* depthTest disabled + very high renderOrder so the monster is
+            ALWAYS painted on top of terrain/island geometry. Fixes the
+            "invisible while hopping" / occlusion-by-mountain bug. */}
+        <mesh position={[0, 0, 0]} renderOrder={9010} frustumCulled={false}>
           <planeGeometry args={[1.1, 1.1]} />
           <meshBasicMaterial
             map={texture}
             transparent
             alphaTest={0.08}
             depthWrite={false}
+            depthTest={false}
             toneMapped={false}
           />
         </mesh>
         {/* 4. Brightness/contrast pass — additive copy of the sprite at low opacity
             makes eyes, teeth & bright marks pop in dim (fog) scenes without
             blowing out daylight scenes. */}
-        <mesh position={[0, 0, 0.01]} renderOrder={11}>
+        <mesh position={[0, 0, 0.01]} renderOrder={9011} frustumCulled={false}>
           <planeGeometry args={[1.1, 1.1]} />
           <meshBasicMaterial
             map={texture}
@@ -988,6 +997,7 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
             opacity={0.35}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
+            depthTest={false}
             toneMapped={false}
           />
         </mesh>
