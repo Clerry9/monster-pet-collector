@@ -26,9 +26,25 @@ interface CardRevealProps {
  */
 type Phase = "idle" | "pack" | "glow" | "reveal" | "closing";
 
+/** ms before background-tap dismissal becomes active. Used both for the
+ *  safety dismiss timer AND to drive the visual countdown ring. */
+const DISMISS_GRACE_MS = 600;
+
+/** Human-readable announcements per phase, fed to an aria-live region so
+ *  screen-reader users get the same beats sighted users see. */
+const PHASE_ANNOUNCEMENTS: Record<Phase, string> = {
+  idle:    "",
+  pack:    "Card pack appeared. Press A or Enter to open it.",
+  glow:    "Pack is opening.",
+  reveal:  "Card revealed.",
+  closing: "Closing card.",
+};
+
 export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
   const [phase, setPhase] = useState<Phase>("idle");
   const [canDismiss, setCanDismiss] = useState(false);
+  /** 0 → 1 progress for the dismiss-grace countdown indicator. */
+  const [dismissProgress, setDismissProgress] = useState(0);
   const completedRef = useRef(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
@@ -36,9 +52,10 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
 
   // Reset machine when a new card arrives.
   useEffect(() => {
-    if (!card) { setPhase("idle"); setCanDismiss(false); completedRef.current = false; return; }
+    if (!card) { setPhase("idle"); setCanDismiss(false); setDismissProgress(0); completedRef.current = false; return; }
     setPhase("pack");
     setCanDismiss(false);
+    setDismissProgress(0);
     completedRef.current = false;
   }, [card?.id]);
 
@@ -50,11 +67,22 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
     return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
   }, [phase]);
 
-  // After 600ms, allow background-tap dismissal even if still in pack/glow.
+  // After DISMISS_GRACE_MS, allow background-tap dismissal even if still in
+  // pack/glow. We also drive a smooth countdown so the user can SEE when the
+  // background becomes tappable instead of guessing.
   useEffect(() => {
     if (!card) return;
-    const t = window.setTimeout(() => setCanDismiss(true), 600);
-    return () => window.clearTimeout(t);
+    const start = performance.now();
+    let raf = 0;
+    const tick = () => {
+      const elapsed = performance.now() - start;
+      const p = Math.min(1, elapsed / DISMISS_GRACE_MS);
+      setDismissProgress(p);
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else setCanDismiss(true);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [card?.id]);
 
   // Single point that transitions to the terminal `closing` state and fires
@@ -72,9 +100,28 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
     }, 180);
   };
 
+  /**
+   * Advance from pack → glow → reveal in response to a "confirm" input
+   * (tap on the pack, Enter/Space key, gamepad A/Start). Idempotent —
+   * once we're at `reveal` it requests close instead, mirroring the
+   * "tap to continue" prompt.
+   */
+  const advanceOrClose = () => {
+    if (completedRef.current) return;
+    if (phase === "pack") {
+      setPhase("glow");
+      window.setTimeout(() => setPhase((p) => (p === "glow" ? "reveal" : p)), 800);
+    } else if (phase === "glow" || phase === "reveal") {
+      requestClose();
+    }
+  };
+
   // Keyboard support: Escape closes; Tab is trapped within the dialog.
   useEffect(() => {
     if (!card) return;
+    // Snapshot the element that opened the dialog so we can restore focus
+    // there on close (covers Escape, background tap, click on close button,
+    // gamepad B, and the "tap to continue" path).
     previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
     // Focus the close button so screen-reader users know the dialog opened.
     const focusTimer = window.setTimeout(() => closeBtnRef.current?.focus(), 50);
@@ -83,6 +130,14 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
       if (e.key === "Escape") {
         e.preventDefault();
         requestClose();
+        return;
+      }
+      if (e.key === "Enter" || e.key === " ") {
+        // Don't hijack typing in inputs; the modal has none, but be defensive.
+        const tag = (document.activeElement?.tagName || "").toLowerCase();
+        if (tag === "input" || tag === "textarea") return;
+        e.preventDefault();
+        advanceOrClose();
         return;
       }
       if (e.key === "Tab" && dialogRef.current) {
@@ -102,12 +157,80 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
     return () => {
       window.clearTimeout(focusTimer);
       window.removeEventListener("keydown", onKey);
-      // Restore focus to whoever opened the dialog.
+      // Restore focus to whoever opened the dialog. This runs on every
+      // dismissal path because the effect tears down with the modal.
       const prev = previouslyFocusedRef.current;
       if (prev && typeof prev.focus === "function") prev.focus();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card?.id]);
+
+  /**
+   * Gamepad polling.
+   *
+   * We sample the Gamepad API at ~16 Hz while the dialog is open and map:
+   *   - A (button 0) / Start (button 9) → confirm (advanceOrClose)
+   *   - B (button 1) / Back (button 8)  → close
+   *   - D-pad up/left (12, 14)          → focus previous element in dialog
+   *   - D-pad down/right (13, 15)       → focus next element in dialog
+   *
+   * Edge-detection (lastButtonsRef) prevents button repeats from firing
+   * once-per-frame; D-pad navigation is throttled separately.
+   */
+  useEffect(() => {
+    if (!card) return;
+    if (typeof window === "undefined" || !("getGamepads" in navigator)) return;
+
+    const lastButtons: Record<number, boolean> = {};
+    let lastNavAt = 0;
+    let raf = 0;
+
+    const focusables = (): HTMLElement[] => {
+      if (!dialogRef.current) return [];
+      return Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, [tabindex]:not([tabindex="-1"])'
+        )
+      );
+    };
+
+    const moveFocus = (delta: 1 | -1) => {
+      const items = focusables();
+      if (items.length === 0) return;
+      const idx = items.indexOf(document.activeElement as HTMLElement);
+      const next = items[(((idx === -1 ? 0 : idx) + delta) + items.length) % items.length];
+      next?.focus();
+    };
+
+    const pressed = (gp: Gamepad, idx: number) => Boolean(gp.buttons[idx]?.pressed);
+
+    const poll = () => {
+      const pads = navigator.getGamepads?.() ?? [];
+      for (const gp of pads) {
+        if (!gp) continue;
+        const edge = (idx: number) => {
+          const now = pressed(gp, idx);
+          const was = lastButtons[idx] || false;
+          lastButtons[idx] = now;
+          return now && !was;
+        };
+
+        if (edge(0) || edge(9)) advanceOrClose();           // A / Start
+        if (edge(1) || edge(8)) requestClose();              // B / Back
+
+        // D-pad nav (throttled to ~5 moves/sec to feel deliberate).
+        const now = performance.now();
+        if (now - lastNavAt > 180) {
+          if (pressed(gp, 12) || pressed(gp, 14)) { moveFocus(-1); lastNavAt = now; }
+          else if (pressed(gp, 13) || pressed(gp, 15)) { moveFocus(1); lastNavAt = now; }
+        }
+      }
+      raf = requestAnimationFrame(poll);
+    };
+    raf = requestAnimationFrame(poll);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card?.id, phase]);
 
   if (!card) return null;
   const colors = RARITY_COLORS[card.rarity];
@@ -131,20 +254,54 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
             if (phase === "reveal" || canDismiss) requestClose();
           }}
         >
+          {/* Polite live region — announces phase changes to assistive tech
+              without stealing focus. We re-announce on every phase change by
+              keying the inner span on `phase`. */}
+          <div className="sr-only" aria-live="polite" aria-atomic="true">
+            <span key={phase}>{PHASE_ANNOUNCEMENTS[phase]}</span>
+          </div>
+
           {/* Always-available close button — guarantees the modal can never
               trap input even if an animation stalls. */}
           <button
             ref={closeBtnRef}
             type="button"
             onClick={(e) => { e.stopPropagation(); requestClose(); }}
-            aria-label="Close card reveal"
+            aria-label="Close card reveal (Escape or gamepad B)"
             className="fixed top-3 right-3 z-[110] w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center border border-white/20 backdrop-blur-sm"
           >
             <XIcon size={18} />
           </button>
           <span className="sr-only">
-            Press Escape or tap the background to dismiss this card.
+            Press Escape, gamepad B, or tap the background to dismiss this card.
+            Press Enter, Space, or gamepad A to advance.
           </span>
+
+          {/* Visible countdown ring under the close button — fills as the
+              dismiss-grace timer elapses, then turns solid green when
+              background-tap dismissal is active. */}
+          <div
+            className="fixed top-14 right-3 z-[110] flex flex-col items-center gap-1 pointer-events-none"
+            aria-hidden="true"
+          >
+            <div className="relative w-8 h-8">
+              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="3" />
+                <circle
+                  cx="18" cy="18" r="15" fill="none"
+                  stroke={canDismiss ? "rgb(74,222,128)" : "rgb(250,204,21)"}
+                  strokeWidth="3"
+                  strokeDasharray={`${2 * Math.PI * 15}`}
+                  strokeDashoffset={`${2 * Math.PI * 15 * (1 - dismissProgress)}`}
+                  strokeLinecap="round"
+                  style={{ transition: "stroke 200ms" }}
+                />
+              </svg>
+            </div>
+            <span className="text-[9px] uppercase tracking-wider font-mono text-white/80">
+              {canDismiss ? "Tap to close" : "Wait…"}
+            </span>
+          </div>
 
           {/* Particle burst background */}
           {phase === "reveal" && (
