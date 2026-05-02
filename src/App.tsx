@@ -1,10 +1,11 @@
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import AuthPage from "./pages/Auth";
+import ResetPasswordPage from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -16,6 +17,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -27,14 +29,20 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user) return <Navigate to="/auth" replace />;
+  // Preserve the page the user was trying to reach so we can return them
+  // there after a successful sign-in.
+  if (!user) return <Navigate to="/auth" replace state={{ from: location }} />;
   return <>{children}</>;
 }
 
 function AuthRoute() {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
+  if (user) {
+    const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+    return <Navigate to={from && from !== "/auth" ? from : "/"} replace />;
+  }
   return <AuthPage />;
 }
 
@@ -57,6 +65,17 @@ const App = () => (
                   message="The sign-in page hit a runtime error. Reload the page to clear any stale app bundle and try again."
                 >
                   <AuthRoute />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <ErrorBoundary
+                  title="Reset password error"
+                  message="The reset-password page hit a runtime error. Reload to try again."
+                >
+                  <ResetPasswordPage />
                 </ErrorBoundary>
               }
             />
