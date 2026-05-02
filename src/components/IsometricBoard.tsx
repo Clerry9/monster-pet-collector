@@ -1209,15 +1209,20 @@ const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number
       })}
 
       <MonsterTrail positions={trailPosRef.current} theme={theme} />
-      <MonsterPawn
-        pathPointAt={pathFn}
-        absoluteIndex={absoluteStep}
-        monster={monster}
-        movementResult={movementResult}
-        trailPosRef={trailPosRef}
-        activeLift={ACTIVE_LIFT_VALUE}
-        monsterPosRef={monsterPosRef}
-      />
+      {/* Suspense boundary around the pawn so a texture swap (e.g. monster
+          evolves / new monster) cannot unmount the entire scene and leave the
+          board "blank" with an invisible monster while the new texture loads. */}
+      <Suspense fallback={null}>
+        <MonsterPawn
+          pathPointAt={pathFn}
+          absoluteIndex={absoluteStep}
+          monster={monster}
+          movementResult={movementResult}
+          trailPosRef={trailPosRef}
+          activeLift={ACTIVE_LIFT_VALUE}
+          monsterPosRef={monsterPosRef}
+        />
+      </Suspense>
 
       <CameraRig monsterPosRef={monsterPosRef} isMoving={isMoving} recenterRef={recenterRef} />
       <OrbitControls
