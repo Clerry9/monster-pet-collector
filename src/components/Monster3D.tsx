@@ -2,6 +2,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { Float, Environment, ContactShadows } from "@react-three/drei";
 import * as THREE from "three";
+import { getLowPowerMode, subscribeLowPower } from "@/lib/lowPower";
 
 interface Monster3DProps {
   src: string;
@@ -9,6 +10,8 @@ interface Monster3DProps {
   glow?: string; // CSS color for the glow halo behind the sprite
   /** When true, renders without the floating glow halo / shadows for thumbnails */
   compact?: boolean;
+  /** Show a tiny "3D" / "2D" debug badge in the corner. */
+  debugBadge?: boolean;
 }
 
 /** Persisted across the app: once we've decided to drop to 2D we keep that
@@ -107,14 +110,20 @@ function MonsterPlane({ src }: { src: string }) {
   );
 }
 
-export function Monster3D({ src, size = 220, glow, compact = false }: Monster3DProps) {
-  const [lowPower, setLowPower] = useState<boolean>(() => detectInitialLowPower());
+export function Monster3D({ src, size = 220, glow, compact = false, debugBadge = false }: Monster3DProps) {
+  const [autoLowPower, setAutoLowPower] = useState<boolean>(() => detectInitialLowPower());
+  const [override, setOverride] = useState(() => getLowPowerMode());
+
+  useEffect(() => subscribeLowPower(() => setOverride(getLowPowerMode())), []);
+
+  // Resolve effective mode: explicit override wins over auto-detection.
+  const lowPower = override === "force-2d" ? true : override === "force-3d" ? false : autoLowPower;
 
   // React to viewport changes (e.g. rotation) so we re-evaluate on resize.
   useEffect(() => {
     if (lowPower) return;
     const mql = window.matchMedia(LOW_POWER_QUERY);
-    const handler = () => { if (mql.matches) { SESSION_LOW_POWER = true; setLowPower(true); } };
+    const handler = () => { if (mql.matches) { SESSION_LOW_POWER = true; setAutoLowPower(true); } };
     mql.addEventListener?.("change", handler);
     return () => mql.removeEventListener?.("change", handler);
   }, [lowPower]);
@@ -144,6 +153,15 @@ export function Monster3D({ src, size = 220, glow, compact = false }: Monster3DP
           loading="lazy"
           className="relative z-10 w-full h-full object-contain drop-shadow-2xl"
         />
+        {debugBadge && (
+          <span
+            className="absolute top-1 right-1 z-20 rounded-full bg-black/70 text-[9px] uppercase tracking-wider text-amber-300 px-1.5 py-0.5 font-mono pointer-events-none"
+            aria-hidden="true"
+            title={override === "force-2d" ? "Forced 2D via settings" : "Auto-fallback (low power)"}
+          >
+            2D
+          </span>
+        )}
       </div>
     );
   }
@@ -168,7 +186,10 @@ export function Monster3D({ src, size = 220, glow, compact = false }: Monster3DP
         gl={{ antialias: true, alpha: true, preserveDrawingBuffer: false }}
         style={{ background: "transparent" }}
       >
-        <FpsWatcher onLowFps={() => { SESSION_LOW_POWER = true; setLowPower(true); }} />
+        {/* Skip auto-fallback if the user explicitly forced 3D — they own the choice. */}
+        {override !== "force-3d" && (
+          <FpsWatcher onLowFps={() => { SESSION_LOW_POWER = true; setAutoLowPower(true); }} />
+        )}
         <ambientLight intensity={0.85} />
         <directionalLight position={[2, 3, 4]} intensity={0.9} />
         <directionalLight position={[-3, -1, 2]} intensity={0.35} color="#a78bfa" />
@@ -189,6 +210,15 @@ export function Monster3D({ src, size = 220, glow, compact = false }: Monster3DP
           <Environment preset="city" />
         </Suspense>
       </Canvas>
+      {debugBadge && (
+        <span
+          className="absolute top-1 right-1 z-20 rounded-full bg-black/70 text-[9px] uppercase tracking-wider text-emerald-300 px-1.5 py-0.5 font-mono pointer-events-none"
+          aria-hidden="true"
+          title={override === "force-3d" ? "Forced 3D via settings" : "3D auto"}
+        >
+          3D
+        </span>
+      )}
     </div>
   );
 }
