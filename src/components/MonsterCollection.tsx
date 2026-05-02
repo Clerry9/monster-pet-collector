@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { MONSTERS, Monster, getMonsterEvolution } from "@/data/monsters";
 import { Lock, Sparkles } from "lucide-react";
+import { Monster3D } from "./Monster3D";
 
 interface Props {
   unlockedMonsters: string[];
