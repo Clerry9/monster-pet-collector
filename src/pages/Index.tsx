@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Gift, LogOut, Volume2, VolumeX, HelpCircle, Menu, X as XIcon } from "lucide-react";
+import { Gift, Volume2, VolumeX, HelpCircle, Menu, X as XIcon } from "lucide-react";
 import { TutorialCoachmark, CoachStep } from "@/components/TutorialCoachmark";
 import { HelpDialog } from "@/components/HelpDialog";
 import { useTutorial } from "@/hooks/useTutorial";
@@ -104,7 +104,7 @@ const Index = () => {
   const game = useGameState();
   const daily = useDailyReward(game.addCoins);
   const season = useSeason();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("board");
   const [showLink, setShowLink] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
