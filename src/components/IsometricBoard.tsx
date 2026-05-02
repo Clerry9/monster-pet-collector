@@ -1284,7 +1284,9 @@ export function IsometricBoard({ position, absoluteStep, monster, isMoving, move
         {/* Fog start pushed well past the chase camera distance (~11 units when
             moving) so the monster sprite is NEVER inside the fog band. */}
         <fog attach="fog" args={[theme.fog, isMoving ? 30 : 18, isMoving ? 70 : 38]} />
-        <IsometricBoardScene absoluteStep={absStep} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} recenterRef={recenterRef} />
+        <Suspense fallback={null}>
+          <IsometricBoardScene absoluteStep={absStep} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} recenterRef={recenterRef} />
+        </Suspense>
       </Canvas>
       <BoardMinimap
         levelId={levelId}
