@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GameCard, CardRarity } from "@/data/cards";
 import { Sparkles, X as XIcon } from "lucide-react";
@@ -15,29 +15,98 @@ interface CardRevealProps {
   onComplete: () => void;
 }
 
-export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
-  const [phase, setPhase] = useState<"pack" | "glow" | "reveal">("pack");
+/**
+ * Deterministic state machine for the card reveal flow.
+ *
+ *   idle → pack → glow → reveal → closing → idle
+ *
+ * Once we enter `closing` we IGNORE every other input until the close
+ * animation completes and onComplete fires exactly once. This prevents a
+ * dismiss-tap from also triggering the next card's pack flip.
+ */
+type Phase = "idle" | "pack" | "glow" | "reveal" | "closing";
 
-  // Auto-advance pack → glow → reveal so the award feedback feels as snappy
-  // as the monster hop. Tap still skips ahead / dismisses.
+export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [canDismiss, setCanDismiss] = useState(false);
+  const completedRef = useRef(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  // Reset machine when a new card arrives.
+  useEffect(() => {
+    if (!card) { setPhase("idle"); setCanDismiss(false); completedRef.current = false; return; }
+    setPhase("pack");
+    setCanDismiss(false);
+    completedRef.current = false;
+  }, [card?.id]);
+
+  // Auto-advance pack → glow → reveal.
   useEffect(() => {
     if (phase !== "pack") return;
-    const t1 = window.setTimeout(() => setPhase("glow"), 550);
-    const t2 = window.setTimeout(() => setPhase("reveal"), 1150);
+    const t1 = window.setTimeout(() => setPhase((p) => (p === "pack" ? "glow" : p)), 550);
+    const t2 = window.setTimeout(() => setPhase((p) => (p === "pack" || p === "glow" ? "reveal" : p)), 1150);
     return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
   }, [phase]);
 
-  // Reset phase when a new card appears so the sequence replays.
-  useEffect(() => { if (card) setPhase("pack"); }, [card?.id]);
-
-  // Safety net: regardless of phase, the user can always dismiss the modal
-  // after 2.5s using the close button or background tap. Prevents a stuck
-  // overlay if any animation stalls.
-  const [canDismiss, setCanDismiss] = useState(false);
+  // After 600ms, allow background-tap dismissal even if still in pack/glow.
   useEffect(() => {
-    if (!card) { setCanDismiss(false); return; }
+    if (!card) return;
     const t = window.setTimeout(() => setCanDismiss(true), 600);
     return () => window.clearTimeout(t);
+  }, [card?.id]);
+
+  // Single point that transitions to the terminal `closing` state and fires
+  // onComplete exactly once. All click/keyboard handlers funnel through here.
+  const requestClose = () => {
+    if (completedRef.current) return;
+    if (phase === "closing" || phase === "idle") return;
+    completedRef.current = true;
+    setPhase("closing");
+    // Defer onComplete a tick so AnimatePresence can run its exit anim and
+    // we don't hand control back to the parent (which may immediately queue
+    // the next card) until the dismiss is fully resolved.
+    window.setTimeout(() => {
+      onComplete();
+    }, 180);
+  };
+
+  // Keyboard support: Escape closes; Tab is trapped within the dialog.
+  useEffect(() => {
+    if (!card) return;
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+    // Focus the close button so screen-reader users know the dialog opened.
+    const focusTimer = window.setTimeout(() => closeBtnRef.current?.focus(), 50);
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        requestClose();
+        return;
+      }
+      if (e.key === "Tab" && dialogRef.current) {
+        // Focus trap: cycle through focusable elements inside the dialog.
+        const focusables = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) { e.preventDefault(); return; }
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+        if (e.shiftKey && active === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.clearTimeout(focusTimer);
+      window.removeEventListener("keydown", onKey);
+      // Restore focus to whoever opened the dialog.
+      const prev = previouslyFocusedRef.current;
+      if (prev && typeof prev.focus === "function") prev.focus();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card?.id]);
 
   if (!card) return null;
@@ -47,24 +116,35 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
     <AnimatePresence>
       {card && (
         <motion.div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Card reveal: ${card.name}`}
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={() => {
-            if (phase === "reveal" || canDismiss) onComplete();
+            // Background tap closes only when the reveal is fully shown OR
+            // the safety dismiss timer has elapsed. The deterministic
+            // requestClose() guards against double-trigger.
+            if (phase === "reveal" || canDismiss) requestClose();
           }}
         >
           {/* Always-available close button — guarantees the modal can never
               trap input even if an animation stalls. */}
           <button
+            ref={closeBtnRef}
             type="button"
-            onClick={(e) => { e.stopPropagation(); onComplete(); }}
-            aria-label="Close"
+            onClick={(e) => { e.stopPropagation(); requestClose(); }}
+            aria-label="Close card reveal"
             className="fixed top-3 right-3 z-[110] w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center border border-white/20 backdrop-blur-sm"
           >
             <XIcon size={18} />
           </button>
+          <span className="sr-only">
+            Press Escape or tap the background to dismiss this card.
+          </span>
 
           {/* Particle burst background */}
           {phase === "reveal" && (
@@ -96,8 +176,13 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
               transition={{ type: "spring", damping: 12, stiffness: 120 }}
               onClick={(e) => {
                 e.stopPropagation();
-                setPhase("glow");
-                setTimeout(() => setPhase("reveal"), 800);
+                // Only advance if we're still in pack; ignore otherwise so a
+                // late tap can't replay the sequence.
+                setPhase((p) => (p === "pack" ? "glow" : p));
+                window.setTimeout(
+                  () => setPhase((p) => (p === "glow" ? "reveal" : p)),
+                  800
+                );
               }}
             >
               {/* Pack shape */}
@@ -164,7 +249,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
               transition={{ type: "spring", damping: 15, stiffness: 100, delay: 0.1 }}
               onClick={(e) => {
                 e.stopPropagation();
-                onComplete();
+                requestClose();
               }}
             >
               <div
