@@ -261,23 +261,15 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
     }, 1500);
   };
 
-  // Effect-based auto-roll scheduling — reacts to the live `rolls` prop
-  // so we never act on a stale ref between renders.
+  // Auto-roll re-arming is intentionally disabled: the game must NEVER roll
+  // again without an explicit user action. Each roll requires a fresh tap.
+  // Always force the auto flag off so the dial returns to its idle state
+  // immediately after a roll completes.
   useEffect(() => {
-    if (!isAutoRolling || !isAutoRollingRef.current) return;
-    if (isRolling) return;
-    if (rolls <= 0) { setIsAutoRolling(false); return; }
-    const t = setTimeout(() => {
-      if (
-        isAutoRollingRef.current &&
-        !isRollingRef.current &&
-        rollsRef.current > 0 &&
-        Date.now() - lastStopAtRef.current > 350
-      ) {
-        performRoll();
-      }
-    }, 900);
-    return () => clearTimeout(t);
+    if (isAutoRolling) {
+      isAutoRollingRef.current = false;
+      setIsAutoRolling(false);
+    }
   }, [isAutoRolling, isRolling, rolls]);
 
   const handleRoll = () => performRoll();
