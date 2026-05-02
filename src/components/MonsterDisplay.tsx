@@ -54,6 +54,7 @@ export function MonsterDisplay({ monster, monsterXp }: MonsterDisplayProps) {
             src={monster.image}
             size={240}
             glow="radial-gradient(circle, hsl(var(--primary) / 0.35), transparent 70%)"
+            debugBadge
           />
           <span className="sr-only">{`${currentEvo.name}, Level ${currentEvo.level} monster`}</span>
         </motion.div>
