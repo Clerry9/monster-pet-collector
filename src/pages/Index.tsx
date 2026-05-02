@@ -746,6 +746,7 @@ const Index = () => {
           setCoachOpen(true);
         }}
       />
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <TutorialCoachmark
         open={coachOpen}
         steps={tutorialSteps}
