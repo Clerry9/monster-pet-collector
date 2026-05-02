@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { z } from "zod";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -8,25 +10,66 @@ import { toast } from "sonner";
 import { Mail, Lock, User } from "lucide-react";
 import { Footer } from "@/components/Footer";
 
+const loginSchema = z.object({
+  email: z.string().trim().email({ message: "Enter a valid email" }).max(255),
+  password: z.string().min(1, { message: "Password is required" }).max(72),
+});
+
+const signupSchema = z.object({
+  email: z.string().trim().email({ message: "Enter a valid email" }).max(255),
+  password: z
+    .string()
+    .min(8, { message: "Password must be at least 8 characters" })
+    .max(72, { message: "Password is too long" })
+    .regex(/[A-Za-z]/, { message: "Password must contain a letter" })
+    .regex(/[0-9]/, { message: "Password must contain a number" }),
+});
+
 export default function AuthPage() {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldErrors({});
+
+    const schema = isLogin ? loginSchema : signupSchema;
+    const parsed = schema.safeParse({ email, password });
+    if (!parsed.success) {
+      const errs: { email?: string; password?: string } = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] as "email" | "password";
+        if (key && !errs[key]) errs[key] = issue.message;
+      }
+      setFieldErrors(errs);
+      toast.error(parsed.error.issues[0]?.message ?? "Please check the form");
+      return;
+    }
+
     setLoading(true);
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({
+          email: parsed.data.email,
+          password: parsed.data.password,
+        });
         if (error) throw error;
         toast.success("Welcome back!");
+        navigate("/", { replace: true });
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({
+          email: parsed.data.email,
+          password: parsed.data.password,
+          options: { emailRedirectTo: `${window.location.origin}/` },
+        });
         if (error) throw error;
         toast.success("Account created! You're logged in.");
+        navigate("/", { replace: true });
       }
     } catch (err: any) {
       toast.error(err.message || "Authentication failed");
@@ -51,6 +94,7 @@ export default function AuthPage() {
       }
 
       toast.success("Welcome!");
+      navigate("/", { replace: true });
     } catch (err) {
       toast.error("Google sign-in failed");
     }
@@ -81,10 +125,14 @@ export default function AuthPage() {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
+              autoComplete="email"
+              aria-invalid={!!fieldErrors.email}
               className="pl-10 bg-card border-border text-foreground"
             />
           </div>
+          {fieldErrors.email && (
+            <p className="text-xs text-destructive font-body">{fieldErrors.email}</p>
+          )}
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -92,11 +140,19 @@ export default function AuthPage() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
+              autoComplete={isLogin ? "current-password" : "new-password"}
+              aria-invalid={!!fieldErrors.password}
               className="pl-10 bg-card border-border text-foreground"
             />
           </div>
+          {fieldErrors.password && (
+            <p className="text-xs text-destructive font-body">{fieldErrors.password}</p>
+          )}
+          {!isLogin && !fieldErrors.password && (
+            <p className="text-xs text-muted-foreground font-body">
+              At least 8 characters, with a letter and a number.
+            </p>
+          )}
           <Button
             type="submit"
             disabled={loading}
@@ -146,7 +202,11 @@ export default function AuthPage() {
         <p className="text-center text-xs text-muted-foreground font-body">
           {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
           <button
-            onClick={() => setIsLogin(!isLogin)}
+            type="button"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setFieldErrors({});
+            }}
             className="text-primary underline cursor-pointer"
           >
             {isLogin ? "Sign up" : "Log in"}
