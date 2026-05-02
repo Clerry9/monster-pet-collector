@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { MONSTERS, Monster, getMonsterEvolution } from "@/data/monsters";
 import { Lock, Sparkles } from "lucide-react";
+import { Monster3D } from "./Monster3D";
 
 interface Props {
   unlockedMonsters: string[];
@@ -68,14 +69,20 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
                   </div>
                 </div>
               )}
-              <img
-                src={m.image}
-                alt=""
-                width={64}
-                height={64}
-                loading="lazy"
-                className="w-16 h-16 object-contain"
-              />
+              {unlocked ? (
+                <div className="w-16 h-16">
+                  <Monster3D src={m.image} size={64} compact />
+                </div>
+              ) : (
+                <img
+                  src={m.image}
+                  alt=""
+                  width={64}
+                  height={64}
+                  loading="lazy"
+                  className="w-16 h-16 object-contain grayscale opacity-70"
+                />
+              )}
               <span className="text-xs font-bold font-body text-foreground">{unlocked ? evo.name : m.name}</span>
               {unlocked && (
                 <div className="flex items-center gap-0.5 text-[9px] text-secondary">

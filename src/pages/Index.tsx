@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Gift, LogOut, Volume2, VolumeX, HelpCircle, Menu, X as XIcon } from "lucide-react";
+import { Gift, Volume2, VolumeX, HelpCircle, Menu, X as XIcon } from "lucide-react";
 import { TutorialCoachmark, CoachStep } from "@/components/TutorialCoachmark";
 import { HelpDialog } from "@/components/HelpDialog";
 import { useTutorial } from "@/hooks/useTutorial";
@@ -41,6 +41,7 @@ import { useSeason } from "@/hooks/useSeason";
 import { useSeasonNotice } from "@/hooks/useSeasonNotice";
 import { SeasonRotationModal } from "@/components/SeasonRotationModal";
 import { Footer } from "@/components/Footer";
+import { AuthStatusBadge } from "@/components/AuthStatusBadge";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season";
 
@@ -103,7 +104,7 @@ const Index = () => {
   const game = useGameState();
   const daily = useDailyReward(game.addCoins);
   const season = useSeason();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("board");
   const [showLink, setShowLink] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
@@ -387,14 +388,7 @@ const Index = () => {
             >
               <HelpCircle size={16} />
             </button>
-            <button
-              onClick={signOut}
-              className="icon-tile-gold w-9 h-9 flex items-center justify-center"
-              title="Sign Out"
-              aria-label="Sign Out"
-            >
-              <LogOut size={16} />
-            </button>
+            <AuthStatusBadge compact />
           </div>
         </div>
 

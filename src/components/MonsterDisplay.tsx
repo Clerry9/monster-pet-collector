@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Monster, getMonsterEvolution, getNextEvolution } from "@/data/monsters";
 import { Sparkles, TrendingUp } from "lucide-react";
+import { Monster3D } from "./Monster3D";
 
 interface MonsterDisplayProps {
   monster: Monster;
@@ -38,22 +39,24 @@ export function MonsterDisplay({ monster, monsterXp }: MonsterDisplayProps) {
       {/* Monster image */}
       <div className="relative">
         <motion.div
-          className="absolute inset-0 rounded-full bg-primary/10 blur-3xl"
+          className="absolute inset-0 rounded-full bg-primary/15 blur-3xl"
           animate={{ scale: [1, 1.15, 1] }}
           transition={{ repeat: Infinity, duration: 2 }}
           aria-hidden="true"
         />
-        <motion.img
+        <motion.div
           key={monster.id}
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          src={monster.image}
-          alt={`${currentEvo.name}, Level ${currentEvo.level} monster`}
-          width={220}
-          height={220}
           className="relative z-10 drop-shadow-2xl"
-          draggable={false}
-        />
+        >
+          <Monster3D
+            src={monster.image}
+            size={240}
+            glow="radial-gradient(circle, hsl(var(--primary) / 0.35), transparent 70%)"
+          />
+          <span className="sr-only">{`${currentEvo.name}, Level ${currentEvo.level} monster`}</span>
+        </motion.div>
       </div>
 
       {/* XP progress */}

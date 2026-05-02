@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GameCard, CardRarity } from "@/data/cards";
-import { Sparkles } from "lucide-react";
+import { Sparkles, X as XIcon } from "lucide-react";
 
 const RARITY_COLORS: Record<CardRarity, { bg: string; border: string; glow: string; text: string; nameText: string; subText: string }> = {
   common:    { bg: "bg-muted",         border: "border-muted-foreground/30", glow: "shadow-muted/20",        text: "text-muted-foreground", nameText: "text-foreground",   subText: "text-muted-foreground" },
@@ -30,6 +30,16 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
   // Reset phase when a new card appears so the sequence replays.
   useEffect(() => { if (card) setPhase("pack"); }, [card?.id]);
 
+  // Safety net: regardless of phase, the user can always dismiss the modal
+  // after 2.5s using the close button or background tap. Prevents a stuck
+  // overlay if any animation stalls.
+  const [canDismiss, setCanDismiss] = useState(false);
+  useEffect(() => {
+    if (!card) { setCanDismiss(false); return; }
+    const t = window.setTimeout(() => setCanDismiss(true), 600);
+    return () => window.clearTimeout(t);
+  }, [card?.id]);
+
   if (!card) return null;
   const colors = RARITY_COLORS[card.rarity];
 
@@ -42,12 +52,23 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={() => {
-            if (phase === "reveal") onComplete();
+            if (phase === "reveal" || canDismiss) onComplete();
           }}
         >
+          {/* Always-available close button — guarantees the modal can never
+              trap input even if an animation stalls. */}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onComplete(); }}
+            aria-label="Close"
+            className="fixed top-3 right-3 z-[110] w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center border border-white/20 backdrop-blur-sm"
+          >
+            <XIcon size={18} />
+          </button>
+
           {/* Particle burst background */}
           {phase === "reveal" && (
-            <>
+            <div className="pointer-events-none absolute inset-0">
               {[...Array(20)].map((_, i) => (
                 <motion.div
                   key={i}
@@ -63,7 +84,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
                   style={{ left: "50%", top: "50%" }}
                 />
               ))}
-            </>
+            </div>
           )}
 
           {/* Card Pack */}
@@ -213,7 +234,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
 
               {/* Tap to dismiss */}
               <motion.div
-                className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs text-muted-foreground/60"
+                className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs text-muted-foreground/60 whitespace-nowrap"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: [0, 1, 0.5, 1] }}
                 transition={{ delay: 1.2, duration: 2, repeat: Infinity }}
