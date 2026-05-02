@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { z } from "zod";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Mail, Lock, User } from "lucide-react";
 import { Footer } from "@/components/Footer";
+import { reportAuthError } from "@/lib/authErrors";
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: "Enter a valid email" }).max(255),
@@ -27,7 +28,14 @@ const signupSchema = z.object({
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromPath =
+    (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? "/";
+  const successRedirect = fromPath && fromPath !== "/auth" ? fromPath : "/";
+
   const [isLogin, setIsLogin] = useState(true);
+  const [showForgot, setShowForgot] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -60,7 +68,7 @@ export default function AuthPage() {
         });
         if (error) throw error;
         toast.success("Welcome back!");
-        navigate("/", { replace: true });
+        navigate(successRedirect, { replace: true });
       } else {
         const { error } = await supabase.auth.signUp({
           email: parsed.data.email,
@@ -69,10 +77,10 @@ export default function AuthPage() {
         });
         if (error) throw error;
         toast.success("Account created! You're logged in.");
-        navigate("/", { replace: true });
+        navigate(successRedirect, { replace: true });
       }
-    } catch (err: any) {
-      toast.error(err.message || "Authentication failed");
+    } catch (err) {
+      reportAuthError(isLogin ? "sign-in" : "sign-up", err, () => handleEmailAuth(e));
     } finally {
       setLoading(false);
     }
@@ -81,11 +89,11 @@ export default function AuthPage() {
   const handleGoogleAuth = async () => {
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}${successRedirect}`,
       });
 
       if (result.error) {
-        toast.error("Google sign-in failed");
+        reportAuthError("google-sign-in", result.error, handleGoogleAuth);
         return;
       }
 
@@ -94,9 +102,101 @@ export default function AuthPage() {
       }
 
       toast.success("Welcome!");
-      navigate("/", { replace: true });
+      navigate(successRedirect, { replace: true });
     } catch (err) {
-      toast.error("Google sign-in failed");
+      reportAuthError("google-sign-in", err, handleGoogleAuth);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFieldErrors({});
+    const emailParse = z.string().trim().email().max(255).safeParse(email);
+    if (!emailParse.success) {
+      setFieldErrors({ email: "Enter a valid email" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(emailParse.data, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setResetSent(true);
+    } catch (err) {
+      reportAuthError("password-reset-request", err, () => handleForgotPassword(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- Forgot password subview ---
+  if (showForgot) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full max-w-sm space-y-5"
+          >
+            <div className="text-center">
+              <h1 className="font-display text-3xl text-foreground text-glow-purple mb-2">
+                Reset your password
+              </h1>
+              <p className="text-muted-foreground font-body text-sm">
+                {resetSent
+                  ? "Check your inbox for a password reset link."
+                  : "We'll email you a link to set a new password."}
+              </p>
+            </div>
+
+            {!resetSent ? (
+              <form onSubmit={handleForgotPassword} className="space-y-3">
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    aria-invalid={!!fieldErrors.email}
+                    className="pl-10 bg-card border-border text-foreground"
+                  />
+                </div>
+                {fieldErrors.email && (
+                  <p className="text-xs text-destructive font-body">{fieldErrors.email}</p>
+                )}
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-primary text-primary-foreground font-bold box-glow-green"
+                >
+                  {loading ? "Sending…" : "Send reset link"}
+                </Button>
+              </form>
+            ) : (
+              <div className="rounded-lg border border-border bg-card p-4 text-center">
+                <p className="text-sm font-body text-foreground">
+                  If an account exists for <strong>{email}</strong>, a reset link is on its way.
+                </p>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => { setShowForgot(false); setResetSent(false); }}
+              className="block w-full text-center text-xs text-primary underline cursor-pointer font-body"
+            >
+              Back to sign in
+            </button>
+          </motion.div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
     }
   };
 
@@ -162,6 +262,18 @@ export default function AuthPage() {
           </Button>
         </form>
 
+        {isLogin && (
+          <div className="text-center -mt-2">
+            <button
+              type="button"
+              onClick={() => setShowForgot(true)}
+              className="text-xs text-muted-foreground hover:text-primary underline font-body"
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
+
         <div className="relative flex items-center gap-3">
           <div className="flex-1 h-px bg-border" />
           <span className="text-xs text-muted-foreground font-body">or</span>
@@ -174,8 +286,8 @@ export default function AuthPage() {
               const { error } = await supabase.auth.signInAnonymously();
               if (error) throw error;
               toast.success("Playing as guest!");
-            } catch (err: any) {
-              toast.error(err.message || "Guest login failed");
+            } catch (err) {
+              reportAuthError("guest-sign-in", err);
             }
           }}
           variant="outline"
