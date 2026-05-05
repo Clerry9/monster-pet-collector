@@ -3,6 +3,53 @@
 let ctx: AudioContext | null = null;
 let _muted = localStorage.getItem("sfx-muted") === "true";
 
+// --- Per-category SFX volumes & master toggle -------------------------------
+export type SfxCategory = "coin" | "skull" | "win";
+
+const VOL_KEYS: Record<SfxCategory, string> = {
+  coin: "sfx.vol.coin",
+  skull: "sfx.vol.skull",
+  win: "sfx.vol.win",
+};
+const MASTER_KEY = "sfx.master.enabled";
+const VOL_EVT = "sfx.vol.change";
+
+function readVol(cat: SfxCategory): number {
+  try {
+    const v = localStorage.getItem(VOL_KEYS[cat]);
+    if (v == null) return 0.8;
+    const n = parseFloat(v);
+    return isFinite(n) ? Math.max(0, Math.min(1, n)) : 0.8;
+  } catch { return 0.8; }
+}
+let _volumes: Record<SfxCategory, number> = {
+  coin: readVol("coin"),
+  skull: readVol("skull"),
+  win: readVol("win"),
+};
+let _masterEnabled = (() => {
+  try { return localStorage.getItem(MASTER_KEY) !== "false"; } catch { return true; }
+})();
+
+export function getVolume(cat: SfxCategory): number { return _volumes[cat]; }
+export function setVolume(cat: SfxCategory, v: number) {
+  const clamped = Math.max(0, Math.min(1, v));
+  _volumes = { ..._volumes, [cat]: clamped };
+  try { localStorage.setItem(VOL_KEYS[cat], String(clamped)); } catch {}
+  window.dispatchEvent(new CustomEvent(VOL_EVT));
+}
+export function getMasterEnabled(): boolean { return _masterEnabled; }
+export function setMasterEnabled(v: boolean) {
+  _masterEnabled = v;
+  try { localStorage.setItem(MASTER_KEY, String(v)); } catch {}
+  window.dispatchEvent(new CustomEvent(VOL_EVT));
+}
+export function subscribeSfxVolumes(cb: () => void): () => void {
+  const handler = () => cb();
+  window.addEventListener(VOL_EVT, handler);
+  return () => window.removeEventListener(VOL_EVT, handler);
+}
+
 // Background music state
 let bgmGain: GainNode | null = null;
 let bgmPlaying = false;
@@ -30,6 +77,7 @@ function ensureCtx(): AudioContext {
 
 function getCtx(): AudioContext | null {
   if (_muted) return null;
+  if (!_masterEnabled) return null;
   return ensureCtx();
 }
 
