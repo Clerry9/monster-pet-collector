@@ -165,6 +165,18 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
                 Tune how the camera follows the monster, or disable smoothing if you see jitter.
               </p>
 
+              <div className="flex items-center justify-between rounded-xl border-2 border-wood-dark/30 bg-background p-3">
+                <div>
+                  <div className="text-xs font-bold">Reduced motion</div>
+                  <div className="text-[11px] text-muted-foreground">Locks idle camera follow and calms decorative effects.</div>
+                </div>
+                <Switch
+                  checked={cam.reducedMotion}
+                  onCheckedChange={(v) => setCameraSetting("reducedMotion", !!v)}
+                  aria-label="Reduced motion toggle"
+                />
+              </div>
+
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <label htmlFor="cam-zoom" className="font-bold">
