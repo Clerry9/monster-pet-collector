@@ -6,7 +6,9 @@ import { HelpDialog } from "@/components/HelpDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { useTutorial } from "@/hooks/useTutorial";
 import { toast } from "sonner";
-import { isMuted, setMuted, startBgm, stopBgm } from "@/lib/sfx";
+import { isMuted, setMuted, startBgm, stopBgm, sfxCoinGain, sfxSkull, sfxLevelUp } from "@/lib/sfx";
+import { isWeekend, formatCountdown, msUntilWeekendBoundary } from "@/lib/weekend";
+import { Sparkles as SparklesIcon } from "lucide-react";
 import { getLevelForXp, prestigeTierUnlocked } from "@/data/levels";
 import { CoinCounter } from "@/components/CoinCounter";
 import { GameBoard } from "@/components/GameBoard";
@@ -101,6 +103,93 @@ function CenterEnergyPill({
   );
 }
 
+/**
+ * Slim banner above the game board that shows:
+ *  - The weekend 2× coin event (live countdown until it ends or starts)
+ *  - The next daily reward countdown (until local midnight) when claimed,
+ *    or a "claim now" prompt with current streak when unclaimed.
+ */
+function EventBanner({
+  alreadyClaimedDaily,
+  streak,
+  onOpenDaily,
+}: {
+  alreadyClaimedDaily: boolean;
+  streak: number;
+  onOpenDaily: () => void;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const weekendActive = isWeekend(new Date(now));
+  const weekendMs = msUntilWeekendBoundary(new Date(now));
+
+  // Time until next local midnight (next claimable daily reward).
+  const nextMidnight = new Date(now);
+  nextMidnight.setHours(24, 0, 0, 0);
+  const dailyMs = Math.max(0, nextMidnight.getTime() - now);
+
+  return (
+    <div className="w-full max-w-md mx-auto mb-3 flex flex-wrap items-stretch justify-center gap-2">
+      {weekendActive ? (
+        <div
+          className="flex-1 min-w-[160px] flex items-center justify-between gap-2 rounded-lg border-2 border-amber-500 bg-gradient-to-r from-amber-300 to-yellow-500 px-3 py-1.5 shadow-md"
+          role="status"
+          aria-label={`Weekend event: 2x coins active. Ends in ${formatCountdown(weekendMs)}`}
+        >
+          <span className="font-display text-xs text-wood-dark flex items-center gap-1.5">
+            <SparklesIcon size={14} aria-hidden="true" />
+            2× COIN WEEKEND
+          </span>
+          <span className="font-display text-[11px] tabular-nums text-wood-dark/80">
+            ends in {formatCountdown(weekendMs)}
+          </span>
+        </div>
+      ) : (
+        <div
+          className="flex-1 min-w-[160px] flex items-center justify-between gap-2 rounded-lg border-2 border-wood-dark/40 bg-cream/95 px-3 py-1.5"
+          role="status"
+          aria-label={`2x coin weekend starts in ${formatCountdown(weekendMs)}`}
+        >
+          <span className="font-display text-xs text-wood-dark flex items-center gap-1.5">
+            <SparklesIcon size={14} aria-hidden="true" />
+            2× weekend
+          </span>
+          <span className="font-display text-[11px] tabular-nums text-wood-dark/70">
+            in {formatCountdown(weekendMs)}
+          </span>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={onOpenDaily}
+        className={`flex-1 min-w-[160px] flex items-center justify-between gap-2 rounded-lg border-2 px-3 py-1.5 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+          alreadyClaimedDaily
+            ? "border-wood-dark/40 bg-cream/95 hover:bg-cream"
+            : "border-emerald-600 bg-gradient-to-r from-emerald-400 to-teal-500 shadow-md animate-pulse"
+        }`}
+        aria-label={
+          alreadyClaimedDaily
+            ? `Daily reward claimed. Next reward in ${formatCountdown(dailyMs)}. Streak ${streak} days.`
+            : `Claim daily reward. Streak ${streak} days.`
+        }
+      >
+        <span className={`font-display text-xs flex items-center gap-1.5 ${alreadyClaimedDaily ? "text-wood-dark" : "text-wood-dark"}`}>
+          <Gift size={14} aria-hidden="true" />
+          🔥 {streak}d streak
+        </span>
+        <span className="font-display text-[11px] tabular-nums text-wood-dark/80">
+          {alreadyClaimedDaily ? `next in ${formatCountdown(dailyMs)}` : "Claim now!"}
+        </span>
+      </button>
+    </div>
+  );
+}
+
 const Index = () => {
   const game = useGameState();
   const daily = useDailyReward(game.addCoins);
@@ -161,31 +250,43 @@ const Index = () => {
   const tutorialSteps: CoachStep[] = [
     {
       title: "Welcome to Monster Mash!",
-      body: "Roll the dice, move along the board, collect cards, and evolve your monster. Let's take a quick tour.",
+      body: "Quick 30-second tour: roll the dice, collect monsters, and earn coins. Let's go!",
       emoji: "👋",
     },
     {
       selector: "[data-tutorial='board']",
       title: "Roll the dice",
-      body: "Tap to roll. You'll move that many tiles and trigger whatever you land on. Each roll costs 1 of your 🎲 rolls.",
+      body: "Tap the board to roll. Your monster hops that many tiles and triggers whatever it lands on. Each roll costs 1 🎲.",
       emoji: "🎲",
     },
     {
       selector: "[data-tutorial='board']",
-      title: "Land on chest 📦 or star ⭐",
-      body: "These tiles draw cards (~20% chance per roll). Complete sets to unlock new monsters and bonuses.",
+      title: "Earn coins 🪙",
+      body: "Coin and bonus tiles pay out instantly. Skull tiles 💀 hurt — your monster will react!",
+      emoji: "🪙",
+    },
+    {
+      selector: "[data-tutorial='board']",
+      title: "Collect cards 🎴",
+      body: "Chest 📦 and star ⭐ tiles draw cards. Complete sets to unlock new monsters and permanent bonuses.",
       emoji: "🎴",
+    },
+    {
+      selector: "[role='tab'][aria-controls='panel-monsters']",
+      title: "Your monster album",
+      body: "Browse every monster you own (and the ones still to find) here. Each evolves the more you play.",
+      emoji: "👾",
     },
     {
       selector: "[role='tab'][aria-controls='panel-season']",
       title: "Seasonal Event",
-      body: "Every 3 days a new season starts. Play the mini-game to earn special symbols and unlock rare event cards.",
+      body: "New season every 3 days. Weekends bring 2× coin bonuses and limited-time monsters!",
       emoji: "🌟",
     },
     {
       selector: "[data-tutorial='help']",
       title: "Need help?",
-      body: "Tap this anytime for the rules, full odds breakdown, and to replay this tour.",
+      body: "Tap here anytime to revisit the rules or replay this tour. Now go roll your first dice!",
       emoji: "❓",
     },
   ];
@@ -228,6 +329,13 @@ const Index = () => {
   const handleLanded = () => {
     const result = lastResult;
     if (!result) return;
+    // Personality reactions: celebrate or commiserate based on what we landed on.
+    const tileType = result.tile?.type;
+    if (tileType === "skull") {
+      sfxSkull();
+    } else if (tileType === "coins" || tileType === "bonus" || tileType === "chest" || tileType === "star") {
+      sfxCoinGain();
+    }
     if (result.card) {
       setDrawnCard(result.card);
     }
@@ -240,6 +348,7 @@ const Index = () => {
     }
     if (result.monsterLevelUp) {
       const { name, level, coinBonus } = result.monsterLevelUp;
+      sfxLevelUp();
       toast(`🍖 ${name} evolved!`, {
         description: `Level ${level} reached! Now grants +${coinBonus}% coins on all tiles.`,
         duration: 4000,
@@ -406,6 +515,12 @@ const Index = () => {
         <div className="banner-gold px-6 py-2 mb-3">
           <h1 className="font-display text-2xl tracking-wide">⭐ MONSTER MASH ⭐</h1>
         </div>
+
+        <EventBanner
+          alreadyClaimedDaily={daily.alreadyClaimed}
+          streak={daily.streak}
+          onOpenDaily={daily.openModal}
+        />
 
         {/* Stats */}
         <div className="w-full max-w-md flex items-center justify-center gap-4 mb-2 text-[11px] font-display text-wood-dark/80">

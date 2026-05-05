@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { MONSTERS, Monster, getMonsterEvolution } from "@/data/monsters";
+import { MONSTERS, Monster, getMonsterEvolution, BIOMES } from "@/data/monsters";
 import { Lock, Sparkles } from "lucide-react";
 import { Monster3D } from "./Monster3D";
 
@@ -29,13 +29,50 @@ const rarityBadge: Record<string, string> = {
 export function MonsterCollection({ unlockedMonsters, activeMonster, coins, monsterTaps, onSelect, onUnlock }: Props) {
   const isUnlocked = (m: Monster) => unlockedMonsters.includes(m.id);
 
+  const totalOwned = MONSTERS.filter(isUnlocked).length;
+  const overallPct = Math.round((totalOwned / MONSTERS.length) * 100);
+
   return (
     <div className="w-full" role="region" aria-label="Monster collection">
-      <h3 className="font-display text-2xl text-foreground mb-4 text-glow-purple">
-        Monster Collection
-      </h3>
-      <div className="grid grid-cols-3 gap-3" role="list">
-        {MONSTERS.map((m) => {
+      <div className="mb-4 flex items-end justify-between gap-2">
+        <h3 className="font-display text-2xl text-foreground text-glow-purple">
+          Monster Album
+        </h3>
+        <div className="text-right">
+          <div className="font-display text-lg text-accent leading-none">{overallPct}%</div>
+          <div className="text-[10px] text-muted-foreground font-body">
+            {totalOwned} / {MONSTERS.length} owned
+          </div>
+        </div>
+      </div>
+
+      {BIOMES.map((biome) => {
+        const inBiome = MONSTERS.filter((m) => m.biome === biome.id);
+        if (inBiome.length === 0) return null;
+        const owned = inBiome.filter(isUnlocked).length;
+        const pct = Math.round((owned / inBiome.length) * 100);
+        return (
+          <section key={biome.id} className="mb-5" aria-label={`${biome.name} biome`}>
+            <header className="mb-2 flex items-center justify-between">
+              <h4 className="font-display text-base text-foreground flex items-center gap-1.5">
+                <span aria-hidden="true">{biome.emoji}</span>
+                {biome.name}
+              </h4>
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-20 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all"
+                    style={{ width: `${pct}%` }}
+                    aria-hidden="true"
+                  />
+                </div>
+                <span className="text-[11px] font-bold text-accent tabular-nums">
+                  {pct}%
+                </span>
+              </div>
+            </header>
+            <div className="grid grid-cols-3 gap-3" role="list">
+              {inBiome.map((m) => {
           const unlocked = isUnlocked(m);
           const active = m.id === activeMonster;
           const canAfford = coins >= m.cost;
@@ -80,10 +117,12 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
                   width={64}
                   height={64}
                   loading="lazy"
-                  className="w-16 h-16 object-contain grayscale opacity-70"
+                  className="w-16 h-16 object-contain grayscale brightness-0 opacity-30"
                 />
               )}
-              <span className="text-xs font-bold font-body text-foreground">{unlocked ? evo.name : m.name}</span>
+              <span className="text-xs font-bold font-body text-foreground">
+                {unlocked ? evo.name : "???"}
+              </span>
               {unlocked && (
                 <div className="flex items-center gap-0.5 text-[9px] text-secondary">
                   <Sparkles size={9} aria-hidden="true" />
@@ -95,8 +134,11 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
               </span>
             </motion.button>
           );
-        })}
-      </div>
+              })}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

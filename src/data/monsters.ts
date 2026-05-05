@@ -5,6 +5,8 @@ import monster4 from "@/assets/monster-4.png";
 import monster5 from "@/assets/monster-5.png";
 import monster6 from "@/assets/monster-6.png";
 
+export type MonsterBiome = "forest" | "abyss" | "sky" | "shadow";
+
 export interface MonsterEvolution {
   level: number;
   name: string;
@@ -22,6 +24,7 @@ export interface Monster {
   description: string;
   coinBonus: number; // base bonus
   evolutions: MonsterEvolution[];
+  biome: MonsterBiome;
 }
 
 export const MONSTERS: Monster[] = [
@@ -33,6 +36,7 @@ export const MONSTERS: Monster[] = [
     rarity: "common",
     description: "A friendly little green guy. Your starter monster!",
     coinBonus: 0,
+    biome: "forest",
     evolutions: [
       { level: 1, name: "Gobby", coinBonus: 0, xpRequired: 0, description: "A friendly little green guy." },
       { level: 2, name: "Goblin Scout", coinBonus: 10, xpRequired: 50, description: "Finds 10% more coins on every tile!" },
@@ -48,6 +52,7 @@ export const MONSTERS: Monster[] = [
     rarity: "epic",
     description: "A terrifying multi-eyed beast dripping with slime.",
     coinBonus: 5,
+    biome: "abyss",
     evolutions: [
       { level: 1, name: "Vexor", coinBonus: 5, xpRequired: 0, description: "A terrifying multi-eyed beast." },
       { level: 2, name: "Vexor Prime", coinBonus: 15, xpRequired: 100, description: "Extra eyes spot 15% more coins!" },
@@ -63,6 +68,7 @@ export const MONSTERS: Monster[] = [
     rarity: "rare",
     description: "The cutest fluffy monster with tiny angel wings.",
     coinBonus: 3,
+    biome: "sky",
     evolutions: [
       { level: 1, name: "Fluffina", coinBonus: 3, xpRequired: 0, description: "Tiny angel wings and big dreams." },
       { level: 2, name: "Fluffina Angel", coinBonus: 12, xpRequired: 75, description: "Wings shimmer — 12% coin bonus!" },
@@ -78,6 +84,7 @@ export const MONSTERS: Monster[] = [
     rarity: "epic",
     description: "One giant eye, many tentacles, zero manners.",
     coinBonus: 7,
+    biome: "abyss",
     evolutions: [
       { level: 1, name: "Cyclops Jr.", coinBonus: 7, xpRequired: 0, description: "One eye, many tentacles." },
       { level: 2, name: "Cyclops Warrior", coinBonus: 20, xpRequired: 120, description: "Tentacles grab 20% more coins!" },
@@ -93,6 +100,7 @@ export const MONSTERS: Monster[] = [
     rarity: "rare",
     description: "A baby dragon who still can't breathe fire.",
     coinBonus: 4,
+    biome: "sky",
     evolutions: [
       { level: 1, name: "Drako", coinBonus: 4, xpRequired: 0, description: "A baby dragon, can't breathe fire yet." },
       { level: 2, name: "Drako Flame", coinBonus: 14, xpRequired: 80, description: "First spark! 14% more coins." },
@@ -108,6 +116,7 @@ export const MONSTERS: Monster[] = [
     rarity: "legendary",
     description: "Born from pure darkness. The ultimate monster.",
     coinBonus: 15,
+    biome: "shadow",
     evolutions: [
       { level: 1, name: "Shadow Fiend", coinBonus: 15, xpRequired: 0, description: "Born from pure darkness." },
       { level: 2, name: "Shadow Lord", coinBonus: 35, xpRequired: 150, description: "Darkness devours — 35% bonus!" },
@@ -131,3 +140,10 @@ export function getNextEvolution(monster: Monster, xp: number): MonsterEvolution
   }
   return null;
 }
+
+export const BIOMES: { id: MonsterBiome; name: string; emoji: string }[] = [
+  { id: "forest", name: "Mossy Forest", emoji: "🌲" },
+  { id: "sky",    name: "Skyreach",     emoji: "☁️" },
+  { id: "abyss",  name: "The Abyss",    emoji: "🌊" },
+  { id: "shadow", name: "Shadowlands",  emoji: "🌑" },
+];
