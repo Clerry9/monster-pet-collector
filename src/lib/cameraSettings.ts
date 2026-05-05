@@ -6,12 +6,14 @@ export interface CameraSettings {
   deadZone: number;       // 0..0.5 — distance under which camera snaps (kills idle jitter)
   followSmoothing: number;// 0..6 — lerp rate multiplier; 0 = rigid follow (no smoothing)
   zoom: number;           // 0.5..1.5 — chase distance multiplier (lower = closer)
+  reducedMotion: boolean; // disables idle camera smoothing and lowers decorative motion
 }
 
 export const CAMERA_DEFAULTS: CameraSettings = {
   deadZone: 0.05,
   followSmoothing: 1.5,
   zoom: 1.0,
+  reducedMotion: false,
 };
 
 const KEY = "monster.cameraSettings";
@@ -21,34 +23,46 @@ export function getCameraSettings(): CameraSettings {
   if (typeof window === "undefined") return { ...CAMERA_DEFAULTS };
   try {
     const raw = window.localStorage.getItem(KEY);
-    if (!raw) return { ...CAMERA_DEFAULTS };
+    if (!raw) {
+      applyReducedMotionAttribute(CAMERA_DEFAULTS.reducedMotion);
+      return { ...CAMERA_DEFAULTS };
+    }
     const parsed = JSON.parse(raw);
-    return {
+    const settings = {
       deadZone: clamp(parsed.deadZone ?? CAMERA_DEFAULTS.deadZone, 0, 0.5),
       followSmoothing: clamp(parsed.followSmoothing ?? CAMERA_DEFAULTS.followSmoothing, 0, 6),
       zoom: clamp(parsed.zoom ?? CAMERA_DEFAULTS.zoom, 0.5, 1.5),
+      reducedMotion: Boolean(parsed.reducedMotion ?? CAMERA_DEFAULTS.reducedMotion),
     };
+    applyReducedMotionAttribute(settings.reducedMotion);
+    return settings;
   } catch {
+    applyReducedMotionAttribute(CAMERA_DEFAULTS.reducedMotion);
     return { ...CAMERA_DEFAULTS };
   }
 }
 
 export function setCameraSetting<K extends keyof CameraSettings>(key: K, value: CameraSettings[K]) {
   if (typeof window === "undefined") return;
-  const next = { ...getCameraSettings(), [key]: value };
+  const next = { ...getCameraSettings(), [key]: normalizeSetting(key, value) };
   window.localStorage.setItem(KEY, JSON.stringify(next));
+  applyReducedMotionAttribute(next.reducedMotion);
   window.dispatchEvent(new CustomEvent(EVT));
 }
 
 export function resetCameraSettings() {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(KEY, JSON.stringify(CAMERA_DEFAULTS));
+  applyReducedMotionAttribute(CAMERA_DEFAULTS.reducedMotion);
   window.dispatchEvent(new CustomEvent(EVT));
 }
 
 export function subscribeCameraSettings(cb: () => void): () => void {
   if (typeof window === "undefined") return () => {};
-  const handler = () => cb();
+  const handler = () => {
+    applyReducedMotionAttribute(getCameraSettings().reducedMotion);
+    cb();
+  };
   window.addEventListener(EVT, handler);
   const storageHandler = (e: StorageEvent) => { if (e.key === KEY) handler(); };
   window.addEventListener("storage", storageHandler);
@@ -60,4 +74,16 @@ export function subscribeCameraSettings(cb: () => void): () => void {
 
 function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
+}
+
+function normalizeSetting<K extends keyof CameraSettings>(key: K, value: CameraSettings[K]): CameraSettings[K] {
+  if (key === "deadZone") return clamp(Number(value), 0, 0.5) as CameraSettings[K];
+  if (key === "followSmoothing") return clamp(Number(value), 0, 6) as CameraSettings[K];
+  if (key === "zoom") return clamp(Number(value), 0.5, 1.5) as CameraSettings[K];
+  return Boolean(value) as CameraSettings[K];
+}
+
+function applyReducedMotionAttribute(enabled: boolean) {
+  if (typeof document === "undefined") return;
+  document.documentElement.dataset.reducedMotion = enabled ? "true" : "false";
 }

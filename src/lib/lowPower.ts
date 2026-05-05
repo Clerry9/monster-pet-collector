@@ -16,6 +16,10 @@ const EVT = "monster.lowPowerChange";
 export function getLowPowerMode(): LowPowerMode {
   if (typeof window === "undefined") return "auto";
   const v = window.localStorage.getItem(KEY);
+  if (!v) {
+    window.localStorage.setItem(KEY, "force-3d");
+    return "force-3d";
+  }
   return v === "force-2d" || v === "force-3d" ? v : "auto";
 }
 

@@ -3,6 +3,7 @@ import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { Float, Environment, ContactShadows } from "@react-three/drei";
 import * as THREE from "three";
 import { getLowPowerMode, subscribeLowPower } from "@/lib/lowPower";
+import { getCameraSettings, subscribeCameraSettings } from "@/lib/cameraSettings";
 
 interface Monster3DProps {
   src: string;
@@ -17,7 +18,7 @@ interface Monster3DProps {
 /** Persisted across the app: once we've decided to drop to 2D we keep that
  *  decision for the rest of the session so we don't churn between modes. */
 let SESSION_LOW_POWER: boolean | null = null;
-const LOW_POWER_QUERY = "(max-width: 640px), (prefers-reduced-motion: reduce)";
+const LOW_POWER_QUERY = "(max-width: 520px)";
 
 function detectInitialLowPower(): boolean {
   if (SESSION_LOW_POWER !== null) return SESSION_LOW_POWER;
@@ -27,29 +28,25 @@ function detectInitialLowPower(): boolean {
       SESSION_LOW_POWER = true;
       return true;
     }
-    // Hardware concurrency is a coarse but useful signal.
-    const cores = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
-    if (cores <= 4) {
-      SESSION_LOW_POWER = true;
-      return true;
-    }
   } catch {
     /* ignore */
   }
   return false;
 }
 
-/** FPS sampler — switches to 2D fallback if we drop below ~30fps for a sec. */
+/** FPS sampler — switches to 2D fallback only when performance is consistently very low. */
 function FpsWatcher({ onLowFps }: { onLowFps: () => void }) {
   const frames = useRef(0);
   const start = useRef(performance.now());
+  const lowSamples = useRef(0);
   useFrame(() => {
     frames.current += 1;
     const now = performance.now();
     const elapsed = now - start.current;
     if (elapsed >= 1000) {
       const fps = (frames.current * 1000) / elapsed;
-      if (fps < 30) onLowFps();
+      lowSamples.current = fps < 18 ? lowSamples.current + 1 : 0;
+      if (lowSamples.current >= 4) onLowFps();
       frames.current = 0;
       start.current = now;
     }
@@ -64,7 +61,7 @@ function FpsWatcher({ onLowFps }: { onLowFps: () => void }) {
  * the cursor with subtle parallax tilt — giving a 3D feel without requiring
  * actual GLB models.
  */
-function MonsterPlane({ src }: { src: string }) {
+function MonsterPlane({ src, reducedMotion }: { src: string; reducedMotion: boolean }) {
   const texture = useLoader(THREE.TextureLoader, src);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.minFilter = THREE.LinearFilter;
@@ -82,6 +79,13 @@ function MonsterPlane({ src }: { src: string }) {
   useFrame(({ clock, pointer }) => {
     const m = meshRef.current;
     if (!m) return;
+    if (reducedMotion) {
+      m.scale.set(aspect, 1, 1);
+      m.rotation.x = THREE.MathUtils.lerp(m.rotation.x, 0, 0.2);
+      m.rotation.y = THREE.MathUtils.lerp(m.rotation.y, 0, 0.2);
+      m.position.y = 0;
+      return;
+    }
     const t = clock.getElapsedTime();
     // Idle breathing scale.
     const s = 1 + Math.sin(t * 1.6) * 0.025;
@@ -113,8 +117,10 @@ function MonsterPlane({ src }: { src: string }) {
 export function Monster3D({ src, size = 220, glow, compact = false, debugBadge = false }: Monster3DProps) {
   const [autoLowPower, setAutoLowPower] = useState<boolean>(() => detectInitialLowPower());
   const [override, setOverride] = useState(() => getLowPowerMode());
+  const [reducedMotion, setReducedMotion] = useState(() => getCameraSettings().reducedMotion);
 
   useEffect(() => subscribeLowPower(() => setOverride(getLowPowerMode())), []);
+  useEffect(() => subscribeCameraSettings(() => setReducedMotion(getCameraSettings().reducedMotion)), []);
 
   // Resolve effective mode: explicit override wins over auto-detection.
   const lowPower = override === "force-2d" ? true : override === "force-3d" ? false : autoLowPower;
@@ -194,8 +200,8 @@ export function Monster3D({ src, size = 220, glow, compact = false, debugBadge =
         <directionalLight position={[2, 3, 4]} intensity={0.9} />
         <directionalLight position={[-3, -1, 2]} intensity={0.35} color="#a78bfa" />
         <Suspense fallback={null}>
-          <Float speed={1.4} rotationIntensity={0.15} floatIntensity={0.4}>
-            <MonsterPlane src={src} />
+          <Float speed={reducedMotion ? 0 : 1.4} rotationIntensity={reducedMotion ? 0 : 0.15} floatIntensity={reducedMotion ? 0 : 0.4}>
+            <MonsterPlane src={src} reducedMotion={reducedMotion} />
           </Float>
           {!compact && (
             <ContactShadows

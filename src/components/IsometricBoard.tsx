@@ -597,9 +597,10 @@ interface TileProps {
   playerPosition: number;
   theme: LevelTheme3D;
   forceVisible?: boolean;
+  reducedMotion?: boolean;
 }
 
-function Tile({ tile, position, isActive, index, playerPosition, theme, forceVisible }: TileProps) {
+function Tile({ tile, position, isActive, index, playerPosition, theme, forceVisible, reducedMotion = false }: TileProps) {
   const islandRef = useRef<THREE.Group>(null);
   const distFromPlayer = Math.abs(index - playerPosition);
   const isNearby = forceVisible || distFromPlayer <= 5;
@@ -615,10 +616,10 @@ function Tile({ tile, position, isActive, index, playerPosition, theme, forceVis
     const target = isActive ? ACTIVE_LIFT : 0;
     // ease toward target
     liftRef.current = THREE.MathUtils.lerp(liftRef.current, target, Math.min(1, delta * 6));
-    const bob = isActive ? Math.sin(s.clock.elapsedTime * 2) * 0.08 : 0;
+    const bob = isActive && !reducedMotion ? Math.sin(s.clock.elapsedTime * 2) * 0.08 : 0;
     islandRef.current.position.y = position.y + liftRef.current + bob;
     // slight spin on active
-    islandRef.current.rotation.y = isActive ? Math.sin(s.clock.elapsedTime * 0.4) * 0.08 : 0;
+    islandRef.current.rotation.y = isActive && !reducedMotion ? Math.sin(s.clock.elapsedTime * 0.4) * 0.08 : 0;
   });
 
   const hasFoliage = tile.type !== "skull";
@@ -817,9 +818,11 @@ interface MonsterPawnProps {
   movementResult: { steps: number; tile: BoardTile } | null;
   trailPosRef: React.MutableRefObject<THREE.Vector3[]>;
   activeLift: number;
+  reducedMotion?: boolean;
+  onMovingChange?: (moving: boolean) => void;
 }
 
-function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trailPosRef, activeLift, monsterPosRef }: MonsterPawnProps) {
+function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trailPosRef, activeLift, monsterPosRef, reducedMotion = false, onMovingChange }: MonsterPawnProps) {
   const groupRef = useRef<THREE.Group>(null);
   const bodyRef = useRef<THREE.Mesh>(null);
   const leftFootRef = useRef<THREE.Mesh>(null);
@@ -835,6 +838,9 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
   const stepDuration = useRef(0.1);
   const texture = useLoader(THREE.TextureLoader, monster.image);
   const liftRef = useRef(0);
+  const lastMovingRef = useRef(false);
+
+  useEffect(() => () => onMovingChange?.(false), [onMovingChange]);
 
   useEffect(() => {
     // Slower, more deliberate hops — easier to follow visually.
@@ -890,8 +896,13 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
     const targetLift = isAnimating ? 0 : activeLift;
     liftRef.current = THREE.MathUtils.lerp(liftRef.current, targetLift, Math.min(1, delta * 6));
 
-    const idleBob = isAnimating ? 0 : Math.sin(state.clock.elapsedTime * 2) * 0.06;
-    const idleScale = isAnimating ? 1 : 1 + Math.sin(state.clock.elapsedTime * 1.5) * 0.03;
+    if (lastMovingRef.current !== isAnimating) {
+      lastMovingRef.current = isAnimating;
+      onMovingChange?.(isAnimating);
+    }
+
+    const idleBob = isAnimating || reducedMotion ? 0 : Math.sin(state.clock.elapsedTime * 2) * 0.06;
+    const idleScale = isAnimating || reducedMotion ? 1 : 1 + Math.sin(state.clock.elapsedTime * 1.5) * 0.03;
 
     groupRef.current.position.set(
       currentPos.current.x,
@@ -1139,8 +1150,8 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
   settingsRef.current = settings;
   useFrame((state, delta) => {
     const s = settingsRef.current;
-    const smoothing = s.followSmoothing; // 0 = rigid follow
-    const deadZone = s.deadZone;
+    const smoothing = s.reducedMotion ? 0 : s.followSmoothing; // 0 = rigid follow
+    const deadZone = s.reducedMotion ? 0 : s.deadZone;
     const zoom = s.zoom;
     const target = monsterPosRef.current;
     const recenter = recenterRef.current;
@@ -1150,7 +1161,7 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
     }
     wasMovingRef.current = isMoving;
 
-    if (isMoving || smoothing === 0) {
+    if (isMoving || smoothing === 0 || recenter) {
       lerpedTarget.current.copy(target);
     } else {
       // Dead-zone: if we're already close enough, just snap. This eliminates
@@ -1162,8 +1173,8 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
         lerpedTarget.current.lerp(target, Math.min(1, delta * 2.5 * (smoothing / 1.5)));
       }
     }
-    const targetDist = isMoving ? 1.25 : 1;
-    if (Math.abs(targetDist - distRef.current) < 0.0005) {
+    const targetDist = isMoving ? 1.12 : 1;
+    if (smoothing === 0 || recenter || Math.abs(targetDist - distRef.current) < 0.0005) {
       distRef.current = targetDist;
     } else {
       distRef.current += (targetDist - distRef.current) * Math.min(1, delta * 3);
@@ -1187,10 +1198,36 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
       }
     }
     lookAt.current.copy(lerpedTarget.current);
-    lookAt.current.y += isMoving ? 0.6 : 0.3;
+    lookAt.current.y += isMoving ? 0.55 : 0.3;
     state.camera.lookAt(lookAt.current);
   });
   return null;
+}
+
+function SyncedOrbitControls({ monsterPosRef, enabled }: { monsterPosRef: React.MutableRefObject<THREE.Vector3>; enabled: boolean }) {
+  const controlsRef = useRef<React.ElementRef<typeof OrbitControls>>(null);
+  const target = useRef(new THREE.Vector3());
+  useFrame(() => {
+    if (!controlsRef.current) return;
+    target.current.copy(monsterPosRef.current);
+    target.current.y += enabled ? 0.3 : 0.55;
+    controlsRef.current.target.copy(target.current);
+    if (enabled) controlsRef.current.update();
+  });
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      minDistance={3}
+      maxDistance={14}
+      minPolarAngle={Math.PI / 6}
+      maxPolarAngle={Math.PI / 2.4}
+      enablePan={false}
+      enableZoom={true}
+      autoRotate={false}
+      touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_ROTATE }}
+      enabled={enabled}
+    />
+  );
 }
 
 const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string; recenterRef: React.MutableRefObject<boolean> }>(function IsometricBoardScene({ absoluteStep, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow, recenterRef }, _ref) {
@@ -1207,6 +1244,9 @@ const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number
   const trailPosRef = useRef<THREE.Vector3[]>([]);
   const monsterPosRef = useRef<THREE.Vector3>(new THREE.Vector3(currentTilePos.x, currentTilePos.y + 1, currentTilePos.z));
   const theme = useMemo(() => applySeasonTint(getTheme(levelId), seasonAccent, seasonGlow), [levelId, seasonAccent, seasonGlow]);
+  const settings = useCameraSettings();
+  const [pawnMoving, setPawnMoving] = useState(false);
+  const cameraMoving = isMoving || pawnMoving;
 
   return (
     <>
@@ -1232,6 +1272,7 @@ const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number
             playerPosition={absoluteStep}
             theme={theme}
             forceVisible={isMoving}
+            reducedMotion={settings.reducedMotion}
           />
         );
       })}
@@ -1249,21 +1290,13 @@ const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number
           trailPosRef={trailPosRef}
           activeLift={ACTIVE_LIFT_VALUE}
           monsterPosRef={monsterPosRef}
+          reducedMotion={settings.reducedMotion}
+          onMovingChange={setPawnMoving}
         />
       </Suspense>
 
-      <CameraRig monsterPosRef={monsterPosRef} isMoving={isMoving} recenterRef={recenterRef} />
-      <OrbitControls
-        minDistance={3}
-        maxDistance={14}
-        minPolarAngle={Math.PI / 6}
-        maxPolarAngle={Math.PI / 2.4}
-        enablePan={false}
-        enableZoom={true}
-        autoRotate={false}
-        touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_ROTATE }}
-        enabled={!isMoving}
-      />
+      <CameraRig monsterPosRef={monsterPosRef} isMoving={cameraMoving} recenterRef={recenterRef} />
+      <SyncedOrbitControls monsterPosRef={monsterPosRef} enabled={!cameraMoving} />
     </>
   );
 });
