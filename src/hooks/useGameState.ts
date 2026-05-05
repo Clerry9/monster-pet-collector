@@ -498,10 +498,18 @@ export function useGameState() {
         }
       }
 
-      // Global -20% coin payout adjustment to make packs feel more valuable
+      // Global -20% coin payout adjustment to make packs feel more valuable.
+      // Weekend events apply a 2× multiplier on top of all coin payouts.
       const COIN_PAYOUT_MULTIPLIER = 0.48;
-      const coinGain = tile.type === "food" ? 0 : Math.round(finalValue * COIN_PAYOUT_MULTIPLIER);
-      bonusCoins = Math.round(bonusCoins * COIN_PAYOUT_MULTIPLIER);
+      // Lazy-import to keep this hook tree-shake-friendly and pure.
+      const weekendMul = (() => {
+        const day = new Date().getDay();
+        return day === 0 || day === 6 ? 2 : 1;
+      })();
+      const coinGain = tile.type === "food"
+        ? 0
+        : Math.round(finalValue * COIN_PAYOUT_MULTIPLIER * weekendMul);
+      bonusCoins = Math.round(bonusCoins * COIN_PAYOUT_MULTIPLIER * weekendMul);
       const newMonsterTaps = monsterXpGain > 0
         ? { ...s.monsterTaps, [s.activeMonster]: (s.monsterTaps[s.activeMonster] ?? 0) + monsterXpGain }
         : s.monsterTaps;
