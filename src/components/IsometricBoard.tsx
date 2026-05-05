@@ -1204,6 +1204,32 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
   return null;
 }
 
+function SyncedOrbitControls({ monsterPosRef, enabled }: { monsterPosRef: React.MutableRefObject<THREE.Vector3>; enabled: boolean }) {
+  const controlsRef = useRef<{ target: THREE.Vector3; update: () => void } | null>(null);
+  const target = useRef(new THREE.Vector3());
+  useFrame(() => {
+    if (!controlsRef.current) return;
+    target.current.copy(monsterPosRef.current);
+    target.current.y += enabled ? 0.3 : 0.55;
+    controlsRef.current.target.copy(target.current);
+    if (enabled) controlsRef.current.update();
+  });
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      minDistance={3}
+      maxDistance={14}
+      minPolarAngle={Math.PI / 6}
+      maxPolarAngle={Math.PI / 2.4}
+      enablePan={false}
+      enableZoom={true}
+      autoRotate={false}
+      touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_ROTATE }}
+      enabled={enabled}
+    />
+  );
+}
+
 const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number; monster: Monster; isMoving: boolean; movementResult: { steps: number; tile: BoardTile } | null; levelId: number; seasonAccent?: string; seasonGlow?: string; recenterRef: React.MutableRefObject<boolean> }>(function IsometricBoardScene({ absoluteStep, monster, isMoving, movementResult, levelId, seasonAccent, seasonGlow, recenterRef }, _ref) {
   // Pure path function bound to current level
   const pathFn = useMemo(() => (i: number) => pathPointAt(i, levelId), [levelId]);
@@ -1270,17 +1296,7 @@ const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number
       </Suspense>
 
       <CameraRig monsterPosRef={monsterPosRef} isMoving={cameraMoving} recenterRef={recenterRef} />
-      <OrbitControls
-        minDistance={3}
-        maxDistance={14}
-        minPolarAngle={Math.PI / 6}
-        maxPolarAngle={Math.PI / 2.4}
-        enablePan={false}
-        enableZoom={true}
-        autoRotate={false}
-        touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_ROTATE }}
-        enabled={!cameraMoving}
-      />
+      <SyncedOrbitControls monsterPosRef={monsterPosRef} enabled={!cameraMoving} />
     </>
   );
 });
