@@ -7,6 +7,8 @@ import { SettingsDialog } from "@/components/SettingsDialog";
 import { useTutorial } from "@/hooks/useTutorial";
 import { toast } from "sonner";
 import { isMuted, setMuted, startBgm, stopBgm, sfxCoinGain, sfxSkull, sfxLevelUp } from "@/lib/sfx";
+import { isWeekend, formatCountdown, msUntilWeekendBoundary } from "@/lib/weekend";
+import { Sparkles as SparklesIcon, Gift as GiftIcon } from "lucide-react";
 import { getLevelForXp, prestigeTierUnlocked } from "@/data/levels";
 import { CoinCounter } from "@/components/CoinCounter";
 import { GameBoard } from "@/components/GameBoard";
