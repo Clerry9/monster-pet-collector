@@ -6,7 +6,7 @@ import { HelpDialog } from "@/components/HelpDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { useTutorial } from "@/hooks/useTutorial";
 import { toast } from "sonner";
-import { isMuted, setMuted, startBgm, stopBgm } from "@/lib/sfx";
+import { isMuted, setMuted, startBgm, stopBgm, sfxCoinGain, sfxSkull, sfxLevelUp } from "@/lib/sfx";
 import { getLevelForXp, prestigeTierUnlocked } from "@/data/levels";
 import { CoinCounter } from "@/components/CoinCounter";
 import { GameBoard } from "@/components/GameBoard";
@@ -228,6 +228,13 @@ const Index = () => {
   const handleLanded = () => {
     const result = lastResult;
     if (!result) return;
+    // Personality reactions: celebrate or commiserate based on what we landed on.
+    const tileType = result.tile?.type;
+    if (tileType === "skull") {
+      sfxSkull();
+    } else if (tileType === "coins" || tileType === "bonus" || tileType === "chest" || tileType === "star") {
+      sfxCoinGain();
+    }
     if (result.card) {
       setDrawnCard(result.card);
     }
@@ -240,6 +247,7 @@ const Index = () => {
     }
     if (result.monsterLevelUp) {
       const { name, level, coinBonus } = result.monsterLevelUp;
+      sfxLevelUp();
       toast(`🍖 ${name} evolved!`, {
         description: `Level ${level} reached! Now grants +${coinBonus}% coins on all tiles.`,
         duration: 4000,
