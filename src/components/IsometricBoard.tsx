@@ -7,6 +7,13 @@ import { BOARD_TILES, BoardTile, TileType } from "@/hooks/useGameState";
 import { Monster } from "@/data/monsters";
 import { BoardMinimap } from "./BoardMinimap";
 import { LevelTransitionCinematic } from "./LevelTransitionCinematic";
+import { getCameraSettings, subscribeCameraSettings, type CameraSettings } from "@/lib/cameraSettings";
+
+function useCameraSettings(): CameraSettings {
+  const [s, setS] = useState<CameraSettings>(() => getCameraSettings());
+  useEffect(() => subscribeCameraSettings(() => setS(getCameraSettings())), []);
+  return s;
+}
 
 // Warm cartoon-casino palette
 const TILE_ACCENT: Record<TileType, string> = {
