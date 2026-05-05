@@ -1205,7 +1205,7 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
 }
 
 function SyncedOrbitControls({ monsterPosRef, enabled }: { monsterPosRef: React.MutableRefObject<THREE.Vector3>; enabled: boolean }) {
-  const controlsRef = useRef<{ target: THREE.Vector3; update: () => void } | null>(null);
+  const controlsRef = useRef<React.ElementRef<typeof OrbitControls>>(null);
   const target = useRef(new THREE.Vector3());
   useFrame(() => {
     if (!controlsRef.current) return;
