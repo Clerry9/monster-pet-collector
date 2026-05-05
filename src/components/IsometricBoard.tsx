@@ -1121,52 +1121,58 @@ function applySeasonTint(theme: LevelTheme3D, seasonAccent?: string, seasonGlow?
 // Camera rig — chase camera that tracks the monster's actual interpolated position each frame.
 function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: React.MutableRefObject<THREE.Vector3>; isMoving: boolean; recenterRef: React.MutableRefObject<boolean> }) {
   const lerpedTarget = useRef(monsterPosRef.current.clone());
-  // Pull the camera further back/up while moving so the monster stays in frame
-  // even on tall hops or sharp turns. Distance lerps smoothly between idle/moving.
   const distRef = useRef(1);
-  // Lock-on mode: while the monster is hopping we hard-snap the look-at target
-  // to the monster every frame and clamp the camera distance so the monster
-  // can NEVER fall behind into the fog band, even on very long jumps.
   const wasMovingRef = useRef(false);
+  // Reusable scratch vectors — allocating per frame caused tiny numerical
+  // jitter at the sub-pixel level when the camera should be perfectly still.
+  const desiredCam = useRef(new THREE.Vector3());
+  const lookAt = useRef(new THREE.Vector3());
   useFrame((state, delta) => {
     const target = monsterPosRef.current;
-    // On manual recenter, snap target & camera fast
     const recenter = recenterRef.current;
     if (recenter) recenterRef.current = false;
-    // Entering lock-on: snap target onto monster so the hop starts perfectly framed.
     if (isMoving && !wasMovingRef.current) {
       lerpedTarget.current.copy(target);
     }
     wasMovingRef.current = isMoving;
 
-    // While moving, lock-on: hard follow with no lag (target = monster).
-    // Idle: smooth follow.
     if (isMoving) {
       lerpedTarget.current.copy(target);
     } else {
-      const speed = recenter ? 1 : Math.min(1, delta * 2.5);
-      lerpedTarget.current.lerp(target, speed);
-      if (lerpedTarget.current.distanceTo(target) > 2) lerpedTarget.current.copy(target);
+      // Dead-zone: if we're already close enough, just snap. This eliminates
+      // the asymptotic sub-pixel drift that read as idle camera jitter.
+      const dist = lerpedTarget.current.distanceTo(target);
+      if (dist < 0.001 || dist > 2 || recenter) {
+        lerpedTarget.current.copy(target);
+      } else {
+        lerpedTarget.current.lerp(target, Math.min(1, delta * 2.5));
+      }
     }
     const targetDist = isMoving ? 1.25 : 1;
-    distRef.current += (targetDist - distRef.current) * Math.min(1, delta * 3);
+    if (Math.abs(targetDist - distRef.current) < 0.0005) {
+      distRef.current = targetDist;
+    } else {
+      distRef.current += (targetDist - distRef.current) * Math.min(1, delta * 3);
+    }
     const d = distRef.current;
-    const desiredCam = new THREE.Vector3(
+    desiredCam.current.set(
       lerpedTarget.current.x + 4.5 * d,
       lerpedTarget.current.y + 3.5 * d + (isMoving ? 1.2 : 0),
-      lerpedTarget.current.z + 4.5 * d
+      lerpedTarget.current.z + 4.5 * d,
     );
-    // Lock-on: snap camera into place while moving so the monster always stays
-    // perfectly centered AND inside the safe zone in front of the fog band.
     if (isMoving || recenter) {
-      state.camera.position.copy(desiredCam);
+      state.camera.position.copy(desiredCam.current);
     } else {
-      state.camera.position.lerp(desiredCam, Math.min(1, delta * 1.8));
+      const camDist = state.camera.position.distanceTo(desiredCam.current);
+      if (camDist < 0.002) {
+        state.camera.position.copy(desiredCam.current);
+      } else {
+        state.camera.position.lerp(desiredCam.current, Math.min(1, delta * 1.8));
+      }
     }
-    // Look slightly above the monster so its head stays comfortably below the top edge.
-    const lookAt = lerpedTarget.current.clone();
-    lookAt.y += isMoving ? 0.6 : 0.3;
-    state.camera.lookAt(lookAt);
+    lookAt.current.copy(lerpedTarget.current);
+    lookAt.current.y += isMoving ? 0.6 : 0.3;
+    state.camera.lookAt(lookAt.current);
   });
   return null;
 }
