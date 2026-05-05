@@ -1,61 +1,65 @@
-## Goal
+## Plan
 
-Make the auth experience resilient: a working `/auth` page (login + register with validation), an `AuthProvider` that survives initialization failures without crashing the React tree, and a global error screen for any runtime crash.
+Three feature areas: SFX volume controls, tutorial replay/progress, camera tuning + visual fixes.
 
-## Scope
+### 1. SFX volumes & master toggle (`src/lib/sfx.ts`, `src/components/SettingsDialog.tsx`)
 
-The `/auth` page already exists and is functional (email/password login + signup, Google OAuth, guest). The real gaps are:
-1. `AuthProvider` does not handle initialization errors — if `supabase.auth.getSession()` throws, `loading` stays `true` forever (blank screen).
-2. No client-side validation on the signup form (length, email format, password strength).
-3. The global `ErrorBoundary` already exists at the root of `App.tsx` but its message should be clearer for general runtime crashes.
+Extend `sfx.ts` with per-category gains:
+- Categories: `master`, `coin`, `skull`, `win` (win covers `sfxLevelUp` + `sfxCoinGain` jackpot-style; specifically map: `coin` → `sfxCoinGain`, `skull` → `sfxSkull`, `win` → `sfxLevelUp`; other SFX (`sfxHop`, `sfxLand`, `sfxDiceTick`) ride the master gain only).
+- Add `getVolume(cat)`, `setVolume(cat, 0..1)`, `subscribeVolumes(cb)`, persist in `localStorage` (`sfx.vol.<cat>`). Defaults 0.8.
+- Add `getMasterEnabled()` / `setMasterEnabled(bool)` (separate from the existing mute, which stays as the global mute toggle; master toggle is a quicker on/off with sliders intact).
+- Each `sfx*` function multiplies its base gain by `master * categoryGain` and skips entirely if master is off.
 
-## Changes
+In `SettingsDialog.tsx` add a new section "Sound effects":
+- Master switch (uses existing `Switch` UI).
+- Three sliders (Coin / Skull / Win) using `@/components/ui/slider`, each with a small "Test" play button that triggers the corresponding `sfx*` once.
+- Live subscribe to changes so multiple settings panels stay in sync.
 
-### 1. `src/hooks/useAuth.tsx` — resilient AuthProvider
+### 2. Tutorial progress, skip, replay (`src/components/TutorialCoachmark.tsx`, `src/hooks/useTutorial.ts`, `src/components/SettingsDialog.tsx`, `src/pages/Index.tsx`)
 
-Add an `error` state and a fallback render path so a failed init never leaves the app stuck:
+`TutorialCoachmark.tsx`:
+- Replace the dot row with a labeled progress bar: `Step {index+1} of {steps.length}` plus a thin gold fill (`(index+1)/steps.length`).
+- Add an explicit "Skip tutorial" text button next to NEXT (in addition to the existing top-right ✕). Both call `onClose`.
+- Keep keyboard handling (Esc → skip, Enter/→ → next).
 
-- Wrap `supabase.auth.getSession()` and the `onAuthStateChange` setup in `try/catch`.
-- New state: `error: Error | null`.
-- When `loading` is true, render a centered loading screen (same style as the existing `ProtectedRoute` loader) instead of children — this guarantees no consumer hook runs against a half-initialized context.
-- When `error` is set, render a fallback panel with a "Reload" button (reuses the same visual language as `ErrorBoundary`).
-- Only render `children` once init has completed successfully.
+`useTutorial.ts`:
+- Already has `reset()`. Expose it from the consumer.
 
-This eliminates the class of runtime errors where downstream hooks call `useAuth()` before context is ready.
+`SettingsDialog.tsx`: add "Tutorial" section with a "Replay tutorial" button that calls a passed-in `onReplayTutorial` prop.
 
-### 2. `src/pages/Auth.tsx` — validation + explicit redirect
+`Index.tsx`: wire `onReplayTutorial` → `tutorial.reset()` + open the coachmark immediately. Pass `tutorial.markCompleted` as `onClose` and `onFinish` so skipping also marks complete.
 
-- Add a `zod` schema for sign-up:
-  - `email`: trimmed, valid email, ≤255 chars
-  - `password`: ≥8 chars, ≤72 chars, must contain a letter and a number
-- For login: keep the lighter validation (email format + non-empty password) so existing accounts with shorter passwords still work.
-- Show inline field errors under each input (small red text) in addition to the toast.
-- After a successful login/signup, explicitly `navigate("/", { replace: true })` using `react-router-dom`'s `useNavigate`. (Today it relies on `AuthRoute` re-rendering — which works but is implicit; explicit navigation is more predictable and what the user asked for.)
-- For sign-up, set `emailRedirectTo: window.location.origin` on `signUp()` per Lovable Cloud auth conventions.
+### 3. Camera tuning + visual fixes
 
-No new route is added — `/auth` already exists and is wired in `App.tsx`.
+**3a. Camera settings store (new `src/lib/cameraSettings.ts`)**
+- Pubsub identical in shape to `lowPower.ts`.
+- Keys persisted to localStorage:
+  - `deadZone` (default 0.05, range 0–0.5) — `lerpedTarget` snaps when distance is below this.
+  - `followSmoothing` (default 1.5, range 0–6) — multiplier on the lerp rate; 0 disables smoothing entirely (camera locks rigidly to target).
+  - `zoom` (default 1.0, range 0.5–1.5) — scales the chase distance multipliers (4.5/3.5/4.5).
+- Export `getCameraSettings()`, `setCameraSetting(key, value)`, `resetCameraSettings()`, `subscribeCameraSettings(cb)`.
 
-### 3. `src/components/ErrorBoundary.tsx` — global crash screen polish
+**3b. `IsometricBoard.tsx` camera changes**
+- `CameraRig` reads settings via a small hook (`useSyncExternalStore` against `subscribeCameraSettings`).
+- Replace hardcoded `0.001` dead-zone with `settings.deadZone`. When `followSmoothing === 0`, always `copy(target)` (no lerp). Otherwise use `delta * (2.5 * followSmoothing/1.5)` etc., applied to BOTH `lerpedTarget` and the camera position lerp.
+- Apply `zoom` factor to the `4.5 / 3.5 / 4.5` chase offsets so the user can pull the camera in. Default `zoom=1.0` keeps current framing; lower `zoom` (e.g. 0.7) brings camera closer to fix "zoomed out too far".
+- Default chase multipliers reduced from `4.5/3.5/4.5` to `3.6/2.8/3.6` to address "camera too far out" complaint, before the user-zoom multiplier applies.
+- Idle jitter: when `followSmoothing` low and within deadzone, the camera path no longer lerps at all, so any residual shake disappears even on devices where `delta` is unstable.
 
-Already exists and is already wrapped around the whole app in `App.tsx`. Small tweaks:
-- Default `title` → "Something went wrong"
-- Default `message` → "The app hit an unexpected error. Reloading will give it a fresh start."
-- Keep the existing "Reload page" button (calls `window.location.reload()`).
-- Keep the dev-only `<details>` with the stack trace.
+**3c. Fog reduction (`IsometricBoard.tsx`)**
+- Bump fog further: `<fog args={[theme.fog, isMoving ? 90 : 70, isMoving ? 200 : 170]} />`. Effectively halves perceived fog density at the typical chase distance.
 
-No new file needed; the existing boundary already covers the "global error screen" requirement.
+**3d. Camera section in `SettingsDialog.tsx`**
+- Three sliders: Camera distance (zoom), Follow smoothing, Idle dead-zone.
+- "Reset camera" button → `resetCameraSettings()`.
+- Live preview: changes apply instantly via the pubsub.
 
-## Files
+### Files
 
-**Edited**
-- `src/hooks/useAuth.tsx` — add error state, loading/fallback render gates
-- `src/pages/Auth.tsx` — add zod validation, inline errors, explicit post-auth navigation
-- `src/components/ErrorBoundary.tsx` — copy tweaks for default title/message
+- New: `src/lib/cameraSettings.ts`
+- Edit: `src/lib/sfx.ts`, `src/components/SettingsDialog.tsx`, `src/components/TutorialCoachmark.tsx`, `src/components/IsometricBoard.tsx`, `src/pages/Index.tsx`
 
-**No new files. No DB changes. No config changes.**
+### Out of scope / not changing
 
-## Out of scope
-
-- Password reset flow (not requested; would need a `/reset-password` route)
-- Email verification UI (Cloud handles confirmation emails by default)
-- Changes to `vite.config.ts`, `hmrGuard.ts`, or the React-dedup scripts — those were resolved in the previous loop and are working.
+- Existing `setMuted/isMuted` global mute stays as-is (used elsewhere e.g. BGM). The new master SFX toggle is independent and only gates SFX, not BGM.
+- No DB / backend changes.
