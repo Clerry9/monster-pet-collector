@@ -1313,7 +1313,8 @@ export function IsometricBoard({ position, absoluteStep, monster, isMoving, move
             moving) so the monster sprite is NEVER inside the fog band. */}
         {/* Reduced fog so the monster stays clearly visible mid-hop.
             Pushed start much further out and softened density. */}
-        <fog attach="fog" args={[theme.fog, isMoving ? 60 : 45, isMoving ? 140 : 110]} />
+        {/* Fog further reduced — pushed start past chase distance and density softened. */}
+        <fog attach="fog" args={[theme.fog, isMoving ? 90 : 70, isMoving ? 200 : 170]} />
         <Suspense fallback={null}>
           <IsometricBoardScene absoluteStep={absStep} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} recenterRef={recenterRef} />
         </Suspense>
