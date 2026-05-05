@@ -161,31 +161,43 @@ const Index = () => {
   const tutorialSteps: CoachStep[] = [
     {
       title: "Welcome to Monster Mash!",
-      body: "Roll the dice, move along the board, collect cards, and evolve your monster. Let's take a quick tour.",
+      body: "Quick 30-second tour: roll the dice, collect monsters, and earn coins. Let's go!",
       emoji: "👋",
     },
     {
       selector: "[data-tutorial='board']",
       title: "Roll the dice",
-      body: "Tap to roll. You'll move that many tiles and trigger whatever you land on. Each roll costs 1 of your 🎲 rolls.",
+      body: "Tap the board to roll. Your monster hops that many tiles and triggers whatever it lands on. Each roll costs 1 🎲.",
       emoji: "🎲",
     },
     {
       selector: "[data-tutorial='board']",
-      title: "Land on chest 📦 or star ⭐",
-      body: "These tiles draw cards (~20% chance per roll). Complete sets to unlock new monsters and bonuses.",
+      title: "Earn coins 🪙",
+      body: "Coin and bonus tiles pay out instantly. Skull tiles 💀 hurt — your monster will react!",
+      emoji: "🪙",
+    },
+    {
+      selector: "[data-tutorial='board']",
+      title: "Collect cards 🎴",
+      body: "Chest 📦 and star ⭐ tiles draw cards. Complete sets to unlock new monsters and permanent bonuses.",
       emoji: "🎴",
+    },
+    {
+      selector: "[role='tab'][aria-controls='panel-monsters']",
+      title: "Your monster album",
+      body: "Browse every monster you own (and the ones still to find) here. Each evolves the more you play.",
+      emoji: "👾",
     },
     {
       selector: "[role='tab'][aria-controls='panel-season']",
       title: "Seasonal Event",
-      body: "Every 3 days a new season starts. Play the mini-game to earn special symbols and unlock rare event cards.",
+      body: "New season every 3 days. Weekends bring 2× coin bonuses and limited-time monsters!",
       emoji: "🌟",
     },
     {
       selector: "[data-tutorial='help']",
       title: "Need help?",
-      body: "Tap this anytime for the rules, full odds breakdown, and to replay this tour.",
+      body: "Tap here anytime to revisit the rules or replay this tour. Now go roll your first dice!",
       emoji: "❓",
     },
   ];
