@@ -23,15 +23,21 @@ export function getCameraSettings(): CameraSettings {
   if (typeof window === "undefined") return { ...CAMERA_DEFAULTS };
   try {
     const raw = window.localStorage.getItem(KEY);
-    if (!raw) return { ...CAMERA_DEFAULTS };
+    if (!raw) {
+      applyReducedMotionAttribute(CAMERA_DEFAULTS.reducedMotion);
+      return { ...CAMERA_DEFAULTS };
+    }
     const parsed = JSON.parse(raw);
-    return {
+    const settings = {
       deadZone: clamp(parsed.deadZone ?? CAMERA_DEFAULTS.deadZone, 0, 0.5),
       followSmoothing: clamp(parsed.followSmoothing ?? CAMERA_DEFAULTS.followSmoothing, 0, 6),
       zoom: clamp(parsed.zoom ?? CAMERA_DEFAULTS.zoom, 0.5, 1.5),
       reducedMotion: Boolean(parsed.reducedMotion ?? CAMERA_DEFAULTS.reducedMotion),
     };
+    applyReducedMotionAttribute(settings.reducedMotion);
+    return settings;
   } catch {
+    applyReducedMotionAttribute(CAMERA_DEFAULTS.reducedMotion);
     return { ...CAMERA_DEFAULTS };
   }
 }
@@ -40,18 +46,23 @@ export function setCameraSetting<K extends keyof CameraSettings>(key: K, value: 
   if (typeof window === "undefined") return;
   const next = { ...getCameraSettings(), [key]: normalizeSetting(key, value) };
   window.localStorage.setItem(KEY, JSON.stringify(next));
+  applyReducedMotionAttribute(next.reducedMotion);
   window.dispatchEvent(new CustomEvent(EVT));
 }
 
 export function resetCameraSettings() {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(KEY, JSON.stringify(CAMERA_DEFAULTS));
+  applyReducedMotionAttribute(CAMERA_DEFAULTS.reducedMotion);
   window.dispatchEvent(new CustomEvent(EVT));
 }
 
 export function subscribeCameraSettings(cb: () => void): () => void {
   if (typeof window === "undefined") return () => {};
-  const handler = () => cb();
+  const handler = () => {
+    applyReducedMotionAttribute(getCameraSettings().reducedMotion);
+    cb();
+  };
   window.addEventListener(EVT, handler);
   const storageHandler = (e: StorageEvent) => { if (e.key === KEY) handler(); };
   window.addEventListener("storage", storageHandler);
@@ -70,4 +81,9 @@ function normalizeSetting<K extends keyof CameraSettings>(key: K, value: CameraS
   if (key === "followSmoothing") return clamp(Number(value), 0, 6);
   if (key === "zoom") return clamp(Number(value), 0.5, 1.5);
   return Boolean(value);
+}
+
+function applyReducedMotionAttribute(enabled: boolean) {
+  if (typeof document === "undefined") return;
+  document.documentElement.dataset.reducedMotion = enabled ? "true" : "false";
 }
