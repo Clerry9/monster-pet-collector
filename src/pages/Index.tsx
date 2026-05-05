@@ -103,6 +103,93 @@ function CenterEnergyPill({
   );
 }
 
+/**
+ * Slim banner above the game board that shows:
+ *  - The weekend 2× coin event (live countdown until it ends or starts)
+ *  - The next daily reward countdown (until local midnight) when claimed,
+ *    or a "claim now" prompt with current streak when unclaimed.
+ */
+function EventBanner({
+  alreadyClaimedDaily,
+  streak,
+  onOpenDaily,
+}: {
+  alreadyClaimedDaily: boolean;
+  streak: number;
+  onOpenDaily: () => void;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const weekendActive = isWeekend(new Date(now));
+  const weekendMs = msUntilWeekendBoundary(new Date(now));
+
+  // Time until next local midnight (next claimable daily reward).
+  const nextMidnight = new Date(now);
+  nextMidnight.setHours(24, 0, 0, 0);
+  const dailyMs = Math.max(0, nextMidnight.getTime() - now);
+
+  return (
+    <div className="w-full max-w-md mx-auto mb-3 flex flex-wrap items-stretch justify-center gap-2">
+      {weekendActive ? (
+        <div
+          className="flex-1 min-w-[160px] flex items-center justify-between gap-2 rounded-lg border-2 border-amber-500 bg-gradient-to-r from-amber-300 to-yellow-500 px-3 py-1.5 shadow-md"
+          role="status"
+          aria-label={`Weekend event: 2x coins active. Ends in ${formatCountdown(weekendMs)}`}
+        >
+          <span className="font-display text-xs text-wood-dark flex items-center gap-1.5">
+            <SparklesIcon size={14} aria-hidden="true" />
+            2× COIN WEEKEND
+          </span>
+          <span className="font-display text-[11px] tabular-nums text-wood-dark/80">
+            ends in {formatCountdown(weekendMs)}
+          </span>
+        </div>
+      ) : (
+        <div
+          className="flex-1 min-w-[160px] flex items-center justify-between gap-2 rounded-lg border-2 border-wood-dark/40 bg-cream/95 px-3 py-1.5"
+          role="status"
+          aria-label={`2x coin weekend starts in ${formatCountdown(weekendMs)}`}
+        >
+          <span className="font-display text-xs text-wood-dark flex items-center gap-1.5">
+            <SparklesIcon size={14} aria-hidden="true" />
+            2× weekend
+          </span>
+          <span className="font-display text-[11px] tabular-nums text-wood-dark/70">
+            in {formatCountdown(weekendMs)}
+          </span>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={onOpenDaily}
+        className={`flex-1 min-w-[160px] flex items-center justify-between gap-2 rounded-lg border-2 px-3 py-1.5 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+          alreadyClaimedDaily
+            ? "border-wood-dark/40 bg-cream/95 hover:bg-cream"
+            : "border-emerald-600 bg-gradient-to-r from-emerald-400 to-teal-500 shadow-md animate-pulse"
+        }`}
+        aria-label={
+          alreadyClaimedDaily
+            ? `Daily reward claimed. Next reward in ${formatCountdown(dailyMs)}. Streak ${streak} days.`
+            : `Claim daily reward. Streak ${streak} days.`
+        }
+      >
+        <span className={`font-display text-xs flex items-center gap-1.5 ${alreadyClaimedDaily ? "text-wood-dark" : "text-wood-dark"}`}>
+          <Gift size={14} aria-hidden="true" />
+          🔥 {streak}d streak
+        </span>
+        <span className="font-display text-[11px] tabular-nums text-wood-dark/80">
+          {alreadyClaimedDaily ? `next in ${formatCountdown(dailyMs)}` : "Claim now!"}
+        </span>
+      </button>
+    </div>
+  );
+}
+
 const Index = () => {
   const game = useGameState();
   const daily = useDailyReward(game.addCoins);
