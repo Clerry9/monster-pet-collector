@@ -76,11 +76,11 @@ function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
 }
 
-function normalizeSetting<K extends keyof CameraSettings>(key: K, value: CameraSettings[K]) {
-  if (key === "deadZone") return clamp(Number(value), 0, 0.5);
-  if (key === "followSmoothing") return clamp(Number(value), 0, 6);
-  if (key === "zoom") return clamp(Number(value), 0.5, 1.5);
-  return Boolean(value);
+function normalizeSetting<K extends keyof CameraSettings>(key: K, value: CameraSettings[K]): CameraSettings[K] {
+  if (key === "deadZone") return clamp(Number(value), 0, 0.5) as CameraSettings[K];
+  if (key === "followSmoothing") return clamp(Number(value), 0, 6) as CameraSettings[K];
+  if (key === "zoom") return clamp(Number(value), 0.5, 1.5) as CameraSettings[K];
+  return Boolean(value) as CameraSettings[K];
 }
 
 function applyReducedMotionAttribute(enabled: boolean) {
