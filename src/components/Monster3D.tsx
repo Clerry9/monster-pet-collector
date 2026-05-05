@@ -17,7 +17,7 @@ interface Monster3DProps {
 /** Persisted across the app: once we've decided to drop to 2D we keep that
  *  decision for the rest of the session so we don't churn between modes. */
 let SESSION_LOW_POWER: boolean | null = null;
-const LOW_POWER_QUERY = "(max-width: 640px), (prefers-reduced-motion: reduce)";
+const LOW_POWER_QUERY = "(max-width: 520px)";
 
 function detectInitialLowPower(): boolean {
   if (SESSION_LOW_POWER !== null) return SESSION_LOW_POWER;
@@ -27,29 +27,25 @@ function detectInitialLowPower(): boolean {
       SESSION_LOW_POWER = true;
       return true;
     }
-    // Hardware concurrency is a coarse but useful signal.
-    const cores = (navigator as Navigator & { hardwareConcurrency?: number }).hardwareConcurrency ?? 8;
-    if (cores <= 4) {
-      SESSION_LOW_POWER = true;
-      return true;
-    }
   } catch {
     /* ignore */
   }
   return false;
 }
 
-/** FPS sampler — switches to 2D fallback if we drop below ~30fps for a sec. */
+/** FPS sampler — switches to 2D fallback only when performance is consistently very low. */
 function FpsWatcher({ onLowFps }: { onLowFps: () => void }) {
   const frames = useRef(0);
   const start = useRef(performance.now());
+  const lowSamples = useRef(0);
   useFrame(() => {
     frames.current += 1;
     const now = performance.now();
     const elapsed = now - start.current;
     if (elapsed >= 1000) {
       const fps = (frames.current * 1000) / elapsed;
-      if (fps < 30) onLowFps();
+      lowSamples.current = fps < 18 ? lowSamples.current + 1 : 0;
+      if (lowSamples.current >= 4) onLowFps();
       frames.current = 0;
       start.current = now;
     }
