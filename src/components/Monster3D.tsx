@@ -3,6 +3,7 @@ import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { Float, Environment, ContactShadows } from "@react-three/drei";
 import * as THREE from "three";
 import { getLowPowerMode, subscribeLowPower } from "@/lib/lowPower";
+import { getCameraSettings, subscribeCameraSettings } from "@/lib/cameraSettings";
 
 interface Monster3DProps {
   src: string;
@@ -60,7 +61,7 @@ function FpsWatcher({ onLowFps }: { onLowFps: () => void }) {
  * the cursor with subtle parallax tilt — giving a 3D feel without requiring
  * actual GLB models.
  */
-function MonsterPlane({ src }: { src: string }) {
+function MonsterPlane({ src, reducedMotion }: { src: string; reducedMotion: boolean }) {
   const texture = useLoader(THREE.TextureLoader, src);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.minFilter = THREE.LinearFilter;
@@ -78,6 +79,13 @@ function MonsterPlane({ src }: { src: string }) {
   useFrame(({ clock, pointer }) => {
     const m = meshRef.current;
     if (!m) return;
+    if (reducedMotion) {
+      m.scale.set(aspect, 1, 1);
+      m.rotation.x = THREE.MathUtils.lerp(m.rotation.x, 0, 0.2);
+      m.rotation.y = THREE.MathUtils.lerp(m.rotation.y, 0, 0.2);
+      m.position.y = 0;
+      return;
+    }
     const t = clock.getElapsedTime();
     // Idle breathing scale.
     const s = 1 + Math.sin(t * 1.6) * 0.025;
@@ -109,8 +117,10 @@ function MonsterPlane({ src }: { src: string }) {
 export function Monster3D({ src, size = 220, glow, compact = false, debugBadge = false }: Monster3DProps) {
   const [autoLowPower, setAutoLowPower] = useState<boolean>(() => detectInitialLowPower());
   const [override, setOverride] = useState(() => getLowPowerMode());
+  const [reducedMotion, setReducedMotion] = useState(() => getCameraSettings().reducedMotion);
 
   useEffect(() => subscribeLowPower(() => setOverride(getLowPowerMode())), []);
+  useEffect(() => subscribeCameraSettings(() => setReducedMotion(getCameraSettings().reducedMotion)), []);
 
   // Resolve effective mode: explicit override wins over auto-detection.
   const lowPower = override === "force-2d" ? true : override === "force-3d" ? false : autoLowPower;
@@ -190,8 +200,8 @@ export function Monster3D({ src, size = 220, glow, compact = false, debugBadge =
         <directionalLight position={[2, 3, 4]} intensity={0.9} />
         <directionalLight position={[-3, -1, 2]} intensity={0.35} color="#a78bfa" />
         <Suspense fallback={null}>
-          <Float speed={1.4} rotationIntensity={0.15} floatIntensity={0.4}>
-            <MonsterPlane src={src} />
+          <Float speed={reducedMotion ? 0 : 1.4} rotationIntensity={reducedMotion ? 0 : 0.15} floatIntensity={reducedMotion ? 0 : 0.4}>
+            <MonsterPlane src={src} reducedMotion={reducedMotion} />
           </Float>
           {!compact && (
             <ContactShadows
