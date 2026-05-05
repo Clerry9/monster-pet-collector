@@ -429,6 +429,12 @@ const Index = () => {
           <h1 className="font-display text-2xl tracking-wide">⭐ MONSTER MASH ⭐</h1>
         </div>
 
+        <EventBanner
+          alreadyClaimedDaily={daily.alreadyClaimed}
+          streak={daily.streak}
+          onOpenDaily={daily.openModal}
+        />
+
         {/* Stats */}
         <div className="w-full max-w-md flex items-center justify-center gap-4 mb-2 text-[11px] font-display text-wood-dark/80">
           <span title={`Refills 1 every 3 min · cap ${game.energyCap}`}>⚡ {game.energy}/{game.energyCap}</span>
