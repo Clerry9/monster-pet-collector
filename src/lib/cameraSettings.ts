@@ -6,12 +6,14 @@ export interface CameraSettings {
   deadZone: number;       // 0..0.5 — distance under which camera snaps (kills idle jitter)
   followSmoothing: number;// 0..6 — lerp rate multiplier; 0 = rigid follow (no smoothing)
   zoom: number;           // 0.5..1.5 — chase distance multiplier (lower = closer)
+  reducedMotion: boolean; // disables idle camera smoothing and lowers decorative motion
 }
 
 export const CAMERA_DEFAULTS: CameraSettings = {
   deadZone: 0.05,
   followSmoothing: 1.5,
   zoom: 1.0,
+  reducedMotion: false,
 };
 
 const KEY = "monster.cameraSettings";
@@ -27,6 +29,7 @@ export function getCameraSettings(): CameraSettings {
       deadZone: clamp(parsed.deadZone ?? CAMERA_DEFAULTS.deadZone, 0, 0.5),
       followSmoothing: clamp(parsed.followSmoothing ?? CAMERA_DEFAULTS.followSmoothing, 0, 6),
       zoom: clamp(parsed.zoom ?? CAMERA_DEFAULTS.zoom, 0.5, 1.5),
+      reducedMotion: Boolean(parsed.reducedMotion ?? CAMERA_DEFAULTS.reducedMotion),
     };
   } catch {
     return { ...CAMERA_DEFAULTS };
@@ -35,7 +38,7 @@ export function getCameraSettings(): CameraSettings {
 
 export function setCameraSetting<K extends keyof CameraSettings>(key: K, value: CameraSettings[K]) {
   if (typeof window === "undefined") return;
-  const next = { ...getCameraSettings(), [key]: value };
+  const next = { ...getCameraSettings(), [key]: normalizeSetting(key, value) };
   window.localStorage.setItem(KEY, JSON.stringify(next));
   window.dispatchEvent(new CustomEvent(EVT));
 }
@@ -60,4 +63,11 @@ export function subscribeCameraSettings(cb: () => void): () => void {
 
 function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
+}
+
+function normalizeSetting<K extends keyof CameraSettings>(key: K, value: CameraSettings[K]) {
+  if (key === "deadZone") return clamp(Number(value), 0, 0.5);
+  if (key === "followSmoothing") return clamp(Number(value), 0, 6);
+  if (key === "zoom") return clamp(Number(value), 0.5, 1.5);
+  return Boolean(value);
 }
