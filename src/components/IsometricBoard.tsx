@@ -1134,7 +1134,14 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
   // jitter at the sub-pixel level when the camera should be perfectly still.
   const desiredCam = useRef(new THREE.Vector3());
   const lookAt = useRef(new THREE.Vector3());
+  const settings = useCameraSettings();
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   useFrame((state, delta) => {
+    const s = settingsRef.current;
+    const smoothing = s.followSmoothing; // 0 = rigid follow
+    const deadZone = s.deadZone;
+    const zoom = s.zoom;
     const target = monsterPosRef.current;
     const recenter = recenterRef.current;
     if (recenter) recenterRef.current = false;
@@ -1143,16 +1150,16 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
     }
     wasMovingRef.current = isMoving;
 
-    if (isMoving) {
+    if (isMoving || smoothing === 0) {
       lerpedTarget.current.copy(target);
     } else {
       // Dead-zone: if we're already close enough, just snap. This eliminates
       // the asymptotic sub-pixel drift that read as idle camera jitter.
       const dist = lerpedTarget.current.distanceTo(target);
-      if (dist < 0.001 || dist > 2 || recenter) {
+      if (dist < deadZone || dist > 2 || recenter) {
         lerpedTarget.current.copy(target);
       } else {
-        lerpedTarget.current.lerp(target, Math.min(1, delta * 2.5));
+        lerpedTarget.current.lerp(target, Math.min(1, delta * 2.5 * (smoothing / 1.5)));
       }
     }
     const targetDist = isMoving ? 1.25 : 1;
@@ -1161,20 +1168,22 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
     } else {
       distRef.current += (targetDist - distRef.current) * Math.min(1, delta * 3);
     }
-    const d = distRef.current;
+    const d = distRef.current * zoom;
+    // Tighter base chase distances (was 4.5/3.5/4.5) — pulls the camera in
+    // so the world doesn't feel zoomed too far out.
     desiredCam.current.set(
-      lerpedTarget.current.x + 4.5 * d,
-      lerpedTarget.current.y + 3.5 * d + (isMoving ? 1.2 : 0),
-      lerpedTarget.current.z + 4.5 * d,
+      lerpedTarget.current.x + 3.6 * d,
+      lerpedTarget.current.y + 2.8 * d + (isMoving ? 1.0 : 0),
+      lerpedTarget.current.z + 3.6 * d,
     );
-    if (isMoving || recenter) {
+    if (isMoving || recenter || smoothing === 0) {
       state.camera.position.copy(desiredCam.current);
     } else {
       const camDist = state.camera.position.distanceTo(desiredCam.current);
-      if (camDist < 0.002) {
+      if (camDist < Math.max(0.002, deadZone)) {
         state.camera.position.copy(desiredCam.current);
       } else {
-        state.camera.position.lerp(desiredCam.current, Math.min(1, delta * 1.8));
+        state.camera.position.lerp(desiredCam.current, Math.min(1, delta * 1.8 * (smoothing / 1.5)));
       }
     }
     lookAt.current.copy(lerpedTarget.current);
