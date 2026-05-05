@@ -896,7 +896,13 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
 
     trailPosRef.current = [new THREE.Vector3(currentPos.current.x, currentPos.current.y + liftRef.current, currentPos.current.z)];
     if (monsterPosRef) {
-      monsterPosRef.current.set(currentPos.current.x, currentPos.current.y + liftRef.current, currentPos.current.z);
+      // Use the stable interpolated position (no idle bob / hop bounce) so the
+      // chase camera doesn't inherit a high-frequency sine wobble while idle.
+      monsterPosRef.current.set(
+        currentPos.current.x,
+        currentPos.current.y + liftRef.current,
+        currentPos.current.z,
+      );
     }
 
     // --- Personality: idle breathing + walk-cycle legs ---
