@@ -214,6 +214,8 @@ export function sfxLand() {
 export function sfxCoinGain() {
   const c = getCtx();
   if (!c) return;
+  const v = _volumes.coin;
+  if (v <= 0) return;
   const notes = [523, 659, 784]; // C5, E5, G5
   notes.forEach((freq, i) => {
     const osc = c.createOscillator();
@@ -221,7 +223,7 @@ export function sfxCoinGain() {
     osc.type = "sine";
     const t = c.currentTime + i * 0.08;
     osc.frequency.setValueAtTime(freq, t);
-    gain.gain.setValueAtTime(0.15, t);
+    gain.gain.setValueAtTime(0.15 * v, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
     osc.connect(gain).connect(c.destination);
     osc.start(t);
@@ -233,12 +235,14 @@ export function sfxCoinGain() {
 export function sfxSkull() {
   const c = getCtx();
   if (!c) return;
+  const v = _volumes.skull;
+  if (v <= 0) return;
   const osc1 = c.createOscillator();
   const gain1 = c.createGain();
   osc1.type = "sawtooth";
   osc1.frequency.setValueAtTime(200, c.currentTime);
   osc1.frequency.exponentialRampToValueAtTime(60, c.currentTime + 0.4);
-  gain1.gain.setValueAtTime(0.15, c.currentTime);
+  gain1.gain.setValueAtTime(0.15 * v, c.currentTime);
   gain1.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.4);
   osc1.connect(gain1).connect(c.destination);
   osc1.start();
@@ -253,7 +257,7 @@ export function sfxSkull() {
   const noise = c.createBufferSource();
   const noiseGain = c.createGain();
   noise.buffer = buffer;
-  noiseGain.gain.setValueAtTime(0.06, c.currentTime);
+  noiseGain.gain.setValueAtTime(0.06 * v, c.currentTime);
   noiseGain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.3);
   noise.connect(noiseGain).connect(c.destination);
   noise.start();
@@ -281,6 +285,8 @@ export function sfxHop() {
 export function sfxLevelUp() {
   const c = getCtx();
   if (!c) return;
+  const v = _volumes.win;
+  if (v <= 0) return;
   // Ascending major arpeggio with harmonics
   const notes = [523, 659, 784, 1047, 1319, 1568]; // C5 E5 G5 C6 E6 G6
   notes.forEach((freq, i) => {
@@ -292,7 +298,7 @@ export function sfxLevelUp() {
     const t = c.currentTime + i * 0.1;
     osc.frequency.setValueAtTime(freq, t);
     osc2.frequency.setValueAtTime(freq * 2, t);
-    gain.gain.setValueAtTime(0.18 - i * 0.02, t);
+    gain.gain.setValueAtTime((0.18 - i * 0.02) * v, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
     osc.connect(gain);
     osc2.connect(gain);
@@ -309,7 +315,7 @@ export function sfxLevelUp() {
     const g = c.createGain();
     osc.type = "sine";
     osc.frequency.setValueAtTime(freq, shimmerTime);
-    g.gain.setValueAtTime(0.1, shimmerTime);
+    g.gain.setValueAtTime(0.1 * v, shimmerTime);
     g.gain.exponentialRampToValueAtTime(0.001, shimmerTime + 0.8);
     osc.connect(g).connect(c.destination);
     osc.start(shimmerTime);
