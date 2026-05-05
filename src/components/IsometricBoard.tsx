@@ -597,9 +597,10 @@ interface TileProps {
   playerPosition: number;
   theme: LevelTheme3D;
   forceVisible?: boolean;
+  reducedMotion?: boolean;
 }
 
-function Tile({ tile, position, isActive, index, playerPosition, theme, forceVisible }: TileProps) {
+function Tile({ tile, position, isActive, index, playerPosition, theme, forceVisible, reducedMotion = false }: TileProps) {
   const islandRef = useRef<THREE.Group>(null);
   const distFromPlayer = Math.abs(index - playerPosition);
   const isNearby = forceVisible || distFromPlayer <= 5;
@@ -615,10 +616,10 @@ function Tile({ tile, position, isActive, index, playerPosition, theme, forceVis
     const target = isActive ? ACTIVE_LIFT : 0;
     // ease toward target
     liftRef.current = THREE.MathUtils.lerp(liftRef.current, target, Math.min(1, delta * 6));
-    const bob = isActive ? Math.sin(s.clock.elapsedTime * 2) * 0.08 : 0;
+    const bob = isActive && !reducedMotion ? Math.sin(s.clock.elapsedTime * 2) * 0.08 : 0;
     islandRef.current.position.y = position.y + liftRef.current + bob;
     // slight spin on active
-    islandRef.current.rotation.y = isActive ? Math.sin(s.clock.elapsedTime * 0.4) * 0.08 : 0;
+    islandRef.current.rotation.y = isActive && !reducedMotion ? Math.sin(s.clock.elapsedTime * 0.4) * 0.08 : 0;
   });
 
   const hasFoliage = tile.type !== "skull";
@@ -817,9 +818,11 @@ interface MonsterPawnProps {
   movementResult: { steps: number; tile: BoardTile } | null;
   trailPosRef: React.MutableRefObject<THREE.Vector3[]>;
   activeLift: number;
+  reducedMotion?: boolean;
+  onMovingChange?: (moving: boolean) => void;
 }
 
-function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trailPosRef, activeLift, monsterPosRef }: MonsterPawnProps) {
+function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trailPosRef, activeLift, monsterPosRef, reducedMotion = false, onMovingChange }: MonsterPawnProps) {
   const groupRef = useRef<THREE.Group>(null);
   const bodyRef = useRef<THREE.Mesh>(null);
   const leftFootRef = useRef<THREE.Mesh>(null);
@@ -835,6 +838,9 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
   const stepDuration = useRef(0.1);
   const texture = useLoader(THREE.TextureLoader, monster.image);
   const liftRef = useRef(0);
+  const lastMovingRef = useRef(false);
+
+  useEffect(() => () => onMovingChange?.(false), [onMovingChange]);
 
   useEffect(() => {
     // Slower, more deliberate hops — easier to follow visually.
@@ -890,8 +896,13 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
     const targetLift = isAnimating ? 0 : activeLift;
     liftRef.current = THREE.MathUtils.lerp(liftRef.current, targetLift, Math.min(1, delta * 6));
 
-    const idleBob = isAnimating ? 0 : Math.sin(state.clock.elapsedTime * 2) * 0.06;
-    const idleScale = isAnimating ? 1 : 1 + Math.sin(state.clock.elapsedTime * 1.5) * 0.03;
+    if (lastMovingRef.current !== isAnimating) {
+      lastMovingRef.current = isAnimating;
+      onMovingChange?.(isAnimating);
+    }
+
+    const idleBob = isAnimating || reducedMotion ? 0 : Math.sin(state.clock.elapsedTime * 2) * 0.06;
+    const idleScale = isAnimating || reducedMotion ? 1 : 1 + Math.sin(state.clock.elapsedTime * 1.5) * 0.03;
 
     groupRef.current.position.set(
       currentPos.current.x,
