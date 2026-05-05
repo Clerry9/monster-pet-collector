@@ -7,6 +7,13 @@ import { BOARD_TILES, BoardTile, TileType } from "@/hooks/useGameState";
 import { Monster } from "@/data/monsters";
 import { BoardMinimap } from "./BoardMinimap";
 import { LevelTransitionCinematic } from "./LevelTransitionCinematic";
+import { getCameraSettings, subscribeCameraSettings, type CameraSettings } from "@/lib/cameraSettings";
+
+function useCameraSettings(): CameraSettings {
+  const [s, setS] = useState<CameraSettings>(() => getCameraSettings());
+  useEffect(() => subscribeCameraSettings(() => setS(getCameraSettings())), []);
+  return s;
+}
 
 // Warm cartoon-casino palette
 const TILE_ACCENT: Record<TileType, string> = {
@@ -1127,7 +1134,14 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
   // jitter at the sub-pixel level when the camera should be perfectly still.
   const desiredCam = useRef(new THREE.Vector3());
   const lookAt = useRef(new THREE.Vector3());
+  const settings = useCameraSettings();
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   useFrame((state, delta) => {
+    const s = settingsRef.current;
+    const smoothing = s.followSmoothing; // 0 = rigid follow
+    const deadZone = s.deadZone;
+    const zoom = s.zoom;
     const target = monsterPosRef.current;
     const recenter = recenterRef.current;
     if (recenter) recenterRef.current = false;
@@ -1136,16 +1150,16 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
     }
     wasMovingRef.current = isMoving;
 
-    if (isMoving) {
+    if (isMoving || smoothing === 0) {
       lerpedTarget.current.copy(target);
     } else {
       // Dead-zone: if we're already close enough, just snap. This eliminates
       // the asymptotic sub-pixel drift that read as idle camera jitter.
       const dist = lerpedTarget.current.distanceTo(target);
-      if (dist < 0.001 || dist > 2 || recenter) {
+      if (dist < deadZone || dist > 2 || recenter) {
         lerpedTarget.current.copy(target);
       } else {
-        lerpedTarget.current.lerp(target, Math.min(1, delta * 2.5));
+        lerpedTarget.current.lerp(target, Math.min(1, delta * 2.5 * (smoothing / 1.5)));
       }
     }
     const targetDist = isMoving ? 1.25 : 1;
@@ -1154,20 +1168,22 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
     } else {
       distRef.current += (targetDist - distRef.current) * Math.min(1, delta * 3);
     }
-    const d = distRef.current;
+    const d = distRef.current * zoom;
+    // Tighter base chase distances (was 4.5/3.5/4.5) — pulls the camera in
+    // so the world doesn't feel zoomed too far out.
     desiredCam.current.set(
-      lerpedTarget.current.x + 4.5 * d,
-      lerpedTarget.current.y + 3.5 * d + (isMoving ? 1.2 : 0),
-      lerpedTarget.current.z + 4.5 * d,
+      lerpedTarget.current.x + 3.6 * d,
+      lerpedTarget.current.y + 2.8 * d + (isMoving ? 1.0 : 0),
+      lerpedTarget.current.z + 3.6 * d,
     );
-    if (isMoving || recenter) {
+    if (isMoving || recenter || smoothing === 0) {
       state.camera.position.copy(desiredCam.current);
     } else {
       const camDist = state.camera.position.distanceTo(desiredCam.current);
-      if (camDist < 0.002) {
+      if (camDist < Math.max(0.002, deadZone)) {
         state.camera.position.copy(desiredCam.current);
       } else {
-        state.camera.position.lerp(desiredCam.current, Math.min(1, delta * 1.8));
+        state.camera.position.lerp(desiredCam.current, Math.min(1, delta * 1.8 * (smoothing / 1.5)));
       }
     }
     lookAt.current.copy(lerpedTarget.current);
@@ -1297,7 +1313,8 @@ export function IsometricBoard({ position, absoluteStep, monster, isMoving, move
             moving) so the monster sprite is NEVER inside the fog band. */}
         {/* Reduced fog so the monster stays clearly visible mid-hop.
             Pushed start much further out and softened density. */}
-        <fog attach="fog" args={[theme.fog, isMoving ? 60 : 45, isMoving ? 140 : 110]} />
+        {/* Fog further reduced — pushed start past chase distance and density softened. */}
+        <fog attach="fog" args={[theme.fog, isMoving ? 90 : 70, isMoving ? 200 : 170]} />
         <Suspense fallback={null}>
           <IsometricBoardScene absoluteStep={absStep} monster={monster} isMoving={isMoving} movementResult={movementResult} levelId={levelId} seasonAccent={seasonAccent} seasonGlow={seasonGlow} recenterRef={recenterRef} />
         </Suspense>

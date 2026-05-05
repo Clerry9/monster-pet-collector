@@ -59,6 +59,21 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
     if (open) setIndex(0);
   }, [open]);
 
+  // Keyboard support: Esc skips, Enter / ArrowRight advances.
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { e.preventDefault(); onClose(); }
+      else if (e.key === "Enter" || e.key === "ArrowRight") {
+        e.preventDefault();
+        if (index === steps.length - 1) onFinish();
+        else setIndex((i) => Math.min(steps.length - 1, i + 1));
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, index, steps.length, onClose, onFinish]);
+
   if (!open || !step) return null;
 
   const isLast = index === steps.length - 1;
@@ -179,17 +194,28 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
                 <p className="font-body text-[12px] text-cream/90 mt-1">{step.body}</p>
               </div>
             </div>
-            <div className="flex items-center justify-between mt-3">
-              <div className="flex gap-1">
-                {steps.map((_, i) => (
-                  <span
-                    key={i}
-                    className={`h-1.5 w-4 rounded-full ${
-                      i === index ? "bg-gold" : "bg-cream/30"
-                    }`}
-                  />
-                ))}
+            {/* Progress bar with explicit step counter */}
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-[10px] font-mono text-cream/80 mb-1">
+                <span>Step {index + 1} of {steps.length}</span>
+                <span>{Math.round(((index + 1) / steps.length) * 100)}%</span>
               </div>
+              <div className="h-1.5 w-full rounded-full bg-cream/20 overflow-hidden">
+                <motion.div
+                  className="h-full bg-gold"
+                  initial={false}
+                  animate={{ width: `${((index + 1) / steps.length) * 100}%` }}
+                  transition={{ type: "spring", stiffness: 200, damping: 24 }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between mt-3 gap-2">
+              <button
+                onClick={onClose}
+                className="px-3 py-1.5 rounded-full font-display text-[11px] text-cream/80 hover:text-cream-light underline-offset-2 hover:underline"
+              >
+                Skip tutorial
+              </button>
               <button
                 onClick={next}
                 className="btn-press px-3 py-1.5 rounded-full font-display text-[11px] flex items-center gap-1"
