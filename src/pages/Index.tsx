@@ -27,6 +27,7 @@ import { BetSelector } from "@/components/BetSelector";
 import { LevelUpCelebration } from "@/components/LevelUpCelebration";
 import { PrestigeCelebration } from "@/components/PrestigeCelebration";
 import { CardReveal } from "@/components/CardReveal";
+import { IslandRewardRoulette, IslandReward } from "@/components/IslandRewardRoulette";
 import { useGameState, BoardTile } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
