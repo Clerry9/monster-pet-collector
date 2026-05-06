@@ -344,10 +344,15 @@ const Index = () => {
     }
     if (result.islandStarEarned) {
       setStarBurstKey((k) => k + 1);
+      // Award the star, then open the bonus roulette for an extra random prize.
       toast("⭐ Island Star!", {
         description: `${game.islandStars}/5 to a free card flip`,
-        duration: 1800,
+        duration: 1500,
       });
+      setRouletteOpen(true);
+    } else if (tileType === "chest") {
+      // Chests also pop the roulette — landing feels rewarding.
+      setRouletteOpen(true);
     }
     if (result.monsterLevelUp) {
       const { name, level, coinBonus } = result.monsterLevelUp;
