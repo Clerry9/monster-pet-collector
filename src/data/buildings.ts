@@ -20,3 +20,16 @@ export const BUILDINGS: BuildingTheme[] = [
 export function getBuildingForLevel(level: number): BuildingTheme {
   return BUILDINGS.find((b) => b.level === level) ?? BUILDINGS[BUILDINGS.length - 1];
 }
+
+/**
+ * Coin cost to start a build. Scales by 13% per player level so each new
+ * island costs more than the last.
+ *   cost(L) = round(BASE * 1.13^(L-1))
+ */
+export const BUILD_BASE_COST = 100;
+export const BUILD_COST_GROWTH = 1.13;
+
+export function getBuildCoinCost(playerLevel: number): number {
+  const L = Math.max(1, Math.floor(playerLevel));
+  return Math.round(BUILD_BASE_COST * Math.pow(BUILD_COST_GROWTH, L - 1));
+}
