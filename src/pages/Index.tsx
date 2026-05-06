@@ -567,6 +567,41 @@ const Index = () => {
 
       <CardReveal card={drawnCard} onComplete={() => setDrawnCard(null)} />
 
+      <IslandRewardRoulette
+        open={rouletteOpen}
+        onClose={() => setRouletteOpen(false)}
+        onClaim={(reward: IslandReward) => {
+          setRouletteOpen(false);
+          switch (reward.kind) {
+            case "coins_small":
+            case "coins_med":
+            case "coins_jackpot":
+              game.addCoins(reward.amount);
+              toast.success(`+${reward.amount.toLocaleString()} 🪙`, { description: reward.label });
+              break;
+            case "rolls":
+              game.addEnergy(reward.amount);
+              toast.success(`+${reward.amount} ⚡ rolls`);
+              break;
+            case "card_flip":
+              game.addCardFlip(1);
+              toast.success("🃏 Free card flip granted!");
+              break;
+            case "island_star":
+              game.addStars(1);
+              toast.success("⭐ Island Star!");
+              break;
+            case "monster_food": {
+              // Monster food = bonus coins for now (no food meter exists).
+              const bonus = reward.amount * 4;
+              game.addCoins(bonus);
+              toast.success(`🍖 Monster Food! +${bonus} 🪙`);
+              break;
+            }
+          }
+        }}
+      />
+
       {/* Island Star burst — short, snappy, matches the monster hop */}
       <AnimatePresence>
         {starBurstKey > 0 && (
