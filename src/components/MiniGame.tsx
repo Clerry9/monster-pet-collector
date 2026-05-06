@@ -5,7 +5,7 @@ import { Season } from "@/data/seasons";
 import { sfxCoinGain, sfxLevelUp, sfxSkull } from "@/lib/sfx";
 import { useTutorial } from "@/hooks/useTutorial";
 import { RewardedAdButton } from "@/components/RewardedAdButton";
-import { getBuildingForLevel } from "@/data/buildings";
+import { getBuildingForLevel, getBuildCoinCost } from "@/data/buildings";
 
 interface MiniGameProps {
   season: Season;
@@ -55,6 +55,8 @@ interface FloatTile {
 export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpendRoll, coins, playerLevel = 1, onAddCoins, onSpendCoins }: MiniGameProps) {
   const miniTutorial = useTutorial("minigame");
   const building = useMemo(() => getBuildingForLevel(playerLevel), [playerLevel]);
+  const coinCost = useMemo(() => getBuildCoinCost(playerLevel), [playerLevel]);
+  const canAfford = coins >= coinCost;
   const [phase, setPhase] = useState<"intro" | "playing" | "result">("intro");
   const [difficulty, setDifficulty] = useState<Difficulty>(() => {
     const saved = localStorage.getItem(DIFFICULTY_KEY) as Difficulty | null;
@@ -141,6 +143,8 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
 
   const startGame = () => {
     if (!hasRolls) return;
+    if (!canAfford) return;
+    if (onSpendCoins && !onSpendCoins(coinCost)) return;
     onSpendRoll();
     miniTutorial.markCompleted();
     setTiles([]);
