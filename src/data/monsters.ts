@@ -4,6 +4,9 @@ import monster3 from "@/assets/monster-3.png";
 import monster4 from "@/assets/monster-4.png";
 import monster5 from "@/assets/monster-5.png";
 import monster6 from "@/assets/monster-6.png";
+import monster7 from "@/assets/monster-7.png";
+import monster8 from "@/assets/monster-8.png";
+import monster9 from "@/assets/monster-9.png";
 
 export type MonsterBiome = "forest" | "abyss" | "sky" | "shadow";
 
