@@ -9,6 +9,7 @@ import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 import { MiniGame } from "@/components/MiniGame";
 import { MiniGameJack } from "@/components/MiniGameJack";
 import { SeasonLeaderboard } from "@/components/SeasonLeaderboard";
+import { getBuildCoinCost } from "@/data/buildings";
 
 interface SeasonHubProps {
   season: Season;
@@ -53,6 +54,7 @@ export function SeasonHub({
   const { openCheckout, loading } = usePaddleCheckout();
   const [miniGameOpen, setMiniGameOpen] = useState(false);
   const [jackGameOpen, setJackGameOpen] = useState(false);
+  const buildCost = getBuildCoinCost(playerLevel);
 
   const handleBuyPass = async () => {
     if (!user) {
@@ -162,7 +164,7 @@ export function SeasonHub({
         >
           <Play size={18} />
           MATCH-3
-          <span className="text-[9px] opacity-80">{MINI_GAME_COST} roll • 5×5</span>
+          <span className="text-[9px] opacity-80">{MINI_GAME_COST} roll • {buildCost.toLocaleString()} 🪙</span>
         </motion.button>
         <motion.button
           whileTap={{ scale: 0.96 }}

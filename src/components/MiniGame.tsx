@@ -5,7 +5,7 @@ import { Season } from "@/data/seasons";
 import { sfxCoinGain, sfxLevelUp, sfxSkull } from "@/lib/sfx";
 import { useTutorial } from "@/hooks/useTutorial";
 import { RewardedAdButton } from "@/components/RewardedAdButton";
-import { getBuildingForLevel } from "@/data/buildings";
+import { getBuildingForLevel, getBuildCoinCost } from "@/data/buildings";
 
 interface MiniGameProps {
   season: Season;
@@ -55,6 +55,8 @@ interface FloatTile {
 export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpendRoll, coins, playerLevel = 1, onAddCoins, onSpendCoins }: MiniGameProps) {
   const miniTutorial = useTutorial("minigame");
   const building = useMemo(() => getBuildingForLevel(playerLevel), [playerLevel]);
+  const coinCost = useMemo(() => getBuildCoinCost(playerLevel), [playerLevel]);
+  const canAfford = coins >= coinCost;
   const [phase, setPhase] = useState<"intro" | "playing" | "result">("intro");
   const [difficulty, setDifficulty] = useState<Difficulty>(() => {
     const saved = localStorage.getItem(DIFFICULTY_KEY) as Difficulty | null;
@@ -141,6 +143,8 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
 
   const startGame = () => {
     if (!hasRolls) return;
+    if (!canAfford) return;
+    if (onSpendCoins && !onSpendCoins(coinCost)) return;
     onSpendRoll();
     miniTutorial.markCompleted();
     setTiles([]);
@@ -285,14 +289,25 @@ export function MiniGame({ season, onFinish, onClose, costRolls, hasRolls, onSpe
                 </div>
               </div>
 
+              {/* Build cost — scales +13% per player level */}
+              <div className="rounded-xl border-2 border-gold bg-gradient-to-br from-gold/30 to-gold/5 p-2 text-center">
+                <div className="text-[10px] font-display text-wood-dark/70">BUILD COST (Lv {playerLevel})</div>
+                <div className={`font-display text-base ${canAfford ? "text-wood-dark" : "text-destructive"}`}>
+                  {coinCost.toLocaleString()} 🪙
+                </div>
+                {!canAfford && (
+                  <div className="text-[10px] text-destructive font-display">Need {(coinCost - coins).toLocaleString()} more coins</div>
+                )}
+              </div>
+
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={startGame}
-                disabled={!hasRolls}
+                disabled={!hasRolls || !canAfford}
                 className="btn-press w-full py-2.5 rounded-full font-display text-base flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Play size={16} />
-                {hasRolls ? "START BUILDING" : "Need more rolls"}
+                {!hasRolls ? "Need more rolls" : !canAfford ? "Need more coins" : "START BUILDING"}
               </motion.button>
             </motion.div>
           )}

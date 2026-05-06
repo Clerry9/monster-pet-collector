@@ -4,6 +4,9 @@ import monster3 from "@/assets/monster-3.png";
 import monster4 from "@/assets/monster-4.png";
 import monster5 from "@/assets/monster-5.png";
 import monster6 from "@/assets/monster-6.png";
+import monster7 from "@/assets/monster-7.png";
+import monster8 from "@/assets/monster-8.png";
+import monster9 from "@/assets/monster-9.png";
 
 export type MonsterBiome = "forest" | "abyss" | "sky" | "shadow";
 
@@ -122,6 +125,54 @@ export const MONSTERS: Monster[] = [
       { level: 2, name: "Shadow Lord", coinBonus: 35, xpRequired: 150, description: "Darkness devours — 35% bonus!" },
       { level: 3, name: "Shadow Emperor", coinBonus: 65, xpRequired: 600, description: "Economies tremble — 65% bonus." },
       { level: 4, name: "Shadow God", coinBonus: 100, xpRequired: 1500, description: "Ultimate power — 100% coin bonus!" },
+    ],
+  },
+  {
+    id: "mossfang",
+    name: "Mossfang",
+    image: monster7,
+    cost: 350,
+    rarity: "rare",
+    description: "A mossy little beast with leaf horns and tiny fangs.",
+    coinBonus: 6,
+    biome: "forest",
+    evolutions: [
+      { level: 1, name: "Mossfang",       coinBonus: 6,  xpRequired: 0,    description: "Tiny but feisty — +6% coins." },
+      { level: 2, name: "Mossfang Stalker", coinBonus: 18, xpRequired: 90,  description: "Hunts in the underbrush — +18% coins." },
+      { level: 3, name: "Mossfang Alpha", coinBonus: 34, xpRequired: 380,  description: "Pack leader of the forest — +34% coins." },
+      { level: 4, name: "Mossfang Primal", coinBonus: 58, xpRequired: 950, description: "Spirit of the wild — +58% coins." },
+    ],
+  },
+  {
+    id: "tidecaller",
+    name: "Tidecaller",
+    image: monster8,
+    cost: 1100,
+    rarity: "epic",
+    description: "A glowing abyssal cutie that summons gentle tides.",
+    coinBonus: 9,
+    biome: "abyss",
+    evolutions: [
+      { level: 1, name: "Tidecaller",         coinBonus: 9,  xpRequired: 0,    description: "Bioluminescent abyss pup — +9% coins." },
+      { level: 2, name: "Tidecaller Surge",   coinBonus: 22, xpRequired: 130,  description: "Currents flow your way — +22% coins." },
+      { level: 3, name: "Tidecaller Maelstrom", coinBonus: 42, xpRequired: 520, description: "Whirlpools of treasure — +42% coins." },
+      { level: 4, name: "Tidecaller Leviathan", coinBonus: 68, xpRequired: 1300, description: "Master of the depths — +68% coins." },
+    ],
+  },
+  {
+    id: "aurorix",
+    name: "Aurorix",
+    image: monster9,
+    cost: 2500,
+    rarity: "legendary",
+    description: "A celestial sky-cat that shimmers like the aurora.",
+    coinBonus: 18,
+    biome: "sky",
+    evolutions: [
+      { level: 1, name: "Aurorix",         coinBonus: 18,  xpRequired: 0,    description: "Born of starlight — +18% coins." },
+      { level: 2, name: "Aurorix Prism",   coinBonus: 38,  xpRequired: 180,  description: "Refracts fortune — +38% coins." },
+      { level: 3, name: "Aurorix Zenith",  coinBonus: 70,  xpRequired: 700,  description: "Crowns the sky — +70% coins." },
+      { level: 4, name: "Aurorix Eternal", coinBonus: 110, xpRequired: 1700, description: "Light of the cosmos — +110% coins." },
     ],
   },
 ];

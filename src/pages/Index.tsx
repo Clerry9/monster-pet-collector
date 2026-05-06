@@ -27,6 +27,7 @@ import { BetSelector } from "@/components/BetSelector";
 import { LevelUpCelebration } from "@/components/LevelUpCelebration";
 import { PrestigeCelebration } from "@/components/PrestigeCelebration";
 import { CardReveal } from "@/components/CardReveal";
+import { IslandRewardRoulette, IslandReward } from "@/components/IslandRewardRoulette";
 import { useGameState, BoardTile } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
@@ -219,6 +220,8 @@ const Index = () => {
   const pendingPrestigeRef = useRef<number | null>(null);
   // Quick visual burst when an Island Star is awarded after a hop lands.
   const [starBurstKey, setStarBurstKey] = useState(0);
+  // Island reward roulette — opens after the monster lands on an "island event" tile.
+  const [rouletteOpen, setRouletteOpen] = useState(false);
 
   // Tutorial + help
   const mainTutorial = useTutorial("main");
@@ -341,10 +344,15 @@ const Index = () => {
     }
     if (result.islandStarEarned) {
       setStarBurstKey((k) => k + 1);
+      // Award the star, then open the bonus roulette for an extra random prize.
       toast("⭐ Island Star!", {
         description: `${game.islandStars}/5 to a free card flip`,
-        duration: 1800,
+        duration: 1500,
       });
+      setRouletteOpen(true);
+    } else if (tileType === "chest") {
+      // Chests also pop the roulette — landing feels rewarding.
+      setRouletteOpen(true);
     }
     if (result.monsterLevelUp) {
       const { name, level, coinBonus } = result.monsterLevelUp;
@@ -558,6 +566,41 @@ const Index = () => {
       </div>
 
       <CardReveal card={drawnCard} onComplete={() => setDrawnCard(null)} />
+
+      <IslandRewardRoulette
+        open={rouletteOpen}
+        onClose={() => setRouletteOpen(false)}
+        onClaim={(reward: IslandReward) => {
+          setRouletteOpen(false);
+          switch (reward.kind) {
+            case "coins_small":
+            case "coins_med":
+            case "coins_jackpot":
+              game.addCoins(reward.amount);
+              toast.success(`+${reward.amount.toLocaleString()} 🪙`, { description: reward.label });
+              break;
+            case "rolls":
+              game.addEnergy(reward.amount);
+              toast.success(`+${reward.amount} ⚡ rolls`);
+              break;
+            case "card_flip":
+              game.addCardFlip(1);
+              toast.success("🃏 Free card flip granted!");
+              break;
+            case "island_star":
+              game.addStars(1);
+              toast.success("⭐ Island Star!");
+              break;
+            case "monster_food": {
+              // Monster food = bonus coins for now (no food meter exists).
+              const bonus = reward.amount * 4;
+              game.addCoins(bonus);
+              toast.success(`🍖 Monster Food! +${bonus} 🪙`);
+              break;
+            }
+          }
+        }}
+      />
 
       {/* Island Star burst — short, snappy, matches the monster hop */}
       <AnimatePresence>

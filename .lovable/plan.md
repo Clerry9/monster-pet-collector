@@ -1,65 +1,71 @@
-## Plan
+# Island Rewards, New 3D Monsters & Scaling Build Cost
 
-Three feature areas: SFX volume controls, tutorial replay/progress, camera tuning + visual fixes.
+Three changes:
 
-### 1. SFX volumes & master toggle (`src/lib/sfx.ts`, `src/components/SettingsDialog.tsx`)
+1. A spinning "reward picker" pops up when the monster lands on an island (like the Coin-Master-style randomizer in the uploaded video).
+2. Three new monsters added to the collection, rendered with the existing 3D pipeline.
+3. The coin cost to build the island's structure scales up by **13% per level**.
 
-Extend `sfx.ts` with per-category gains:
-- Categories: `master`, `coin`, `skull`, `win` (win covers `sfxLevelUp` + `sfxCoinGain` jackpot-style; specifically map: `coin` → `sfxCoinGain`, `skull` → `sfxSkull`, `win` → `sfxLevelUp`; other SFX (`sfxHop`, `sfxLand`, `sfxDiceTick`) ride the master gain only).
-- Add `getVolume(cat)`, `setVolume(cat, 0..1)`, `subscribeVolumes(cb)`, persist in `localStorage` (`sfx.vol.<cat>`). Defaults 0.8.
-- Add `getMasterEnabled()` / `setMasterEnabled(bool)` (separate from the existing mute, which stays as the global mute toggle; master toggle is a quicker on/off with sliders intact).
-- Each `sfx*` function multiplies its base gain by `master * categoryGain` and skips entirely if master is off.
+---
 
-In `SettingsDialog.tsx` add a new section "Sound effects":
-- Master switch (uses existing `Switch` UI).
-- Three sliders (Coin / Skull / Win) using `@/components/ui/slider`, each with a small "Test" play button that triggers the corresponding `sfx*` once.
-- Live subscribe to changes so multiple settings panels stay in sync.
+## 1. Random Reward Roulette on Landing
 
-### 2. Tutorial progress, skip, replay (`src/components/TutorialCoachmark.tsx`, `src/hooks/useTutorial.ts`, `src/components/SettingsDialog.tsx`, `src/pages/Index.tsx`)
+**New file:** `src/components/IslandRewardRoulette.tsx`
 
-`TutorialCoachmark.tsx`:
-- Replace the dot row with a labeled progress bar: `Step {index+1} of {steps.length}` plus a thin gold fill (`(index+1)/steps.length`).
-- Add an explicit "Skip tutorial" text button next to NEXT (in addition to the existing top-right ✕). Both call `onClose`.
-- Keep keyboard handling (Esc → skip, Enter/→ → next).
+A modal overlay that briefly cycles through a wheel of icons (coins, rolls, food, card flip, star, mystery monster shard) and lands on a randomly weighted prize, awarding it to the player. Visuals match the Coin-Master vibe shown in the recording: glossy gold panel, ticking sound (`sfxDiceTick`), final flash + `sfxCoinGain`/`sfxLevelUp`.
 
-`useTutorial.ts`:
-- Already has `reset()`. Expose it from the consumer.
+Reward pool (weighted):
+- Small coins (50–150) — common
+- Medium coins (200–500) — uncommon
+- Free rolls (3–10) — uncommon
+- Monster food (boost XP for active monster) — uncommon
+- Free card flip — rare
+- Island star — rare
+- Big jackpot (1000–3000 coins) — very rare
 
-`SettingsDialog.tsx`: add "Tutorial" section with a "Replay tutorial" button that calls a passed-in `onReplayTutorial` prop.
+Trigger logic in `src/pages/Index.tsx → handleLanded()`:
+- Currently `result.islandStarEarned` only awards a star. Replace/augment with a single roulette trigger when the monster lands on an "island feature" tile (`star`, `chest`, or when `crossedIsland` is true). The roulette takes priority over the silent star toast.
+- Roulette is queued (not stacked) and respects existing `pendingLevelUp` / `pendingPrestige` flushing order.
+- Includes Skip/Claim button so the game never advances without user action (consistent with prior memory rule).
 
-`Index.tsx`: wire `onReplayTutorial` → `tutorial.reset()` + open the coachmark immediately. Pass `tutorial.markCompleted` as `onClose` and `onFinish` so skipping also marks complete.
+State plumbing: add `rouletteOpen` + `rouletteSeed` in `Index.tsx`. On claim, dispatch the prize via existing `game.addCoins`, `game.addEnergy` (rolls), `game.grantCard`, `game.addIslandStars` etc.
 
-### 3. Camera tuning + visual fixes
+## 2. New 3D Monsters
 
-**3a. Camera settings store (new `src/lib/cameraSettings.ts`)**
-- Pubsub identical in shape to `lowPower.ts`.
-- Keys persisted to localStorage:
-  - `deadZone` (default 0.05, range 0–0.5) — `lerpedTarget` snaps when distance is below this.
-  - `followSmoothing` (default 1.5, range 0–6) — multiplier on the lerp rate; 0 disables smoothing entirely (camera locks rigidly to target).
-  - `zoom` (default 1.0, range 0.5–1.5) — scales the chase distance multipliers (4.5/3.5/4.5).
-- Export `getCameraSettings()`, `setCameraSetting(key, value)`, `resetCameraSettings()`, `subscribeCameraSettings(cb)`.
+**Edit:** `src/data/monsters.ts` — add three new entries reusing the procedural `Monster3D` renderer (no PNG import needed; `Monster3D` already accepts a key/seed and produces 3D geometry):
 
-**3b. `IsometricBoard.tsx` camera changes**
-- `CameraRig` reads settings via a small hook (`useSyncExternalStore` against `subscribeCameraSettings`).
-- Replace hardcoded `0.001` dead-zone with `settings.deadZone`. When `followSmoothing === 0`, always `copy(target)` (no lerp). Otherwise use `delta * (2.5 * followSmoothing/1.5)` etc., applied to BOTH `lerpedTarget` and the camera position lerp.
-- Apply `zoom` factor to the `4.5 / 3.5 / 4.5` chase offsets so the user can pull the camera in. Default `zoom=1.0` keeps current framing; lower `zoom` (e.g. 0.7) brings camera closer to fix "zoomed out too far".
-- Default chase multipliers reduced from `4.5/3.5/4.5` to `3.6/2.8/3.6` to address "camera too far out" complaint, before the user-zoom multiplier applies.
-- Idle jitter: when `followSmoothing` low and within deadzone, the camera path no longer lerps at all, so any residual shake disappears even on devices where `delta` is unstable.
+- **Mossfang** (forest, rare, 350 coins) — 4 evolutions, +6/+18/+34/+58% bonus.
+- **Tidecaller** (abyss, epic, 1100 coins) — 4 evolutions, +9/+22/+42/+68%.
+- **Aurorix** (sky, legendary, 2500 coins) — 4 evolutions, +18/+38/+70/+110%.
 
-**3c. Fog reduction (`IsometricBoard.tsx`)**
-- Bump fog further: `<fog args={[theme.fog, isMoving ? 90 : 70, isMoving ? 200 : 170]} />`. Effectively halves perceived fog density at the typical chase distance.
+Add corresponding biome icons if any are missing (none — all biomes already exist). Confirm `MonsterCollection.tsx` and album page render the new entries automatically (they iterate `MONSTERS`). The 3D display in `Monster3D.tsx` is procedural, so no asset uploads are required for them to appear in 3D.
 
-**3d. Camera section in `SettingsDialog.tsx`**
-- Three sliders: Camera distance (zoom), Follow smoothing, Idle dead-zone.
-- "Reset camera" button → `resetCameraSettings()`.
-- Live preview: changes apply instantly via the pubsub.
+## 3. Build Cost Scaling (+13% per level)
 
-### Files
+**Edit:** `src/data/buildings.ts` and `src/components/MiniGame.tsx`
 
-- New: `src/lib/cameraSettings.ts`
-- Edit: `src/lib/sfx.ts`, `src/components/SettingsDialog.tsx`, `src/components/TutorialCoachmark.tsx`, `src/components/IsometricBoard.tsx`, `src/pages/Index.tsx`
+- Export `getBuildCoinCost(level: number)` from `buildings.ts`:
+  ```ts
+  export const BUILD_BASE_COST = 100;
+  export const BUILD_COST_GROWTH = 1.13;
+  export function getBuildCoinCost(level: number) {
+    return Math.round(BUILD_BASE_COST * Math.pow(BUILD_COST_GROWTH, Math.max(0, level - 1)));
+  }
+  ```
+- `MiniGame.tsx`:
+  - Compute `coinCost = getBuildCoinCost(playerLevel)`.
+  - In the intro panel show: `Cost: {coinCost} 🪙` under the blueprint.
+  - Disable "START BUILDING" if `coins < coinCost` (and show an "insufficient coins" hint).
+  - On `startGame`, call `onSpendCoins(coinCost)`; if it returns false, abort.
+- `SeasonHub.tsx`: pass through `coins` and `onSpendCoins` (already wired) and surface the cost on the entry button (`{coinCost} 🪙 + 1 roll`).
 
-### Out of scope / not changing
+## Out of scope
 
-- Existing `setMuted/isMuted` global mute stays as-is (used elsewhere e.g. BGM). The new master SFX toggle is independent and only gates SFX, not BGM.
-- No DB / backend changes.
+- No backend / DB changes. Roulette outcome is purely client-side RNG (existing pattern).
+- No changes to camera, fog, tutorial, or audio systems.
+- Existing `crossedIsland` 30% chance for free island star stays as-is (the roulette layers on top for landings that already trigger an island event; it does not fire on every plain tile).
+
+## Files
+
+- New: `src/components/IslandRewardRoulette.tsx`
+- Edit: `src/pages/Index.tsx`, `src/data/monsters.ts`, `src/data/buildings.ts`, `src/components/MiniGame.tsx`, `src/components/SeasonHub.tsx`
