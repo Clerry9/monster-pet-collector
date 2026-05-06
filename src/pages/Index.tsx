@@ -220,6 +220,8 @@ const Index = () => {
   const pendingPrestigeRef = useRef<number | null>(null);
   // Quick visual burst when an Island Star is awarded after a hop lands.
   const [starBurstKey, setStarBurstKey] = useState(0);
+  // Island reward roulette — opens after the monster lands on an "island event" tile.
+  const [rouletteOpen, setRouletteOpen] = useState(false);
 
   // Tutorial + help
   const mainTutorial = useTutorial("main");
