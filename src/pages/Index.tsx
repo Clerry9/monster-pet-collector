@@ -207,6 +207,7 @@ function EventBanner({
 
 const Index = () => {
   const game = useGameState();
+  useCheckoutSuccessToast();
   const daily = useDailyReward(game.addCoins);
   const season = useSeason();
   const { user } = useAuth();
