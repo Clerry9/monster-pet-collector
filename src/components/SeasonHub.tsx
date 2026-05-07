@@ -195,7 +195,7 @@ export function SeasonHub({
         >
           <Crown className="text-wood-dark" size={28} />
           <div className="flex-1">
-            <div className="font-display text-sm text-wood-dark tracking-wide">SEASON PASS — $4.99</div>
+            <div className="font-display text-sm text-wood-dark tracking-wide">SEASON PASS — {getSeasonPassTier(playerLevel).display}</div>
             <div className="text-[10px] font-body text-wood-dark/80">
               All premium tiers • 2× symbols • Guaranteed cards
             </div>
