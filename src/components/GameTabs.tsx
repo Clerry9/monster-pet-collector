@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season";
+type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season" | "account";
 
 interface GameTabsProps {
   active: Tab;
@@ -21,6 +21,7 @@ const tabs: { id: Tab; label: string; emoji: string }[] = [
   { id: "specials", label: "Deals", emoji: "🎁" },
   { id: "collection", label: "Team", emoji: "📦" },
   { id: "spin", label: "Spin", emoji: "🎰" },
+  { id: "account", label: "Account", emoji: "👤" },
 ];
 
 export function GameTabs({ active, onTabChange, variant = "bar", newTabs, countdowns }: GameTabsProps) {
