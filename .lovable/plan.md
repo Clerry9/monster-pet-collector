@@ -1,71 +1,78 @@
-# Island Rewards, New 3D Monsters & Scaling Build Cost
+# Entitlement Dashboard + Subscriptions
 
-Three changes:
+## Context
 
-1. A spinning "reward picker" pops up when the monster lands on an island (like the Coin-Master-style randomizer in the uploaded video).
-2. Three new monsters added to the collection, rendered with the existing 3D pipeline.
-3. The coin cost to build the island's structure scales up by **13% per level**.
+Today the game only sells **one-time** packs and a one-time "Season Pass" — there is no `subscriptions` table, the webhook only handles `transaction.completed`, and there is nothing to cancel or resume. To deliver the request I need to add a real subscription system alongside the existing one-time catalog.
 
----
+The Season Pass will stay a one-time per-season purchase (that's how the season system is designed). The "subscription" surface will be the two new recurring tiers below — they're what you'll be able to cancel/resume.
 
-## 1. Random Reward Roulette on Landing
+## What gets built
 
-**New file:** `src/components/IslandRewardRoulette.tsx`
+### 1. Two new subscription tiers (recurring)
 
-A modal overlay that briefly cycles through a wheel of icons (coins, rolls, food, card flip, star, mystery monster shard) and lands on a randomly weighted prize, awarding it to the player. Visuals match the Coin-Master vibe shown in the recording: glossy gold panel, ticking sound (`sfxDiceTick`), final flash + `sfxCoinGain`/`sfxLevelUp`.
+Created in test via `create_product` / `create_price`, auto-synced to live on publish:
 
-Reward pool (weighted):
-- Small coins (50–150) — common
-- Medium coins (200–500) — uncommon
-- Free rolls (3–10) — uncommon
-- Monster food (boost XP for active monster) — uncommon
-- Free card flip — rare
-- Island star — rare
-- Big jackpot (1000–3000 coins) — very rare
+- **Collector Club — $4.99 / month**
+  `collector_club` / `collector_club_monthly`
+  Perks granted on every renewal: +50 rolls, +500 coins, +1 card flip.
+- **Monster Elite — $14.99 / month**
+  `monster_elite` / `monster_elite_monthly`
+  Perks granted on every renewal: +200 rolls, +2,500 coins, +5 card flips, +10 island stars, gold dice tier unlocked, exclusive monsters (`mossfang`, `aurorix`) unlocked while active.
 
-Trigger logic in `src/pages/Index.tsx → handleLanded()`:
-- Currently `result.islandStarEarned` only awards a star. Replace/augment with a single roulette trigger when the monster lands on an "island feature" tile (`star`, `chest`, or when `crossedIsland` is true). The roulette takes priority over the silent star toast.
-- Roulette is queued (not stacked) and respects existing `pendingLevelUp` / `pendingPrestige` flushing order.
-- Includes Skip/Claim button so the game never advances without user action (consistent with prior memory rule).
+Both support cancel-at-period-end with grace access until `current_period_end`.
 
-State plumbing: add `rouletteOpen` + `rouletteSeed` in `Index.tsx`. On claim, dispatch the prize via existing `game.addCoins`, `game.addEnergy` (rolls), `game.grantCard`, `game.addIslandStars` etc.
+### 2. Database — new `subscriptions` table
 
-## 2. New 3D Monsters
+Standard schema from the Paddle knowledge: `paddle_subscription_id` (unique), `paddle_customer_id`, `product_id`, `price_id` (human-readable external IDs), `status`, `current_period_start/end`, `cancel_at_period_end`, `environment`. RLS: users SELECT own; service role full access. Plus `has_active_subscription(uid, env)` SQL helper that respects the cancel-at-period-end grace window.
 
-**Edit:** `src/data/monsters.ts` — add three new entries reusing the procedural `Monster3D` renderer (no PNG import needed; `Monster3D` already accepts a key/seed and produces 3D geometry):
+### 3. Webhook updates (`payments-webhook`)
 
-- **Mossfang** (forest, rare, 350 coins) — 4 evolutions, +6/+18/+34/+58% bonus.
-- **Tidecaller** (abyss, epic, 1100 coins) — 4 evolutions, +9/+22/+42/+68%.
-- **Aurorix** (sky, legendary, 2500 coins) — 4 evolutions, +18/+38/+70/+110%.
+Add handlers for `subscription.created`, `subscription.updated`, `subscription.canceled` — upsert the subscriptions row keyed on `paddle_subscription_id`. On each `transaction.completed` for a subscription price, also grant that tier's perks to `game_state` (so the first charge and every renewal credit the player).
 
-Add corresponding biome icons if any are missing (none — all biomes already exist). Confirm `MonsterCollection.tsx` and album page render the new entries automatically (they iterate `MONSTERS`). The 3D display in `Monster3D.tsx` is procedural, so no asset uploads are required for them to appear in 3D.
+### 4. New edge functions
 
-## 3. Build Cost Scaling (+13% per level)
+- `cancel-subscription` — verifies JWT, looks up the user's subscription, calls Paddle `PATCH /subscriptions/{id}` with `scheduled_change.action = 'cancel'` (cancel at period end). Refuses if the subscription isn't owned by the caller.
+- `resume-subscription` — same auth model, calls Paddle to clear the scheduled cancellation while still inside the current period.
 
-**Edit:** `src/data/buildings.ts` and `src/components/MiniGame.tsx`
+Both route through `getPaddleClient(env)` from `_shared/paddle.ts` and pick env from the stored row.
 
-- Export `getBuildCoinCost(level: number)` from `buildings.ts`:
-  ```ts
-  export const BUILD_BASE_COST = 100;
-  export const BUILD_COST_GROWTH = 1.13;
-  export function getBuildCoinCost(level: number) {
-    return Math.round(BUILD_BASE_COST * Math.pow(BUILD_COST_GROWTH, Math.max(0, level - 1)));
-  }
-  ```
-- `MiniGame.tsx`:
-  - Compute `coinCost = getBuildCoinCost(playerLevel)`.
-  - In the intro panel show: `Cost: {coinCost} 🪙` under the blueprint.
-  - Disable "START BUILDING" if `coins < coinCost` (and show an "insufficient coins" hint).
-  - On `startGame`, call `onSpendCoins(coinCost)`; if it returns false, abort.
-- `SeasonHub.tsx`: pass through `coins` and `onSpendCoins` (already wired) and surface the cost on the entry button (`{coinCost} 🪙 + 1 roll`).
+### 5. New `useSubscription` hook
 
-## Out of scope
+Filters by `user_id` + current `environment` (sandbox/live derived from the client token), orders by `created_at desc`, returns `{ subscription, isActive, willCancelAt, loading }`. Subscribes to realtime updates on the `subscriptions` table so cancel/resume reflects instantly.
 
-- No backend / DB changes. Roulette outcome is purely client-side RNG (existing pattern).
-- No changes to camera, fog, tutorial, or audio systems.
-- Existing `crossedIsland` 30% chance for free island star stays as-is (the roulette layers on top for landings that already trigger an island event; it does not fire on every plain tile).
+### 6. Entitlement Dashboard (new tab in `GameTabs`)
 
-## Files
+A single screen that reads from existing hooks (`useGameState`, `useSeason`, `useSubscription`) and shows:
 
-- New: `src/components/IslandRewardRoulette.tsx`
-- Edit: `src/pages/Index.tsx`, `src/data/monsters.ts`, `src/data/buildings.ts`, `src/components/MiniGame.tsx`, `src/components/SeasonHub.tsx`
+- **Wallet & credits:** rolls, coins, energy, island stars, pending card flips, XP / level — all live from `game_state` via realtime.
+- **Unlocked dice tiers:** chips for each tier in `unlocked_dice_tiers`, with the active one highlighted.
+- **Unlocked monsters:** grid of every entry in `unlocked_monsters` with image + name; locked monsters shown dimmed.
+- **Season pass:** shows `pass_purchased` for the current season + days remaining. One-time, no cancel.
+- **Recurring subscriptions:** for each row in `subscriptions`, shows tier name, status badge, current period end, and either:
+  - a **Cancel at period end** button (active, not scheduled to cancel), or
+  - a **Resume subscription** button (scheduled to cancel, still inside current period), or
+  - a **Renew** CTA opening checkout (canceled / past_due past grace).
+- **Purchase history:** last 10 rows from `purchases` (read-only).
+
+### 7. Pricing page + in-app shop updates
+
+Add the two new subscription tiers to `Pricing.tsx` (`EXPECTED_EXTERNAL_IDS` + `FALLBACK_TIERS`) and to `list-pricing` so the public pricing page shows them with `/month` suffix. Add a "Subscriptions" card in the in-game shop that opens checkout for either tier.
+
+## Technical notes
+
+- Subscription perks are granted in `transaction.completed` (which fires for both initial charge and each renewal), keyed on `price.importMeta.externalId`. Avoids double-grant by upserting `purchases` on `paddle_transaction_id`.
+- Paddle webhooks for sub events are already subscribed by `enable_paddle_payments` — no webhook edits needed.
+- All UI access checks (subscription badges, etc.) are advisory; perk granting is server-side via the webhook only.
+- `subscriptions.environment` defaults to `'sandbox'` — webhook always sets it explicitly from the `?env=` query param.
+
+## Test plan (preview = test mode)
+
+1. Open the game, go to the new **My Account** tab → confirm credits, dice tiers, and monsters match what you have in-game.
+2. Open Shop → Subscriptions → buy **Collector Club**. Use test card `4242 4242 4242 4242`, CVC `123`, any future expiry.
+3. Within ~2 s the dashboard should show an **Active** Collector Club row with `cancel_at_period_end = false`, and your rolls / coins / flips should jump by the perk amounts.
+4. Click **Cancel at period end** → row updates to "Cancels on …", access stays active.
+5. Click **Resume subscription** → row flips back to plain Active.
+6. Repeat with **Monster Elite** to verify gold dice + bonus monster unlocks land in `game_state`.
+7. Failure card `4000 0000 0000 0002` should leave no subscription row.
+
+After publish, the same flows run against live with real cards; the dashboard auto-switches because it filters by environment.
