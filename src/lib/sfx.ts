@@ -87,21 +87,25 @@ export function startBgm() {
   const c = ensureCtx();
   bgmPlaying = true;
 
-  // Master gain for BGM
+  // Master gain for BGM — slightly louder and quicker fade so the upbeat
+  // groove kicks in without dragging.
   bgmGain = c.createGain();
   bgmGain.gain.setValueAtTime(0, c.currentTime);
-  bgmGain.gain.linearRampToValueAtTime(0.06, c.currentTime + 2); // fade in
+  bgmGain.gain.linearRampToValueAtTime(0.085, c.currentTime + 1); // fade in
   bgmGain.connect(c.destination);
 
-  // Layered ambient pads — dreamy, game-like atmosphere
+  // Bright, upbeat C-major progression with skipping arpeggios on top of
+  // soft pads. Each chord lasts 2s instead of 4s — roughly doubles tempo.
   const chords = [
-    [130.81, 164.81, 196.00], // C3, E3, G3
-    [146.83, 185.00, 220.00], // D3, F#3, A3
-    [123.47, 155.56, 185.00], // B2, Eb3, F#3
-    [110.00, 138.59, 164.81], // A2, C#3, E3
+    [261.63, 329.63, 392.00], // C major  (C4 E4 G4)
+    [293.66, 369.99, 440.00], // D major  (D4 F#4 A4)
+    [329.63, 415.30, 493.88], // E major  (E4 G#4 B4)
+    [261.63, 349.23, 440.00], // F major  (C4 F4 A4)
+    [293.66, 369.99, 440.00], // D major
+    [329.63, 392.00, 493.88], // C/E      (E4 G4 B4)
   ];
 
-  const loopDuration = 16; // seconds per full chord cycle
+  const loopDuration = 12; // seconds per full happy progression
 
   const scheduleLoop = () => {
     if (!bgmPlaying || !bgmGain) return;
