@@ -542,13 +542,24 @@ const Index = () => {
 
       {/* Floating hamburger — only on the fullscreen board */}
       {isBoardTab && (
-        <button
-          onClick={() => setMenuOpen((o) => !o)}
-          className="fixed top-2 right-2 z-50 icon-tile-gold w-10 h-10 flex items-center justify-center shadow-chunky"
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
-        >
-          {menuOpen ? <XIcon size={18} /> : <Menu size={18} />}
-        </button>
+        <>
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            className="fixed top-2 right-2 z-50 icon-tile-gold w-10 h-10 flex items-center justify-center shadow-chunky"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+          >
+            {menuOpen ? <XIcon size={18} /> : <Menu size={18} />}
+          </button>
+          <button
+            onClick={handleReplayTutorial}
+            className="fixed top-2 right-14 z-50 icon-tile-gold w-10 h-10 flex flex-col items-center justify-center shadow-chunky"
+            aria-label="Replay tutorial"
+            title="Replay tutorial"
+          >
+            <GraduationCap size={16} />
+            <span className="text-[7px] font-display leading-none mt-0.5">TOUR</span>
+          </button>
+        </>
       )}
 
       {/* Top chrome — shown normally on non-board tabs, slide-down drawer over board tab */}
