@@ -113,7 +113,7 @@ export function EntitlementDashboard(props: DashProps) {
                 owned ? "bg-cream/90 text-wood-dark border-wood-dark/50" :
                 "bg-wood-dark/40 text-cream/40 border-wood-dark/40 line-through"
               }`}>
-                {t.name}{active && " · ACTIVE"}
+                {t.label}{active && " · ACTIVE"}
               </span>
             );
           })}
