@@ -180,7 +180,7 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
           className="absolute pointer-events-auto"
           style={tooltipStyle}
         >
-          <div className="panel-wood p-3 text-cream-light relative shadow-chunky-sm">
+          <div className="panel-wood p-3 text-cream-light relative shadow-chunky-sm max-h-[80vh] overflow-y-auto">
             <button
               onClick={onClose}
               className="absolute -top-2 -right-2 icon-tile-gold w-7 h-7 flex items-center justify-center"
