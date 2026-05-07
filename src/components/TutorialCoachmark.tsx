@@ -100,7 +100,10 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
     // Reserve space for the tooltip card. We don't know its exact height, so
     // pick a conservative estimate and clamp the final top inside the viewport
     // so it can never fall off the top or bottom edge.
-    const ESTIMATED_HEIGHT = 200;
+    // Conservative — covers our tallest tooltip (emoji + 3-line body +
+    // progress bar + buttons) on the smallest mobile viewport so the last
+    // tutorial step never falls below the visible area.
+    const ESTIMATED_HEIGHT = 260;
     const MARGIN = 12;
     const spaceBelow = vh - rect.bottom;
     const spaceAbove = rect.top;
