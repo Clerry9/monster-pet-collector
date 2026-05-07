@@ -10,6 +10,7 @@ import { MiniGame } from "@/components/MiniGame";
 import { MiniGameJack } from "@/components/MiniGameJack";
 import { SeasonLeaderboard } from "@/components/SeasonLeaderboard";
 import { getBuildCoinCost } from "@/data/buildings";
+import { getSeasonPassTier } from "@/lib/seasonPass";
 
 interface SeasonHubProps {
   season: Season;
@@ -63,7 +64,7 @@ export function SeasonHub({
     }
     try {
       await openCheckout({
-        priceId: "season_pass_one_time",
+        priceId: getSeasonPassTier(playerLevel).priceId,
         customerEmail: user.email,
         customData: {
           userId: user.id,
@@ -194,7 +195,7 @@ export function SeasonHub({
         >
           <Crown className="text-wood-dark" size={28} />
           <div className="flex-1">
-            <div className="font-display text-sm text-wood-dark tracking-wide">SEASON PASS — $4.99</div>
+            <div className="font-display text-sm text-wood-dark tracking-wide">SEASON PASS — {getSeasonPassTier(playerLevel).display}</div>
             <div className="text-[10px] font-body text-wood-dark/80">
               All premium tiers • 2× symbols • Guaranteed cards
             </div>

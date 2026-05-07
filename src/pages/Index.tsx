@@ -392,15 +392,21 @@ const Index = () => {
   // Auto-trigger card flip reward when player has pending flips.
   // Skip while the season mini-game is open — otherwise the CardReveal
   // overlay stacks on top of the mini-game modal and feels like a freeze.
+  // Guard ref prevents StrictMode double-invoke from consuming two flips
+  // in one tick (which would silently skip a reveal).
+  const drawingFlipRef = useRef(false);
   useEffect(() => {
     if (tab === "season") return;
-    if (game.pendingCardFlips > 0 && !drawnCard) {
-      const card = drawRandomCard();
-      game.consumeCardFlip();
-      game.grantCard(card.id);
-      setDrawnCard(card);
-      toast.success("🌟 Free Card Flip!", { description: "From your collected island stars" });
-    }
+    if (drawnCard) return;
+    if (game.pendingCardFlips <= 0) return;
+    if (drawingFlipRef.current) return;
+    drawingFlipRef.current = true;
+    const card = drawRandomCard();
+    game.consumeCardFlip();
+    game.grantCard(card.id);
+    setDrawnCard(card);
+    toast.success("🌟 Free Card Flip!", { description: "From your collected island stars" });
+    // Released by onComplete handler when the reveal closes.
   }, [game.pendingCardFlips, drawnCard, tab]);
 
   // Mini-game costs 1 roll to play
@@ -581,7 +587,13 @@ const Index = () => {
         )}
       </div>
 
-      <CardReveal card={drawnCard} onComplete={() => setDrawnCard(null)} />
+      <CardReveal
+        card={drawnCard}
+        onComplete={() => {
+          setDrawnCard(null);
+          drawingFlipRef.current = false;
+        }}
+      />
 
       <IslandRewardRoulette
         open={rouletteOpen}

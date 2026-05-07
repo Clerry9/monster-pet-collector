@@ -100,7 +100,10 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
     // Reserve space for the tooltip card. We don't know its exact height, so
     // pick a conservative estimate and clamp the final top inside the viewport
     // so it can never fall off the top or bottom edge.
-    const ESTIMATED_HEIGHT = 200;
+    // Conservative — covers our tallest tooltip (emoji + 3-line body +
+    // progress bar + buttons) on the smallest mobile viewport so the last
+    // tutorial step never falls below the visible area.
+    const ESTIMATED_HEIGHT = 260;
     const MARGIN = 12;
     const spaceBelow = vh - rect.bottom;
     const spaceAbove = rect.top;
@@ -177,7 +180,7 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
           className="absolute pointer-events-auto"
           style={tooltipStyle}
         >
-          <div className="panel-wood p-3 text-cream-light relative shadow-chunky-sm">
+          <div className="panel-wood p-3 text-cream-light relative shadow-chunky-sm max-h-[80vh] overflow-y-auto">
             <button
               onClick={onClose}
               className="absolute -top-2 -right-2 icon-tile-gold w-7 h-7 flex items-center justify-center"

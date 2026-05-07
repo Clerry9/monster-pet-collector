@@ -34,6 +34,11 @@ const PACK_MAP: Record<string, Perk> = {
 
   // Season pass handled separately further below (writes to season_progress)
   season_pass_one_time: { packId: "season_pass" },
+  season_pass_t1_price: { packId: "season_pass" },
+  season_pass_t2_price: { packId: "season_pass" },
+  season_pass_t3_price: { packId: "season_pass" },
+  season_pass_t4_price: { packId: "season_pass" },
+  season_pass_t5_price: { packId: "season_pass" },
 
   // Special bundles — must match perk strings shown in SpecialPacks.tsx
   special_starter_price: { packId: "special_starter", rolls: 30,  coins: 500,   cardFlips: 1 },
@@ -110,6 +115,22 @@ Deno.serve(async (req) => {
         if (!userId) {
           console.error('No userId in customData — cannot grant entitlement');
           break;
+        }
+
+        // ---- Idempotency guard ----
+        // Each Paddle transaction id is unique. If we've already recorded a
+        // 'completed' purchase for this id, the perks were already granted —
+        // bail out so a webhook retry / duplicate delivery doesn't double-grant.
+        {
+          const { data: existing } = await supabase
+            .from('purchases')
+            .select('id, status')
+            .eq('paddle_transaction_id', data.id)
+            .maybeSingle();
+          if (existing && existing.status === 'completed') {
+            console.log('Duplicate transaction event ignored:', data.id);
+            break;
+          }
         }
 
         // Extract price info from transaction items
@@ -193,6 +214,19 @@ Deno.serve(async (req) => {
         const priceId = item?.price?.importMeta?.externalId ?? item?.price?.id;
         const productId = item?.product?.importMeta?.externalId ?? item?.product?.id;
         if (!priceId || !productId) { console.warn('Subscription missing externalId'); break; }
+        // ---- Subscription renewal idempotency ----
+        // For renewals, Paddle fires subscription.updated with a new
+        // current_period_start. Only grant recurring perks when the period
+        // start advances vs. what we already stored.
+        const periodStart = data.currentBillingPeriod?.startsAt;
+        const { data: priorSub } = await supabase
+          .from('subscriptions')
+          .select('current_period_start, status')
+          .eq('paddle_subscription_id', data.id)
+          .maybeSingle();
+        const isNewPeriod =
+          !priorSub ||
+          (periodStart && priorSub.current_period_start !== periodStart);
         await supabase.from('subscriptions').upsert({
           user_id: userId,
           paddle_subscription_id: data.id,
@@ -200,12 +234,20 @@ Deno.serve(async (req) => {
           product_id: productId,
           price_id: priceId,
           status: data.status,
-          current_period_start: data.currentBillingPeriod?.startsAt,
+          current_period_start: periodStart,
           current_period_end: data.currentBillingPeriod?.endsAt,
           cancel_at_period_end: data.scheduledChange?.action === 'cancel',
           environment: env,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'paddle_subscription_id' });
+        // Grant subscription perks once per billing period.
+        if (isNewPeriod && (data.status === 'active' || data.status === 'trialing')) {
+          const subPerk = PACK_MAP[priceId];
+          if (subPerk) {
+            await grantPerks(userId, subPerk);
+            console.log(`Granted subscription perks for ${priceId} period ${periodStart}`);
+          }
+        }
         console.log(`Subscription ${event.eventType}: ${data.id}`);
         break;
       }

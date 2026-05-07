@@ -87,21 +87,25 @@ export function startBgm() {
   const c = ensureCtx();
   bgmPlaying = true;
 
-  // Master gain for BGM
+  // Master gain for BGM — slightly louder and quicker fade so the upbeat
+  // groove kicks in without dragging.
   bgmGain = c.createGain();
   bgmGain.gain.setValueAtTime(0, c.currentTime);
-  bgmGain.gain.linearRampToValueAtTime(0.06, c.currentTime + 2); // fade in
+  bgmGain.gain.linearRampToValueAtTime(0.085, c.currentTime + 1); // fade in
   bgmGain.connect(c.destination);
 
-  // Layered ambient pads — dreamy, game-like atmosphere
+  // Bright, upbeat C-major progression with skipping arpeggios on top of
+  // soft pads. Each chord lasts 2s instead of 4s — roughly doubles tempo.
   const chords = [
-    [130.81, 164.81, 196.00], // C3, E3, G3
-    [146.83, 185.00, 220.00], // D3, F#3, A3
-    [123.47, 155.56, 185.00], // B2, Eb3, F#3
-    [110.00, 138.59, 164.81], // A2, C#3, E3
+    [261.63, 329.63, 392.00], // C major  (C4 E4 G4)
+    [293.66, 369.99, 440.00], // D major  (D4 F#4 A4)
+    [329.63, 415.30, 493.88], // E major  (E4 G#4 B4)
+    [261.63, 349.23, 440.00], // F major  (C4 F4 A4)
+    [293.66, 369.99, 440.00], // D major
+    [329.63, 392.00, 493.88], // C/E      (E4 G4 B4)
   ];
 
-  const loopDuration = 16; // seconds per full chord cycle
+  const loopDuration = 12; // seconds per full happy progression
 
   const scheduleLoop = () => {
     if (!bgmPlaying || !bgmGain) return;
@@ -115,21 +119,21 @@ export function startBgm() {
         // Pad oscillator
         const osc = c.createOscillator();
         const g = c.createGain();
-        osc.type = "sine";
+        osc.type = "triangle";
         osc.frequency.setValueAtTime(freq, chordStart);
         // Subtle vibrato
         const lfo = c.createOscillator();
         const lfoGain = c.createGain();
-        lfo.frequency.setValueAtTime(0.3 + Math.random() * 0.4, chordStart);
+        lfo.frequency.setValueAtTime(4 + Math.random() * 1.2, chordStart);
         lfoGain.gain.setValueAtTime(1.5, chordStart);
         lfo.connect(lfoGain).connect(osc.frequency);
         lfo.start(chordStart);
         lfo.stop(chordStart + chordDur);
 
-        // Envelope
+        // Snappier envelope so chords feel rhythmic, not droning
         g.gain.setValueAtTime(0, chordStart);
-        g.gain.linearRampToValueAtTime(0.5, chordStart + 0.8);
-        g.gain.setValueAtTime(0.5, chordStart + chordDur - 0.8);
+        g.gain.linearRampToValueAtTime(0.45, chordStart + 0.08);
+        g.gain.linearRampToValueAtTime(0.3, chordStart + chordDur - 0.15);
         g.gain.linearRampToValueAtTime(0, chordStart + chordDur);
 
         osc.connect(g).connect(bgmGain!);
@@ -138,19 +142,24 @@ export function startBgm() {
         bgmNodes.push(osc, lfo);
       });
 
-      // Soft high shimmer
-      const shimmer = c.createOscillator();
-      const sg = c.createGain();
-      shimmer.type = "triangle";
-      shimmer.frequency.setValueAtTime(chord[2] * 2, chordStart);
-      sg.gain.setValueAtTime(0, chordStart);
-      sg.gain.linearRampToValueAtTime(0.15, chordStart + 1);
-      sg.gain.setValueAtTime(0.15, chordStart + chordDur - 1);
-      sg.gain.linearRampToValueAtTime(0, chordStart + chordDur);
-      shimmer.connect(sg).connect(bgmGain!);
-      shimmer.start(chordStart);
-      shimmer.stop(chordStart + chordDur + 0.1);
-      bgmNodes.push(shimmer);
+      // Bouncy arpeggio melody on top — quick 8th-note pattern across the
+      // chord tones to give the loop a happy, plucky feel.
+      const arpPattern = [0, 1, 2, 1, 2, 1, 0, 1];
+      const stepDur = chordDur / arpPattern.length;
+      arpPattern.forEach((noteIdx, i) => {
+        const t = chordStart + i * stepDur;
+        const arp = c.createOscillator();
+        const ag = c.createGain();
+        arp.type = "triangle";
+        arp.frequency.setValueAtTime(chord[noteIdx] * 2, t);
+        ag.gain.setValueAtTime(0, t);
+        ag.gain.linearRampToValueAtTime(0.18, t + 0.01);
+        ag.gain.exponentialRampToValueAtTime(0.001, t + stepDur * 0.9);
+        arp.connect(ag).connect(bgmGain!);
+        arp.start(t);
+        arp.stop(t + stepDur);
+        bgmNodes.push(arp);
+      });
     });
 
     // Schedule next loop
