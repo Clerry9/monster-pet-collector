@@ -17,7 +17,7 @@ const PUBLIC_PRICE_IDS = [
   "silver_dice_price",
   "gold_dice_price",
   "star_pack_price",
-  "season_pass_price",
+  "season_pass_one_time",
   "special_starter_price",
   "special_card_price",
   "special_monster_price",

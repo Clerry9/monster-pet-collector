@@ -313,6 +313,44 @@ export function useGameState() {
     loadFromDb();
   }, [user]);
 
+  // Realtime: when the server (e.g. payments webhook) credits coins/rolls/etc.
+  // to the player's row, refresh local state so the UI updates without refresh.
+  useEffect(() => {
+    const userId = user?.id;
+    if (!userId) return;
+    const channel = supabase
+      .channel(`game_state:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'game_state', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const row = payload.new as Parameters<typeof dbToState>[0];
+          if (!row) return;
+          setState((prev) => {
+            const remote = applyRegen(dbToState(row), Date.now());
+            // Only accept growth in economic resources to avoid clobbering an
+            // optimistic local debit that hasn't been saved yet.
+            const merged: GameState = {
+              ...prev,
+              coins: Math.max(prev.coins, remote.coins),
+              rolls: Math.max(prev.rolls, remote.rolls),
+              islandStars: Math.max(prev.islandStars, remote.islandStars),
+              pendingCardFlips: Math.max(prev.pendingCardFlips, remote.pendingCardFlips),
+              unlockedDiceTiers: Array.from(new Set([...prev.unlockedDiceTiers, ...remote.unlockedDiceTiers])),
+              unlockedMonsters: Array.from(new Set([...prev.unlockedMonsters, ...remote.unlockedMonsters])),
+              activeDiceTier: remote.activeDiceTier || prev.activeDiceTier,
+            };
+            saveLocalState(merged);
+            return merged;
+          });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   // Debounced save to DB
   const saveToDb = useCallback(
     (newState: GameState) => {

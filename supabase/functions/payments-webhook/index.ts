@@ -6,13 +6,40 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 );
 
-// Map Paddle price external IDs to pack details
-const PACK_MAP: Record<string, { packId: string; rolls: number }> = {
+// Server-side perk catalog. ALL economic rewards are defined here so the
+// client cannot influence what gets granted. Keep in sync with the UI
+// copy in DiceShop.tsx, SpecialPacks.tsx, StarPack pricing, and SeasonHub.
+interface Perk {
+  packId: string;
+  rolls?: number;
+  coins?: number;
+  stars?: number;          // island_stars
+  cardFlips?: number;      // pending_card_flips
+  unlockDiceTier?: "silver" | "gold";
+  unlockMonsters?: string[]; // monster ids to add to unlocked_monsters
+}
+
+const PACK_MAP: Record<string, Perk> = {
+  // Roll bundles
   value_pack_price: { packId: "value", rolls: 15 },
-  mega_pack_price: { packId: "mega", rolls: 50 },
-  ultra_pack_price: { packId: "ultra", rolls: 150 },
-  silver_dice_price: { packId: "silver_dice", rolls: 0 },
-  gold_dice_price: { packId: "gold_dice", rolls: 0 },
+  mega_pack_price:  { packId: "mega",  rolls: 50,  coins: 500 },
+  ultra_pack_price: { packId: "ultra", rolls: 150, coins: 2000 },
+
+  // Dice tier unlocks
+  silver_dice_price: { packId: "silver_dice", unlockDiceTier: "silver" },
+  gold_dice_price:   { packId: "gold_dice",   unlockDiceTier: "gold"   },
+
+  // Star pack — boosts season progression / card flips
+  star_pack_price: { packId: "star_pack", stars: 15, cardFlips: 3 },
+
+  // Season pass handled separately further below (writes to season_progress)
+  season_pass_one_time: { packId: "season_pass" },
+
+  // Special bundles — must match perk strings shown in SpecialPacks.tsx
+  special_starter_price: { packId: "special_starter", rolls: 30,  coins: 500,   cardFlips: 1 },
+  special_card_price:    { packId: "special_card",    rolls: 50,  coins: 1000,  cardFlips: 3 },
+  special_monster_price: { packId: "special_monster", rolls: 150, coins: 3000,  unlockDiceTier: "gold" },
+  special_vip_price:     { packId: "special_vip",     rolls: 500, coins: 10000, unlockDiceTier: "gold", unlockMonsters: ["mossfang", "aurorix"] },
 };
 
 Deno.serve(async (req) => {
@@ -43,8 +70,14 @@ Deno.serve(async (req) => {
         const priceExternalId = item?.price?.importMeta?.externalId || item?.price?.id || '';
         const productExternalId = item?.product?.importMeta?.externalId || item?.product?.id || '';
 
-        const packInfo = PACK_MAP[priceExternalId];
-        const rollsToGrant = packInfo?.rolls ?? parseInt(customData.rolls || '0', 10);
+        const perk = PACK_MAP[priceExternalId];
+        if (!perk) {
+          console.warn('No perk mapping for price:', priceExternalId);
+        }
+        const rollsToGrant = perk?.rolls ?? 0;
+        const coinsToGrant = perk?.coins ?? 0;
+        const starsToGrant = perk?.stars ?? 0;
+        const cardFlipsToGrant = perk?.cardFlips ?? 0;
 
         // Record the purchase
         const { error: purchaseError } = await supabase.from('purchases').upsert({
@@ -52,7 +85,7 @@ Deno.serve(async (req) => {
           paddle_transaction_id: data.id,
           product_id: productExternalId,
           price_id: priceExternalId,
-          pack_id: packInfo?.packId || customData.packId || 'unknown',
+          pack_id: perk?.packId || customData.packId || 'unknown',
           rolls_granted: rollsToGrant,
           status: 'completed',
           environment: env,
@@ -63,48 +96,52 @@ Deno.serve(async (req) => {
           break;
         }
 
-        // Grant rolls to user's game state
-        if (rollsToGrant > 0) {
+        // Apply ALL economic rewards in a single read-modify-write so
+        // multiple bundles (e.g. VIP) credit atomically.
+        if (perk && (rollsToGrant || coinsToGrant || starsToGrant || cardFlipsToGrant || perk.unlockDiceTier || perk.unlockMonsters)) {
           const { data: gameState } = await supabase
             .from('game_state')
-            .select('rolls')
+            .select('rolls, coins, island_stars, pending_card_flips, unlocked_dice_tiers, active_dice_tier, unlocked_monsters')
             .eq('user_id', userId)
-            .single();
-
-          if (gameState) {
-            await supabase
-              .from('game_state')
-              .update({ rolls: gameState.rolls + rollsToGrant })
-              .eq('user_id', userId);
-          } else {
-            // Create game state with bonus rolls
-            await supabase.from('game_state').insert({
-              user_id: userId,
-              rolls: 10 + rollsToGrant,
-            });
-          }
-        }
-
-        // Handle dice tier unlocks
-        if (packInfo?.packId === 'silver_dice' || packInfo?.packId === 'gold_dice') {
-          const tierId = packInfo.packId === 'silver_dice' ? 'silver' : 'gold';
-          const { data: gameState } = await supabase
-            .from('game_state')
-            .select('unlocked_dice_tiers, active_dice_tier')
-            .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
           if (gameState) {
             const tiers = gameState.unlocked_dice_tiers || ['basic'];
-            if (!tiers.includes(tierId)) {
-              await supabase
-                .from('game_state')
-                .update({
-                  unlocked_dice_tiers: [...tiers, tierId],
-                  active_dice_tier: tierId,
-                })
-                .eq('user_id', userId);
+            const monsters = gameState.unlocked_monsters || ['gobby'];
+            let nextTiers = tiers;
+            let nextActive = gameState.active_dice_tier;
+            if (perk.unlockDiceTier && !tiers.includes(perk.unlockDiceTier)) {
+              nextTiers = [...tiers, perk.unlockDiceTier];
+              nextActive = perk.unlockDiceTier;
             }
+            let nextMonsters = monsters;
+            if (perk.unlockMonsters?.length) {
+              const add = perk.unlockMonsters.filter((m) => !monsters.includes(m));
+              if (add.length) nextMonsters = [...monsters, ...add];
+            }
+            await supabase
+              .from('game_state')
+              .update({
+                rolls: gameState.rolls + rollsToGrant,
+                coins: gameState.coins + coinsToGrant,
+                island_stars: (gameState.island_stars ?? 0) + starsToGrant,
+                pending_card_flips: (gameState.pending_card_flips ?? 0) + cardFlipsToGrant,
+                unlocked_dice_tiers: nextTiers,
+                active_dice_tier: nextActive,
+                unlocked_monsters: nextMonsters,
+              })
+              .eq('user_id', userId);
+          } else {
+            await supabase.from('game_state').insert({
+              user_id: userId,
+              rolls: 10 + rollsToGrant,
+              coins: 50 + coinsToGrant,
+              island_stars: starsToGrant,
+              pending_card_flips: cardFlipsToGrant,
+              unlocked_dice_tiers: perk.unlockDiceTier ? ['basic', perk.unlockDiceTier] : ['basic'],
+              active_dice_tier: perk.unlockDiceTier ?? 'basic',
+              unlocked_monsters: perk.unlockMonsters?.length ? ['gobby', ...perk.unlockMonsters] : ['gobby'],
+            });
           }
         }
 
@@ -139,7 +176,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        console.log(`Purchase fulfilled: user=${userId}, pack=${packInfo?.packId}, rolls=${rollsToGrant}`);
+        console.log(`Purchase fulfilled: user=${userId}, pack=${perk?.packId}, rolls=${rollsToGrant}, coins=${coinsToGrant}`);
         break;
       }
 
