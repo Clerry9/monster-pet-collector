@@ -587,7 +587,13 @@ const Index = () => {
         )}
       </div>
 
-      <CardReveal card={drawnCard} onComplete={() => setDrawnCard(null)} />
+      <CardReveal
+        card={drawnCard}
+        onComplete={() => {
+          setDrawnCard(null);
+          drawingFlipRef.current = false;
+        }}
+      />
 
       <IslandRewardRoulette
         open={rouletteOpen}
