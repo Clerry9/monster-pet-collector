@@ -31,7 +31,8 @@ function saveDaily(state: DailyState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-export function useDailyReward(addCoins: (n: number) => void) {
+export function useDailyReward(addCoins: (n: number) => void, opts?: { autoOpen?: boolean }) {
+  const autoOpen = opts?.autoOpen ?? true;
   const [daily, setDaily] = useState<DailyState>(loadDaily);
   const [showModal, setShowModal] = useState(false);
 
@@ -49,7 +50,7 @@ export function useDailyReward(addCoins: (n: number) => void) {
 
   // Show modal on mount if not claimed today
   useEffect(() => {
-    if (!alreadyClaimed) {
+    if (autoOpen && !alreadyClaimed) {
       const t = setTimeout(() => setShowModal(true), 800);
       return () => clearTimeout(t);
     }
