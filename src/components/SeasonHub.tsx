@@ -10,6 +10,7 @@ import { MiniGame } from "@/components/MiniGame";
 import { MiniGameJack } from "@/components/MiniGameJack";
 import { SeasonLeaderboard } from "@/components/SeasonLeaderboard";
 import { getBuildCoinCost } from "@/data/buildings";
+import { getSeasonPassTier } from "@/lib/seasonPass";
 
 interface SeasonHubProps {
   season: Season;
