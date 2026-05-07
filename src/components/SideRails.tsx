@@ -67,6 +67,7 @@ function Rail({ items, side }: { items: RailItem[]; side: "left" | "right" }) {
           className="icon-tile-gold w-10 h-10 sm:w-12 sm:h-12 flex flex-col items-center justify-center relative"
           aria-label={it.label}
           title={it.label}
+          data-rail={it.id}
         >
           {it.icon}
           <span className="text-[7px] sm:text-[8px] font-display leading-none mt-0.5">{it.label}</span>
