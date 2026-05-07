@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Crown, Check, X as XIcon } from "lucide-react";
+import { Loader2, Crown, Check, X as XIcon, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscriptions, isSubscriptionActive, type SubscriptionRow } from "@/hooks/useSubscription";
@@ -35,11 +36,12 @@ function fmtDate(s: string | null) {
 
 export function EntitlementDashboard(props: DashProps) {
   const { user } = useAuth();
-  const { subscriptions, loading } = useSubscriptions();
+  const { subscriptions, loading, refetch } = useSubscriptions();
   const season = useSeason();
   const { openCheckout, loading: coLoading } = usePaddleCheckout();
   const [purchases, setPurchases] = useState<any[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -66,6 +68,20 @@ export function EntitlementDashboard(props: DashProps) {
       toast.error("Action failed", { description: e?.message ?? "Try again later" });
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const { error } = await supabase.functions.invoke("refresh-subscription", { body: {} });
+      if (error) throw error;
+      await refetch();
+      toast.success("Membership re-synced", { description: "Latest status pulled from billing provider." });
+    } catch (e: any) {
+      toast.error("Refresh failed", { description: e?.message ?? "Try again later" });
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -155,9 +171,21 @@ export function EntitlementDashboard(props: DashProps) {
 
       {/* Subscriptions */}
       <div className="panel-wood p-4 space-y-3">
-        <h3 className="font-display text-cream-light text-base flex items-center gap-2">
-          <Crown size={16} /> Memberships
-        </h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-display text-cream-light text-base flex items-center gap-2">
+            <Crown size={16} /> Memberships
+          </h3>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="text-[11px] font-display text-cream-light bg-wood-dark/60 hover:bg-wood-dark border border-cream/30 rounded-md px-2 py-1 flex items-center gap-1 disabled:opacity-50"
+            title="Re-sync subscription status from the billing provider"
+          >
+            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
 
         {loading && <div className="text-cream/60 text-sm flex items-center gap-2"><Loader2 className="animate-spin" size={14}/> Loading…</div>}
 
@@ -252,7 +280,12 @@ export function EntitlementDashboard(props: DashProps) {
 
       {/* Purchase history */}
       <div className="panel-wood p-4">
-        <h3 className="font-display text-cream-light text-base mb-3">📜 Recent Purchases</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display text-cream-light text-base">📜 Recent Purchases</h3>
+          <Link to="/purchases" className="text-[11px] font-display text-gold underline underline-offset-2">
+            View full history →
+          </Link>
+        </div>
         {purchases.length === 0 ? (
           <div className="text-cream/60 text-sm">No purchases yet.</div>
         ) : (
