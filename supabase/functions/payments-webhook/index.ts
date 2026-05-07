@@ -40,7 +40,54 @@ const PACK_MAP: Record<string, Perk> = {
   special_card_price:    { packId: "special_card",    rolls: 50,  coins: 1000,  cardFlips: 3 },
   special_monster_price: { packId: "special_monster", rolls: 150, coins: 3000,  unlockDiceTier: "gold" },
   special_vip_price:     { packId: "special_vip",     rolls: 500, coins: 10000, unlockDiceTier: "gold", unlockMonsters: ["mossfang", "aurorix"] },
+
+  // Recurring subscriptions — perks granted on every renewal
+  collector_club_monthly: { packId: "collector_club", rolls: 50,  coins: 500,  cardFlips: 1 },
+  monster_elite_monthly:  { packId: "monster_elite",  rolls: 200, coins: 2500, cardFlips: 5, stars: 10, unlockDiceTier: "gold", unlockMonsters: ["mossfang", "aurorix"] },
 };
+
+async function grantPerks(userId: string, perk: Perk) {
+  const { data: gameState } = await supabase
+    .from('game_state')
+    .select('rolls, coins, island_stars, pending_card_flips, unlocked_dice_tiers, active_dice_tier, unlocked_monsters')
+    .eq('user_id', userId)
+    .maybeSingle();
+  const rolls = perk.rolls ?? 0, coins = perk.coins ?? 0, stars = perk.stars ?? 0, flips = perk.cardFlips ?? 0;
+  if (gameState) {
+    const tiers = gameState.unlocked_dice_tiers || ['basic'];
+    const monsters = gameState.unlocked_monsters || ['gobby'];
+    let nextTiers = tiers, nextActive = gameState.active_dice_tier;
+    if (perk.unlockDiceTier && !tiers.includes(perk.unlockDiceTier)) {
+      nextTiers = [...tiers, perk.unlockDiceTier];
+      nextActive = perk.unlockDiceTier;
+    }
+    let nextMonsters = monsters;
+    if (perk.unlockMonsters?.length) {
+      const add = perk.unlockMonsters.filter((m) => !monsters.includes(m));
+      if (add.length) nextMonsters = [...monsters, ...add];
+    }
+    await supabase.from('game_state').update({
+      rolls: gameState.rolls + rolls,
+      coins: gameState.coins + coins,
+      island_stars: (gameState.island_stars ?? 0) + stars,
+      pending_card_flips: (gameState.pending_card_flips ?? 0) + flips,
+      unlocked_dice_tiers: nextTiers,
+      active_dice_tier: nextActive,
+      unlocked_monsters: nextMonsters,
+    }).eq('user_id', userId);
+  } else {
+    await supabase.from('game_state').insert({
+      user_id: userId,
+      rolls: 10 + rolls,
+      coins: 50 + coins,
+      island_stars: stars,
+      pending_card_flips: flips,
+      unlocked_dice_tiers: perk.unlockDiceTier ? ['basic', perk.unlockDiceTier] : ['basic'],
+      active_dice_tier: perk.unlockDiceTier ?? 'basic',
+      unlocked_monsters: perk.unlockMonsters?.length ? ['gobby', ...perk.unlockMonsters] : ['gobby'],
+    });
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
@@ -99,50 +146,7 @@ Deno.serve(async (req) => {
         // Apply ALL economic rewards in a single read-modify-write so
         // multiple bundles (e.g. VIP) credit atomically.
         if (perk && (rollsToGrant || coinsToGrant || starsToGrant || cardFlipsToGrant || perk.unlockDiceTier || perk.unlockMonsters)) {
-          const { data: gameState } = await supabase
-            .from('game_state')
-            .select('rolls, coins, island_stars, pending_card_flips, unlocked_dice_tiers, active_dice_tier, unlocked_monsters')
-            .eq('user_id', userId)
-            .maybeSingle();
-
-          if (gameState) {
-            const tiers = gameState.unlocked_dice_tiers || ['basic'];
-            const monsters = gameState.unlocked_monsters || ['gobby'];
-            let nextTiers = tiers;
-            let nextActive = gameState.active_dice_tier;
-            if (perk.unlockDiceTier && !tiers.includes(perk.unlockDiceTier)) {
-              nextTiers = [...tiers, perk.unlockDiceTier];
-              nextActive = perk.unlockDiceTier;
-            }
-            let nextMonsters = monsters;
-            if (perk.unlockMonsters?.length) {
-              const add = perk.unlockMonsters.filter((m) => !monsters.includes(m));
-              if (add.length) nextMonsters = [...monsters, ...add];
-            }
-            await supabase
-              .from('game_state')
-              .update({
-                rolls: gameState.rolls + rollsToGrant,
-                coins: gameState.coins + coinsToGrant,
-                island_stars: (gameState.island_stars ?? 0) + starsToGrant,
-                pending_card_flips: (gameState.pending_card_flips ?? 0) + cardFlipsToGrant,
-                unlocked_dice_tiers: nextTiers,
-                active_dice_tier: nextActive,
-                unlocked_monsters: nextMonsters,
-              })
-              .eq('user_id', userId);
-          } else {
-            await supabase.from('game_state').insert({
-              user_id: userId,
-              rolls: 10 + rollsToGrant,
-              coins: 50 + coinsToGrant,
-              island_stars: starsToGrant,
-              pending_card_flips: cardFlipsToGrant,
-              unlocked_dice_tiers: perk.unlockDiceTier ? ['basic', perk.unlockDiceTier] : ['basic'],
-              active_dice_tier: perk.unlockDiceTier ?? 'basic',
-              unlocked_monsters: perk.unlockMonsters?.length ? ['gobby', ...perk.unlockMonsters] : ['gobby'],
-            });
-          }
+          await grantPerks(userId, perk);
         }
 
         // Handle Season Pass purchase
@@ -177,6 +181,41 @@ Deno.serve(async (req) => {
         }
 
         console.log(`Purchase fulfilled: user=${userId}, pack=${perk?.packId}, rolls=${rollsToGrant}, coins=${coinsToGrant}`);
+        break;
+      }
+
+      case EventName.SubscriptionCreated:
+      case EventName.SubscriptionUpdated: {
+        const data = event.data as any;
+        const userId = data.customData?.userId;
+        if (!userId) { console.warn('Subscription event without userId'); break; }
+        const item = data.items?.[0];
+        const priceId = item?.price?.importMeta?.externalId ?? item?.price?.id;
+        const productId = item?.product?.importMeta?.externalId ?? item?.product?.id;
+        if (!priceId || !productId) { console.warn('Subscription missing externalId'); break; }
+        await supabase.from('subscriptions').upsert({
+          user_id: userId,
+          paddle_subscription_id: data.id,
+          paddle_customer_id: data.customerId,
+          product_id: productId,
+          price_id: priceId,
+          status: data.status,
+          current_period_start: data.currentBillingPeriod?.startsAt,
+          current_period_end: data.currentBillingPeriod?.endsAt,
+          cancel_at_period_end: data.scheduledChange?.action === 'cancel',
+          environment: env,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'paddle_subscription_id' });
+        console.log(`Subscription ${event.eventType}: ${data.id}`);
+        break;
+      }
+
+      case EventName.SubscriptionCanceled: {
+        const data = event.data as any;
+        await supabase.from('subscriptions')
+          .update({ status: 'canceled', updated_at: new Date().toISOString() })
+          .eq('paddle_subscription_id', data.id)
+          .eq('environment', env);
         break;
       }
 
