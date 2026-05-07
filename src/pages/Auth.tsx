@@ -208,7 +208,7 @@ export default function AuthPage() {
       >
         <div className="text-center">
           <h1 className="font-display text-4xl text-foreground text-glow-purple mb-2">
-            Monster Mash
+            Monster Pet Collector
           </h1>
           <p className="text-muted-foreground font-body text-sm">
             {isLogin ? "Welcome back, monster trainer!" : "Create your account"}
