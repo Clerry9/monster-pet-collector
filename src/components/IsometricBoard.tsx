@@ -1257,7 +1257,8 @@ const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number
 
       <Ocean theme={theme} />
       <FloatingParticles theme={theme} />
-      <PathConnector points={windowPoints} theme={theme} />
+      {/* Path connector lines hidden per design — keeps islands visually distinct. */}
+      {false && <PathConnector points={windowPoints} theme={theme} />}
 
       {windowPoints.map((p, i) => {
         const absIdx = startAbs + i;
