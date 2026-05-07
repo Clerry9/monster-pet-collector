@@ -49,6 +49,20 @@ import { AuthStatusBadge } from "@/components/AuthStatusBadge";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season";
 
+function useCheckoutSuccessToast() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") === "success") {
+      toast.success("Purchase complete!", {
+        description: "Your rewards will appear in a moment.",
+      });
+      params.delete("checkout");
+      const qs = params.toString();
+      window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    }
+  }, []);
+}
+
 /**
  * Big, centered ⚡ energy pill displayed at the top-center of the board view.
  * Mirrors the BetSelector's energy logic but rendered larger so players can
