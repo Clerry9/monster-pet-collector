@@ -47,7 +47,7 @@ import { SeasonRotationModal } from "@/components/SeasonRotationModal";
 import { Footer } from "@/components/Footer";
 import { AuthStatusBadge } from "@/components/AuthStatusBadge";
 
-type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season";
+type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season" | "account";
 
 function useCheckoutSuccessToast() {
   useEffect(() => {
