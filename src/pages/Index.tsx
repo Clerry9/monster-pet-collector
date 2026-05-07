@@ -1026,30 +1026,38 @@ const Index = () => {
       <HelpDialog
         open={helpOpen}
         onClose={() => setHelpOpen(false)}
-        onReplayTutorial={() => {
-          mainTutorial.reset();
-          setCoachOpen(true);
-        }}
+        onReplayTutorial={handleReplayTutorial}
       />
       <SettingsDialog
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         onReplayTutorial={() => {
           setSettingsOpen(false);
-          mainTutorial.reset();
-          setCoachOpen(true);
+          handleReplayTutorial();
         }}
       />
       <TutorialCoachmark
         open={coachOpen}
+        startIndex={coachStartIndex}
         steps={tutorialSteps}
         onClose={() => {
           setCoachOpen(false);
           mainTutorial.markCompleted();
+          setCoachStartIndex(0);
         }}
         onFinish={() => {
           setCoachOpen(false);
           mainTutorial.markCompleted();
+          setCoachStartIndex(0);
+          // Kick off the post-tutorial onboarding chain: daily reward first.
+          if (!daily.alreadyClaimed) {
+            setPostTutorialStep("daily");
+            window.setTimeout(() => daily.openModal(), 400);
+          } else {
+            // Skip daily, jump straight to mini-game intro.
+            setPostTutorialStep("minigame");
+            window.setTimeout(() => setTab("season"), 400);
+          }
         }}
       />
       {!isBoardTab && <Footer />}
