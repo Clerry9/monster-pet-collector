@@ -15,15 +15,17 @@ interface TutorialCoachmarkProps {
   steps: CoachStep[];
   onClose: () => void;
   onFinish: () => void;
+  /** Optional starting step index (for deep-linking from a tooltip). */
+  startIndex?: number;
 }
 
 const PADDING = 8;
 
 export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkProps>(function TutorialCoachmark(
-  { open, steps, onClose, onFinish },
+  { open, steps, onClose, onFinish, startIndex = 0 },
   _ref,
 ) {
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(startIndex);
   const [rect, setRect] = useState<DOMRect | null>(null);
 
   const step = steps[index];
@@ -54,10 +56,10 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
     };
   }, [open, step]);
 
-  // Reset to first step whenever it reopens
+  // Reset to (optionally provided) start index whenever it reopens
   useEffect(() => {
-    if (open) setIndex(0);
-  }, [open]);
+    if (open) setIndex(Math.min(Math.max(0, startIndex), Math.max(0, steps.length - 1)));
+  }, [open, startIndex, steps.length]);
 
   // Keyboard support: Esc skips, Enter / ArrowRight advances.
   useEffect(() => {

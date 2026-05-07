@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Gift, Volume2, VolumeX, HelpCircle, Menu, X as XIcon, Settings as SettingsIcon } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 import { TutorialCoachmark, CoachStep } from "@/components/TutorialCoachmark";
 import { HelpDialog } from "@/components/HelpDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
@@ -209,7 +210,10 @@ function EventBanner({
 const Index = () => {
   const game = useGameState();
   useCheckoutSuccessToast();
-  const daily = useDailyReward(game.addCoins);
+  // Tutorial completion gates the daily reward auto-open so we can chain
+  // tutorial -> daily reward -> mini-game in order.
+  const mainTutorialPreCheck = useTutorial("main");
+  const daily = useDailyReward(game.addCoins, { autoOpen: mainTutorialPreCheck.completed });
   const season = useSeason();
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("board");
@@ -240,11 +244,14 @@ const Index = () => {
   const [rouletteOpen, setRouletteOpen] = useState(false);
 
   // Tutorial + help
-  const mainTutorial = useTutorial("main");
+  const mainTutorial = mainTutorialPreCheck;
   const [helpOpen, setHelpOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // After the tutorial finishes, run a short onboarding chain:
+  // 1) open Daily Reward modal, 2) after dismiss, open the season mini-game.
+  const [postTutorialStep, setPostTutorialStep] = useState<"idle" | "daily" | "minigame">("idle");
 
   // Season rotation notice
   const seasonNotice = useSeasonNotice(season.seasonInstanceId);
@@ -265,6 +272,14 @@ const Index = () => {
       return () => window.clearTimeout(t);
     }
   }, [mainTutorial.completed]);
+
+  // Chain: when daily modal closes (and we're in the post-tutorial flow), open the mini-game.
+  useEffect(() => {
+    if (postTutorialStep === "daily" && !daily.showModal) {
+      setPostTutorialStep("minigame");
+      setTab("season");
+    }
+  }, [postTutorialStep, daily.showModal]);
 
   const tutorialSteps: CoachStep[] = [
     {
@@ -345,6 +360,29 @@ const Index = () => {
       emoji: "❓",
     },
   ];
+
+  // Map a side-rail id to the matching tutorial step index so the
+  // hover-card "Show me in tutorial" button can deep-link into the tour.
+  const railToStepIndex: Record<string, number> = {
+    season: tutorialSteps.findIndex((s) => s.selector === "[data-rail='season']"),
+    specials: tutorialSteps.findIndex((s) => s.selector === "[data-rail='specials']"),
+    cards: tutorialSteps.findIndex((s) => s.selector === "[data-rail='cards']"),
+    daily: tutorialSteps.findIndex((s) => s.selector === "[data-rail='daily']"),
+    spin: tutorialSteps.findIndex((s) => s.selector === "[data-rail='spin']"),
+    collection: tutorialSteps.findIndex((s) => s.selector === "[data-rail='collection']"),
+  };
+  const [coachStartIndex, setCoachStartIndex] = useState(0);
+  const handleRailLearnMore = (railId: string) => {
+    const idx = railToStepIndex[railId];
+    if (idx == null || idx < 0) return;
+    setCoachStartIndex(idx);
+    setCoachOpen(true);
+  };
+  const handleReplayTutorial = () => {
+    mainTutorial.reset();
+    setCoachStartIndex(0);
+    setCoachOpen(true);
+  };
 
   // Start background music on mount
   useEffect(() => {
@@ -504,13 +542,24 @@ const Index = () => {
 
       {/* Floating hamburger — only on the fullscreen board */}
       {isBoardTab && (
-        <button
-          onClick={() => setMenuOpen((o) => !o)}
-          className="fixed top-2 right-2 z-50 icon-tile-gold w-10 h-10 flex items-center justify-center shadow-chunky"
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
-        >
-          {menuOpen ? <XIcon size={18} /> : <Menu size={18} />}
-        </button>
+        <>
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            className="fixed top-2 right-2 z-50 icon-tile-gold w-10 h-10 flex items-center justify-center shadow-chunky"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+          >
+            {menuOpen ? <XIcon size={18} /> : <Menu size={18} />}
+          </button>
+          <button
+            onClick={handleReplayTutorial}
+            className="fixed top-2 right-14 z-50 icon-tile-gold w-10 h-10 flex flex-col items-center justify-center shadow-chunky"
+            aria-label="Replay tutorial"
+            title="Replay tutorial"
+          >
+            <GraduationCap size={16} />
+            <span className="text-[7px] font-display leading-none mt-0.5">TOUR</span>
+          </button>
+        </>
       )}
 
       {/* Top chrome — shown normally on non-board tabs, slide-down drawer over board tab */}
@@ -760,6 +809,7 @@ const Index = () => {
                     onOpenSpecials={() => setTab("specials")}
                     onOpenCollection={() => setTab("collection")}
                     onOpenCards={() => setTab("cards")}
+                    onLearnMore={handleRailLearnMore}
                   />
                 </div>
               </div>
@@ -987,30 +1037,38 @@ const Index = () => {
       <HelpDialog
         open={helpOpen}
         onClose={() => setHelpOpen(false)}
-        onReplayTutorial={() => {
-          mainTutorial.reset();
-          setCoachOpen(true);
-        }}
+        onReplayTutorial={handleReplayTutorial}
       />
       <SettingsDialog
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         onReplayTutorial={() => {
           setSettingsOpen(false);
-          mainTutorial.reset();
-          setCoachOpen(true);
+          handleReplayTutorial();
         }}
       />
       <TutorialCoachmark
         open={coachOpen}
+        startIndex={coachStartIndex}
         steps={tutorialSteps}
         onClose={() => {
           setCoachOpen(false);
           mainTutorial.markCompleted();
+          setCoachStartIndex(0);
         }}
         onFinish={() => {
           setCoachOpen(false);
           mainTutorial.markCompleted();
+          setCoachStartIndex(0);
+          // Kick off the post-tutorial onboarding chain: daily reward first.
+          if (!daily.alreadyClaimed) {
+            setPostTutorialStep("daily");
+            window.setTimeout(() => daily.openModal(), 400);
+          } else {
+            // Skip daily, jump straight to mini-game intro.
+            setPostTutorialStep("minigame");
+            window.setTimeout(() => setTab("season"), 400);
+          }
         }}
       />
       {!isBoardTab && <Footer />}
