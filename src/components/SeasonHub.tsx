@@ -63,7 +63,7 @@ export function SeasonHub({
     }
     try {
       await openCheckout({
-        priceId: "season_pass_one_time",
+        priceId: getSeasonPassTier(playerLevel).priceId,
         customerEmail: user.email,
         customData: {
           userId: user.id,
