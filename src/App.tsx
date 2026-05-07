@@ -12,6 +12,7 @@ import Terms from "./pages/Terms";
 import Refund from "./pages/Refund";
 import AcceptableUse from "./pages/AcceptableUse";
 import Pricing from "./pages/Pricing";
+import PurchaseHistory from "./pages/PurchaseHistory";
 import { CookieConsent } from "./components/CookieConsent";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -92,6 +93,14 @@ const App = () => (
             <Route path="/refund" element={<Refund />} />
             <Route path="/acceptable-use" element={<AcceptableUse />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route
+              path="/purchases"
+              element={
+                <ProtectedRoute>
+                  <PurchaseHistory />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <CookieConsent />
