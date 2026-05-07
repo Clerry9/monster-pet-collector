@@ -22,6 +22,8 @@ const PUBLIC_PRICE_IDS = [
   "special_card_price",
   "special_monster_price",
   "special_vip_price",
+  "collector_club_monthly",
+  "monster_elite_monthly",
 ];
 
 function formatAmount(amount: string, currency: string): string {

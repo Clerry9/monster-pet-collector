@@ -41,13 +41,14 @@ import { StarPack } from "@/components/StarPack";
 import { LimitedTimeBundle } from "@/components/LimitedTimeBundle";
 import { AdBanner } from "@/components/AdBanner";
 import { SeasonHub } from "@/components/SeasonHub";
+import { EntitlementDashboard } from "@/components/EntitlementDashboard";
 import { useSeason } from "@/hooks/useSeason";
 import { useSeasonNotice } from "@/hooks/useSeasonNotice";
 import { SeasonRotationModal } from "@/components/SeasonRotationModal";
 import { Footer } from "@/components/Footer";
 import { AuthStatusBadge } from "@/components/AuthStatusBadge";
 
-type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season";
+type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season" | "account";
 
 function useCheckoutSuccessToast() {
   useEffect(() => {
@@ -859,6 +860,30 @@ const Index = () => {
               className="w-full"
             >
               <SpecialPacks />
+            </motion.div>
+          )}
+
+          {tab === "account" && (
+            <motion.div
+              key="account"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              className="w-full"
+            >
+              <EntitlementDashboard
+                coins={game.coins}
+                rolls={game.rolls}
+                energy={game.energy}
+                energyCap={game.energyCap}
+                islandStars={game.islandStars}
+                pendingCardFlips={game.pendingCardFlips}
+                level={game.level}
+                xp={game.xp}
+                unlockedDiceTiers={game.unlockedDiceTiers}
+                activeDiceTier={game.activeDiceTier}
+                unlockedMonsters={game.unlockedMonsters}
+              />
             </motion.div>
           )}
 
