@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Gift, Volume2, VolumeX, HelpCircle, Menu, X as XIcon, Settings as SettingsIcon } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 import { TutorialCoachmark, CoachStep } from "@/components/TutorialCoachmark";
 import { HelpDialog } from "@/components/HelpDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
@@ -209,7 +210,10 @@ function EventBanner({
 const Index = () => {
   const game = useGameState();
   useCheckoutSuccessToast();
-  const daily = useDailyReward(game.addCoins);
+  // Tutorial completion gates the daily reward auto-open so we can chain
+  // tutorial -> daily reward -> mini-game in order.
+  const mainTutorialPreCheck = useTutorial("main");
+  const daily = useDailyReward(game.addCoins, { autoOpen: mainTutorialPreCheck.completed });
   const season = useSeason();
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("board");
@@ -240,11 +244,14 @@ const Index = () => {
   const [rouletteOpen, setRouletteOpen] = useState(false);
 
   // Tutorial + help
-  const mainTutorial = useTutorial("main");
+  const mainTutorial = mainTutorialPreCheck;
   const [helpOpen, setHelpOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // After the tutorial finishes, run a short onboarding chain:
+  // 1) open Daily Reward modal, 2) after dismiss, open the season mini-game.
+  const [postTutorialStep, setPostTutorialStep] = useState<"idle" | "daily" | "minigame">("idle");
 
   // Season rotation notice
   const seasonNotice = useSeasonNotice(season.seasonInstanceId);
@@ -265,6 +272,14 @@ const Index = () => {
       return () => window.clearTimeout(t);
     }
   }, [mainTutorial.completed]);
+
+  // Chain: when daily modal closes (and we're in the post-tutorial flow), open the mini-game.
+  useEffect(() => {
+    if (postTutorialStep === "daily" && !daily.showModal) {
+      setPostTutorialStep("minigame");
+      setTab("season");
+    }
+  }, [postTutorialStep, daily.showModal]);
 
   const tutorialSteps: CoachStep[] = [
     {
@@ -345,6 +360,29 @@ const Index = () => {
       emoji: "❓",
     },
   ];
+
+  // Map a side-rail id to the matching tutorial step index so the
+  // hover-card "Show me in tutorial" button can deep-link into the tour.
+  const railToStepIndex: Record<string, number> = {
+    season: tutorialSteps.findIndex((s) => s.selector === "[data-rail='season']"),
+    specials: tutorialSteps.findIndex((s) => s.selector === "[data-rail='specials']"),
+    cards: tutorialSteps.findIndex((s) => s.selector === "[data-rail='cards']"),
+    daily: tutorialSteps.findIndex((s) => s.selector === "[data-rail='daily']"),
+    spin: tutorialSteps.findIndex((s) => s.selector === "[data-rail='spin']"),
+    collection: tutorialSteps.findIndex((s) => s.selector === "[data-rail='collection']"),
+  };
+  const [coachStartIndex, setCoachStartIndex] = useState(0);
+  const handleRailLearnMore = (railId: string) => {
+    const idx = railToStepIndex[railId];
+    if (idx == null || idx < 0) return;
+    setCoachStartIndex(idx);
+    setCoachOpen(true);
+  };
+  const handleReplayTutorial = () => {
+    mainTutorial.reset();
+    setCoachStartIndex(0);
+    setCoachOpen(true);
+  };
 
   // Start background music on mount
   useEffect(() => {
@@ -760,6 +798,7 @@ const Index = () => {
                     onOpenSpecials={() => setTab("specials")}
                     onOpenCollection={() => setTab("collection")}
                     onOpenCards={() => setTab("cards")}
+                    onLearnMore={handleRailLearnMore}
                   />
                 </div>
               </div>
