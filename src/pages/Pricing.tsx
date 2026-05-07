@@ -28,6 +28,8 @@ const EXPECTED_EXTERNAL_IDS = [
   "special_card_price",
   "special_monster_price",
   "special_vip_price",
+  "collector_club_monthly",
+  "monster_elite_monthly",
 ] as const;
 
 // Static fallback pricing shown when the live pricing API is unavailable
@@ -46,6 +48,8 @@ const FALLBACK_TIERS: Tier[] = [
   { externalId: "special_card_price", name: "Special Card Pack", description: "Curated card pack with rare drops", priceFormatted: "$6.99", amountCents: 699, currency: "USD" },
   { externalId: "special_monster_price", name: "Special Monster Pack", description: "Exclusive monster bundle", priceFormatted: "$12.99", amountCents: 1299, currency: "USD" },
   { externalId: "special_vip_price", name: "VIP Bundle", description: "Top-tier bundle with all premium perks", priceFormatted: "$29.99", amountCents: 2999, currency: "USD" },
+  { externalId: "collector_club_monthly", name: "Collector Club (monthly)", description: "Monthly membership: rolls, coins, and a card flip every renewal", priceFormatted: "$4.99/mo", amountCents: 499, currency: "USD" },
+  { externalId: "monster_elite_monthly", name: "Monster Elite (monthly)", description: "Top monthly tier: big rolls, coins, stars, gold dice, and exclusive monsters", priceFormatted: "$14.99/mo", amountCents: 1499, currency: "USD" },
 ];
 
 // Dev-time validation: warn if the fallback list drifts from the expected
