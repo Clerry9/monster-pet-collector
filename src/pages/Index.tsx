@@ -41,6 +41,7 @@ import { StarPack } from "@/components/StarPack";
 import { LimitedTimeBundle } from "@/components/LimitedTimeBundle";
 import { AdBanner } from "@/components/AdBanner";
 import { SeasonHub } from "@/components/SeasonHub";
+import { EntitlementDashboard } from "@/components/EntitlementDashboard";
 import { useSeason } from "@/hooks/useSeason";
 import { useSeasonNotice } from "@/hooks/useSeasonNotice";
 import { SeasonRotationModal } from "@/components/SeasonRotationModal";
