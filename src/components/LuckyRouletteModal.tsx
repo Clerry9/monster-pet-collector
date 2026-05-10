@@ -84,6 +84,7 @@ type Phase = "idle" | "spin" | "result";
 export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins }: Props) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [reward, setReward] = useState<LuckyRouletteReward | null>(null);
+  const [lastSpinWasPaid, setLastSpinWasPaid] = useState(false);
   const [tickIdx, setTickIdx] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [lastFree, setLastFree] = useState(() => readLastFreeSpin());
@@ -122,6 +123,7 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
       writeLastFreeSpin(ts);
       setLastFree(ts);
     }
+    setLastSpinWasPaid(paid);
     const r = pickReward();
     setReward(r);
     setPhase("spin");
@@ -147,8 +149,7 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
 
   const handleClaim = () => {
     if (!reward) return;
-    const paid = !freeAvailable; // we burned the free spin if it was available
-    onClaim(reward, paid && phase === "result" ? true : false);
+    onClaim(reward, lastSpinWasPaid);
     setPhase("idle");
     setReward(null);
   };
