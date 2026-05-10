@@ -718,6 +718,52 @@ const Index = () => {
         }}
       />
 
+      <LuckyRouletteModal
+        open={luckyOpen}
+        coins={game.coins}
+        onClose={() => setLuckyOpen(false)}
+        onSpendCoins={(n) => {
+          if (game.coins < n) return false;
+          game.addCoins(-n);
+          return true;
+        }}
+        onClaim={(reward: LuckyRouletteReward) => {
+          switch (reward.kind) {
+            case "coins":
+            case "coins_jackpot":
+              game.addCoins(reward.amount);
+              toast.success(`+${reward.amount.toLocaleString()} 🪙`, { description: reward.label });
+              break;
+            case "rolls":
+              game.addEnergy(reward.amount);
+              toast.success(`+${reward.amount} ⚡ rolls`);
+              break;
+            case "card_flip":
+              game.addCardFlip(1);
+              toast.success("🃏 Free card flip granted!");
+              break;
+            case "free_card":
+              if (reward.card) {
+                game.grantCard(reward.card.id);
+                setDrawnCard(reward.card);
+              }
+              break;
+            case "island_star":
+              game.addStars(1);
+              toast.success("⭐ Island Star!");
+              break;
+            case "season_xp":
+              season.addSymbols(reward.amount);
+              toast.success(`+${reward.amount} 🌟 season XP`);
+              break;
+            case "double_coins":
+              game.addCoins(reward.amount);
+              toast.success(`✨ 2× Coin Bonus! +${reward.amount} 🪙`);
+              break;
+          }
+        }}
+      />
+
       {/* Island Star burst — short, snappy, matches the monster hop */}
       <AnimatePresence>
         {starBurstKey > 0 && (
