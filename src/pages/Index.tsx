@@ -335,6 +335,18 @@ const Index = () => {
       emoji: "🎰",
     },
     {
+      selector: "[data-tutorial='roulette-wheel']",
+      title: "Pick a wedge",
+      body: "Tap any wedge on the wheel to bet on it. The legend below shows every prize and its odds before you spin.",
+      emoji: "🎯",
+    },
+    {
+      selector: "[data-tutorial='roulette-pointer']",
+      title: "Watch the ball",
+      body: "When the spin stops, you only win the prize sitting under this red pointer — but only if it's also the wedge you picked.",
+      emoji: "⬇️",
+    },
+    {
       selector: "[data-rail='daily']",
       title: "Daily reward",
       body: "Right rail, top: claim a free reward every 24 hours. Streaks pay more — don't miss a day!",
