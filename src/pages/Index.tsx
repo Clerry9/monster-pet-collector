@@ -863,6 +863,7 @@ const Index = () => {
                     onOpenCollection={() => setTab("collection")}
                     onOpenCards={() => setTab("cards")}
                     onOpenRoulette={() => setLuckyOpen(true)}
+                    rouletteCooldownMs={luckyCooldown.freeAvailable ? 0 : luckyCooldown.remainingMs}
                     onLearnMore={handleRailLearnMore}
                   />
                 </div>
