@@ -1120,6 +1120,13 @@ const Index = () => {
         open={coachOpen}
         startIndex={coachStartIndex}
         steps={tutorialSteps}
+        onStepChange={(_i, step) => {
+          // Pre-open the lucky roulette modal so its wedges/pointer exist in the DOM
+          // when those tutorial steps try to highlight them.
+          if (step.selector?.startsWith("[data-tutorial='roulette-")) {
+            setLuckyOpen(true);
+          }
+        }}
         onClose={() => {
           setCoachOpen(false);
           mainTutorial.markCompleted();
