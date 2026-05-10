@@ -4,6 +4,13 @@ import { LuckyRouletteModal } from "./LuckyRouletteModal";
 import { LUCKY_STORAGE_KEY } from "@/hooks/useLuckyRouletteCooldown";
 import { HISTORY_STORAGE_KEY } from "@/hooks/useRouletteHistory";
 
+// jsdom has no Web Audio API; stub the sfx module so ensureCtx is never called.
+vi.mock("@/lib/sfx", () => ({
+  sfxDiceTick: vi.fn(),
+  sfxCoinGain: vi.fn(),
+  sfxLevelUp: vi.fn(),
+}));
+
 // jsdom doesn't implement scrollIntoView and our modal calls into framer-motion.
 beforeEach(() => {
   localStorage.clear();
@@ -48,6 +55,9 @@ describe("LuckyRouletteModal", () => {
   it("respects the free-spin cooldown stored in localStorage", () => {
     localStorage.setItem(LUCKY_STORAGE_KEY, String(Date.now()));
     render(<LuckyRouletteModal {...baseProps} />);
+    // Pick a wedge so the spin button's accessible name reflects the cooldown
+    // (it otherwise reads "Pick a wedge first" while no pick is selected).
+    fireEvent.click(screen.getAllByRole("radio")[0]);
     const spinBtn = screen.getByRole("button", { name: /free spin in/i });
     expect(spinBtn).toBeDisabled();
   });
