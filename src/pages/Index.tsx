@@ -29,6 +29,7 @@ import { LevelUpCelebration } from "@/components/LevelUpCelebration";
 import { PrestigeCelebration } from "@/components/PrestigeCelebration";
 import { CardReveal } from "@/components/CardReveal";
 import { IslandRewardRoulette, IslandReward } from "@/components/IslandRewardRoulette";
+import { LuckyRouletteModal, LuckyRouletteReward } from "@/components/LuckyRouletteModal";
 import { useGameState, BoardTile } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
@@ -242,6 +243,8 @@ const Index = () => {
   const [starBurstKey, setStarBurstKey] = useState(0);
   // Island reward roulette — opens after the monster lands on an "island event" tile.
   const [rouletteOpen, setRouletteOpen] = useState(false);
+  // Lucky Roulette mini-game (separate side-rail entry, not tied to board tiles)
+  const [luckyOpen, setLuckyOpen] = useState(false);
 
   // Tutorial + help
   const mainTutorial = mainTutorialPreCheck;
@@ -809,6 +812,7 @@ const Index = () => {
                     onOpenSpecials={() => setTab("specials")}
                     onOpenCollection={() => setTab("collection")}
                     onOpenCards={() => setTab("cards")}
+                    onOpenRoulette={() => setLuckyOpen(true)}
                     onLearnMore={handleRailLearnMore}
                   />
                 </div>
