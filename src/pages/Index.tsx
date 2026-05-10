@@ -29,6 +29,7 @@ import { LevelUpCelebration } from "@/components/LevelUpCelebration";
 import { PrestigeCelebration } from "@/components/PrestigeCelebration";
 import { CardReveal } from "@/components/CardReveal";
 import { IslandRewardRoulette, IslandReward } from "@/components/IslandRewardRoulette";
+import { LuckyRouletteModal, LuckyRouletteReward } from "@/components/LuckyRouletteModal";
 import { useGameState, BoardTile } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
@@ -242,6 +243,8 @@ const Index = () => {
   const [starBurstKey, setStarBurstKey] = useState(0);
   // Island reward roulette — opens after the monster lands on an "island event" tile.
   const [rouletteOpen, setRouletteOpen] = useState(false);
+  // Lucky Roulette mini-game (separate side-rail entry, not tied to board tiles)
+  const [luckyOpen, setLuckyOpen] = useState(false);
 
   // Tutorial + help
   const mainTutorial = mainTutorialPreCheck;
@@ -324,6 +327,12 @@ const Index = () => {
       emoji: "🃏",
     },
     {
+      selector: "[data-rail='roulette']",
+      title: "Lucky Roulette",
+      body: "Brand new! Spin once free every 24h, or pay 100 🪙 for extra spins. Win coins, rolls, cards, season XP, and 2× bonuses.",
+      emoji: "🎰",
+    },
+    {
       selector: "[data-rail='daily']",
       title: "Daily reward",
       body: "Right rail, top: claim a free reward every 24 hours. Streaks pay more — don't miss a day!",
@@ -367,6 +376,7 @@ const Index = () => {
     season: tutorialSteps.findIndex((s) => s.selector === "[data-rail='season']"),
     specials: tutorialSteps.findIndex((s) => s.selector === "[data-rail='specials']"),
     cards: tutorialSteps.findIndex((s) => s.selector === "[data-rail='cards']"),
+    roulette: tutorialSteps.findIndex((s) => s.selector === "[data-rail='roulette']"),
     daily: tutorialSteps.findIndex((s) => s.selector === "[data-rail='daily']"),
     spin: tutorialSteps.findIndex((s) => s.selector === "[data-rail='spin']"),
     collection: tutorialSteps.findIndex((s) => s.selector === "[data-rail='collection']"),
@@ -715,6 +725,52 @@ const Index = () => {
         }}
       />
 
+      <LuckyRouletteModal
+        open={luckyOpen}
+        coins={game.coins}
+        onClose={() => setLuckyOpen(false)}
+        onSpendCoins={(n) => {
+          if (game.coins < n) return false;
+          game.addCoins(-n);
+          return true;
+        }}
+        onClaim={(reward: LuckyRouletteReward) => {
+          switch (reward.kind) {
+            case "coins":
+            case "coins_jackpot":
+              game.addCoins(reward.amount);
+              toast.success(`+${reward.amount.toLocaleString()} 🪙`, { description: reward.label });
+              break;
+            case "rolls":
+              game.addEnergy(reward.amount);
+              toast.success(`+${reward.amount} ⚡ rolls`);
+              break;
+            case "card_flip":
+              game.addCardFlip(1);
+              toast.success("🃏 Free card flip granted!");
+              break;
+            case "free_card":
+              if (reward.card) {
+                game.grantCard(reward.card.id);
+                setDrawnCard(reward.card);
+              }
+              break;
+            case "island_star":
+              game.addStars(1);
+              toast.success("⭐ Island Star!");
+              break;
+            case "season_xp":
+              season.addSymbols(reward.amount);
+              toast.success(`+${reward.amount} 🌟 season XP`);
+              break;
+            case "double_coins":
+              game.addCoins(reward.amount);
+              toast.success(`✨ 2× Coin Bonus! +${reward.amount} 🪙`);
+              break;
+          }
+        }}
+      />
+
       {/* Island Star burst — short, snappy, matches the monster hop */}
       <AnimatePresence>
         {starBurstKey > 0 && (
@@ -809,6 +865,7 @@ const Index = () => {
                     onOpenSpecials={() => setTab("specials")}
                     onOpenCollection={() => setTab("collection")}
                     onOpenCards={() => setTab("cards")}
+                    onOpenRoulette={() => setLuckyOpen(true)}
                     onLearnMore={handleRailLearnMore}
                   />
                 </div>

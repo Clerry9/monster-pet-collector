@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useLayoutEffect, useState } from "react";
+import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, X } from "lucide-react";
 
@@ -27,6 +27,9 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
 ) {
   const [index, setIndex] = useState(startIndex);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const nextBtnRef = useRef<HTMLButtonElement | null>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   const step = steps[index];
 
@@ -71,10 +74,49 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
         if (index === steps.length - 1) onFinish();
         else setIndex((i) => Math.min(steps.length - 1, i + 1));
       }
+      else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setIndex((i) => Math.max(0, i - 1));
+      }
+      else if (e.key === "Tab") {
+        // Simple focus trap inside the tooltip card.
+        const card = cardRef.current;
+        if (!card) return;
+        const focusables = card.querySelectorAll<HTMLElement>(
+          'button, [href], input, [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+        if (e.shiftKey && active === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [open, index, steps.length, onClose, onFinish]);
+
+  // Track previously focused element so we can restore focus on close.
+  useEffect(() => {
+    if (open) {
+      previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+    } else if (previouslyFocusedRef.current) {
+      try { previouslyFocusedRef.current.focus(); } catch { /* ignore */ }
+    }
+  }, [open]);
+
+  // Focus the primary action when the step changes.
+  useEffect(() => {
+    if (!open) return;
+    const t = window.setTimeout(() => nextBtnRef.current?.focus(), 60);
+    return () => window.clearTimeout(t);
+  }, [open, index]);
 
   if (!open || !step) return null;
 
@@ -152,6 +194,9 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
         className="fixed inset-0 z-[100]"
         aria-live="polite"
         role="dialog"
+        aria-modal="true"
+        aria-labelledby="coach-title"
+        aria-describedby="coach-body"
       >
         {/* Dim layer with cut-out */}
         <svg className="absolute inset-0 w-full h-full pointer-events-auto" onClick={next}>
@@ -182,7 +227,7 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
           className="absolute pointer-events-auto"
           style={tooltipStyle}
         >
-          <div className="panel-wood p-3 text-cream-light relative shadow-chunky-sm max-h-[80vh] overflow-y-auto">
+          <div ref={cardRef} className="panel-wood p-3 text-cream-light relative shadow-chunky-sm max-h-[80vh] overflow-y-auto">
             <button
               onClick={onClose}
               className="absolute -top-2 -right-2 icon-tile-gold w-7 h-7 flex items-center justify-center"
@@ -193,10 +238,10 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
             <div className="flex items-start gap-2">
               {step.emoji && <div className="text-2xl leading-none">{step.emoji}</div>}
               <div className="flex-1">
-                <div className="font-display text-sm tracking-wide text-cream-light">
+                <div id="coach-title" className="font-display text-sm tracking-wide text-cream-light">
                   {step.title}
                 </div>
-                <p className="font-body text-[12px] text-cream/90 mt-1">{step.body}</p>
+                <p id="coach-body" className="font-body text-[12px] text-cream/90 mt-1">{step.body}</p>
               </div>
             </div>
             {/* Progress bar with explicit step counter */}
@@ -222,8 +267,10 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
                 Skip tutorial
               </button>
               <button
+                ref={nextBtnRef}
                 onClick={next}
                 className="btn-press px-3 py-1.5 rounded-full font-display text-[11px] flex items-center gap-1"
+                aria-label={isLast ? "Finish tutorial" : `Next step (${index + 2} of ${steps.length})`}
               >
                 {isLast ? "GOT IT" : "NEXT"} <ArrowRight size={12} />
               </button>
