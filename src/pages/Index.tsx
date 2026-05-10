@@ -21,6 +21,7 @@ import { SpinWheel } from "@/components/SpinWheel";
 import { DiceShop } from "@/components/DiceShop";
 import { GameTabs } from "@/components/GameTabs";
 import { SideRails } from "@/components/SideRails";
+import { useLuckyRouletteCooldown } from "@/hooks/useLuckyRouletteCooldown";
 import { DailyReward } from "@/components/DailyReward";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { LevelProgressBar } from "@/components/LevelProgressBar";
