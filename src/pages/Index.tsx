@@ -21,6 +21,7 @@ import { SpinWheel } from "@/components/SpinWheel";
 import { DiceShop } from "@/components/DiceShop";
 import { GameTabs } from "@/components/GameTabs";
 import { SideRails } from "@/components/SideRails";
+import { useLuckyRouletteCooldown } from "@/hooks/useLuckyRouletteCooldown";
 import { DailyReward } from "@/components/DailyReward";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { LevelProgressBar } from "@/components/LevelProgressBar";
@@ -245,6 +246,7 @@ const Index = () => {
   const [rouletteOpen, setRouletteOpen] = useState(false);
   // Lucky Roulette mini-game (separate side-rail entry, not tied to board tiles)
   const [luckyOpen, setLuckyOpen] = useState(false);
+  const luckyCooldown = useLuckyRouletteCooldown();
 
   // Tutorial + help
   const mainTutorial = mainTutorialPreCheck;
@@ -331,6 +333,18 @@ const Index = () => {
       title: "Lucky Roulette",
       body: "Brand new! Spin once free every 24h, or pay 100 🪙 for extra spins. Win coins, rolls, cards, season XP, and 2× bonuses.",
       emoji: "🎰",
+    },
+    {
+      selector: "[data-tutorial='roulette-wheel']",
+      title: "Pick a wedge",
+      body: "Tap any wedge on the wheel to bet on it. The legend below shows every prize and its odds before you spin.",
+      emoji: "🎯",
+    },
+    {
+      selector: "[data-tutorial='roulette-pointer']",
+      title: "Watch the ball",
+      body: "When the spin stops, you only win the prize sitting under this red pointer — but only if it's also the wedge you picked.",
+      emoji: "⬇️",
     },
     {
       selector: "[data-rail='daily']",
@@ -736,7 +750,8 @@ const Index = () => {
         }}
         onClaim={(reward: LuckyRouletteReward) => {
           switch (reward.kind) {
-            case "coins":
+            case "coins_small":
+            case "coins_med":
             case "coins_jackpot":
               game.addCoins(reward.amount);
               toast.success(`+${reward.amount.toLocaleString()} 🪙`, { description: reward.label });
@@ -757,6 +772,12 @@ const Index = () => {
               season.addSymbols(reward.amount);
               toast.success(`+${reward.amount} 🌟 season XP`);
               break;
+            case "monster_food": {
+              const bonus = reward.amount * 4;
+              game.addCoins(bonus);
+              toast.success(`🍖 Monster Food! +${bonus} 🪙`);
+              break;
+            }
           }
         }}
       />
@@ -856,6 +877,7 @@ const Index = () => {
                     onOpenCollection={() => setTab("collection")}
                     onOpenCards={() => setTab("cards")}
                     onOpenRoulette={() => setLuckyOpen(true)}
+                    rouletteCooldownMs={luckyCooldown.freeAvailable ? 0 : luckyCooldown.remainingMs}
                     onLearnMore={handleRailLearnMore}
                   />
                 </div>
@@ -1098,6 +1120,13 @@ const Index = () => {
         open={coachOpen}
         startIndex={coachStartIndex}
         steps={tutorialSteps}
+        onStepChange={(_i, step) => {
+          // Pre-open the lucky roulette modal so its wedges/pointer exist in the DOM
+          // when those tutorial steps try to highlight them.
+          if (step.selector?.startsWith("[data-tutorial='roulette-")) {
+            setLuckyOpen(true);
+          }
+        }}
         onClose={() => {
           setCoachOpen(false);
           mainTutorial.markCompleted();

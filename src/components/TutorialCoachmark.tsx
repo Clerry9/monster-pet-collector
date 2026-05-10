@@ -17,12 +17,14 @@ interface TutorialCoachmarkProps {
   onFinish: () => void;
   /** Optional starting step index (for deep-linking from a tooltip). */
   startIndex?: number;
+  /** Fires whenever the active step changes (including initial mount). */
+  onStepChange?: (index: number, step: CoachStep) => void;
 }
 
 const PADDING = 8;
 
 export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkProps>(function TutorialCoachmark(
-  { open, steps, onClose, onFinish, startIndex = 0 },
+  { open, steps, onClose, onFinish, startIndex = 0, onStepChange },
   _ref,
 ) {
   const [index, setIndex] = useState(startIndex);
@@ -32,6 +34,12 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   const step = steps[index];
+
+  // Notify the host whenever the active step changes so it can pre-open
+  // dependent UI (e.g. modals) before the highlight tries to find its target.
+  useEffect(() => {
+    if (open && step) onStepChange?.(index, step);
+  }, [open, index, step, onStepChange]);
 
   useLayoutEffect(() => {
     if (!open || !step) return;

@@ -30,6 +30,8 @@ interface Props {
   onOpenCollection: () => void;
   onOpenCards: () => void;
   onOpenRoulette: () => void;
+  /** ms until the next free lucky-roulette spin. 0 / undefined = available now. */
+  rouletteCooldownMs?: number;
   onLearnMore?: (railId: string) => void;
 }
 
@@ -37,13 +39,25 @@ export function SideRails({
   msRemaining, newEvent,
   onOpenSeason, onOpenSpin, onOpenDaily, onOpenSpecials, onOpenCollection, onOpenCards,
   onOpenRoulette,
+  rouletteCooldownMs,
   onLearnMore,
 }: Props) {
+  const luckyReady = !rouletteCooldownMs || rouletteCooldownMs <= 0;
   const left: RailItem[] = [
     { id: "season", icon: <Star size={18} />, label: "EVENT", countdownMs: msRemaining, onClick: onOpenSeason, hot: newEvent, tip: "Limited-time event with a battle pass and exclusive monsters. Countdown shows when a new season starts." },
     { id: "specials", icon: <Sparkles size={18} />, label: "SHOP", onClick: onOpenSpecials, tip: "Buy dice bundles, special packs, and the Season Pass. Best deals live here." },
     { id: "cards", icon: <Gamepad2 size={18} />, label: "CARDS", onClick: onOpenCards, tip: "Browse every card you've drawn and see how close each set is to completion." },
-    { id: "roulette", icon: <Dices size={18} />, label: "LUCK", onClick: onOpenRoulette, hot: true, tip: "Lucky Roulette! 1 free spin every 24h plus paid extras. Win coins, rolls, cards, season XP, and island prizes." },
+    {
+      id: "roulette",
+      icon: <Dices size={18} />,
+      label: "LUCK",
+      onClick: onOpenRoulette,
+      hot: luckyReady,
+      countdownMs: luckyReady ? undefined : rouletteCooldownMs,
+      tip: luckyReady
+        ? "Lucky Roulette! Free spin ready — pick a wedge and win coins, rolls, cards, season XP, or island prizes."
+        : "Lucky Roulette. Next free spin in the timer below; or pay 100 🪙 for an extra spin anytime.",
+    },
   ];
   const right: RailItem[] = [
     { id: "daily", icon: <Gift size={18} />, label: "DAILY", onClick: onOpenDaily, tip: "Claim a free reward every 24 hours. Streaks pay more — don't miss a day!" },

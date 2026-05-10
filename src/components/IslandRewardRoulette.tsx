@@ -2,44 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X } from "lucide-react";
 import { sfxDiceTick, sfxCoinGain, sfxLevelUp } from "@/lib/sfx";
+import { SHARED_POOL, pickReward as pickSharedReward, type Reward, type RewardKind } from "@/data/rewardPool";
 
-export type IslandRewardKind =
-  | "coins_small"
-  | "coins_med"
-  | "coins_jackpot"
-  | "rolls"
-  | "card_flip"
-  | "island_star"
-  | "monster_food";
+/** Re-exported for back-compat with existing call sites (e.g. Index.tsx switch). */
+export type IslandRewardKind = RewardKind;
+export type IslandReward = Reward;
 
-export interface IslandReward {
-  kind: IslandRewardKind;
-  amount: number;
-  emoji: string;
-  label: string;
-}
-
-const POOL: { weight: number; build: () => IslandReward }[] = [
-  { weight: 35, build: () => ({ kind: "coins_small", amount: 50 + Math.floor(Math.random() * 100), emoji: "🪙", label: "Coins" }) },
-  { weight: 22, build: () => ({ kind: "coins_med", amount: 200 + Math.floor(Math.random() * 300), emoji: "💰", label: "Coin Stash" }) },
-  { weight: 14, build: () => ({ kind: "rolls", amount: 3 + Math.floor(Math.random() * 8), emoji: "⚡", label: "Free Rolls" }) },
-  { weight: 10, build: () => ({ kind: "monster_food", amount: 25 + Math.floor(Math.random() * 50), emoji: "🍖", label: "Monster Food" }) },
-  { weight: 8,  build: () => ({ kind: "card_flip", amount: 1, emoji: "🃏", label: "Free Card Flip" }) },
-  { weight: 8,  build: () => ({ kind: "island_star", amount: 1, emoji: "⭐", label: "Island Star" }) },
-  { weight: 3,  build: () => ({ kind: "coins_jackpot", amount: 1000 + Math.floor(Math.random() * 2000), emoji: "💎", label: "JACKPOT!" }) },
-];
-
-function pickReward(): IslandReward {
-  const total = POOL.reduce((s, p) => s + p.weight, 0);
-  let r = Math.random() * total;
-  for (const p of POOL) {
-    r -= p.weight;
-    if (r <= 0) return p.build();
-  }
-  return POOL[0].build();
-}
-
-const STRIP = POOL.flatMap((p) => Array.from({ length: p.weight > 10 ? 3 : 2 }, () => p.build()));
+const pickReward = pickSharedReward;
+const STRIP = SHARED_POOL.flatMap((p) => Array.from({ length: p.weight > 10 ? 3 : 2 }, () => p.build()));
 
 interface Props {
   open: boolean;
