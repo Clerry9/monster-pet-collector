@@ -736,7 +736,8 @@ const Index = () => {
         }}
         onClaim={(reward: LuckyRouletteReward) => {
           switch (reward.kind) {
-            case "coins":
+            case "coins_small":
+            case "coins_med":
             case "coins_jackpot":
               game.addCoins(reward.amount);
               toast.success(`+${reward.amount.toLocaleString()} 🪙`, { description: reward.label });
@@ -757,6 +758,12 @@ const Index = () => {
               season.addSymbols(reward.amount);
               toast.success(`+${reward.amount} 🌟 season XP`);
               break;
+            case "monster_food": {
+              const bonus = reward.amount * 4;
+              game.addCoins(bonus);
+              toast.success(`🍖 Monster Food! +${bonus} 🪙`);
+              break;
+            }
           }
         }}
       />
