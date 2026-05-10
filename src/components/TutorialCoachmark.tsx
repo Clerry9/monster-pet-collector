@@ -167,11 +167,17 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
       top = Math.max(MARGIN + ESTIMATED_HEIGHT, top);
       top = Math.min(top, vh - MARGIN);
     }
+    // Estimate the rendered tooltip width (mirrors the maxWidth below) so we
+    // can clamp the centered anchor without letting the card clip off-screen.
+    const tooltipWidth = Math.min(340, vw - 24);
+    const halfW = tooltipWidth / 2;
+    const rawCenter = rect.left + rect.width / 2;
+    const left = Math.min(vw - halfW - 12, Math.max(halfW + 12, rawCenter));
     return {
       top,
-      left: Math.min(vw - 20, Math.max(20, rect.left + rect.width / 2)),
+      left,
       transform: `translate(-50%, ${transformY})`,
-      maxWidth: "min(340px, 90vw)",
+      maxWidth: `${tooltipWidth}px`,
     };
   })();
 
