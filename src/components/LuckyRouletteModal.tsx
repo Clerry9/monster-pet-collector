@@ -1,64 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, X, Coins, Clock } from "lucide-react";
+import { Sparkles, X, Coins, Clock, History, Check, XCircle } from "lucide-react";
 import { sfxDiceTick, sfxCoinGain, sfxLevelUp } from "@/lib/sfx";
+import { buildLuckySlots, uniformSlotOdds, type LuckySlot, type Reward, type RewardKind } from "@/data/rewardPool";
+import { useLuckyRouletteCooldown, formatCountdown } from "@/hooks/useLuckyRouletteCooldown";
+import { useRouletteHistory, formatRelativeTime, type RouletteHistoryEntry } from "@/hooks/useRouletteHistory";
 
-const STORAGE_KEY = "luckyRoulette.lastFreeSpinAt.v1";
-const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const PAID_SPIN_COST = 100;
 
-export type LuckyRouletteRewardKind =
-  | "coins"
-  | "coins_jackpot"
-  | "rolls"
-  | "card_flip"
-  | "island_star"
-  | "season_xp";
-
-export interface LuckyRouletteReward {
-  kind: LuckyRouletteRewardKind;
-  amount: number;
-  emoji: string;
-  label: string;
-}
-
-interface Slot {
-  reward: LuckyRouletteReward;
-  /** Tailwind/HSL token for the wedge fill. Uses semantic tokens only. */
-  fill: string;
-}
-
-const SLOTS: Slot[] = [
-  { reward: { kind: "coins",         amount: 150,  emoji: "🪙", label: "150 Coins" },     fill: "hsl(var(--gold))" },
-  { reward: { kind: "rolls",         amount: 5,    emoji: "⚡", label: "5 Rolls" },       fill: "hsl(var(--wood-dark))" },
-  { reward: { kind: "coins",         amount: 250,  emoji: "🪙", label: "250 Coins" },     fill: "hsl(var(--gold))" },
-  { reward: { kind: "season_xp",     amount: 10,   emoji: "🌟", label: "10 Season XP" },  fill: "hsl(var(--candy-red))" },
-  { reward: { kind: "coins",         amount: 400,  emoji: "🪙", label: "400 Coins" },     fill: "hsl(var(--gold))" },
-  { reward: { kind: "card_flip",     amount: 1,    emoji: "🃏", label: "Card Flip" },     fill: "hsl(var(--wood-dark))" },
-  { reward: { kind: "island_star",   amount: 1,    emoji: "⭐", label: "Island Star" },   fill: "hsl(var(--candy-red))" },
-  { reward: { kind: "coins_jackpot", amount: 2000, emoji: "💎", label: "JACKPOT" },       fill: "hsl(var(--gold))" },
-];
-
-const N = SLOTS.length;
-const SLICE_DEG = 360 / N;
-
-function readLastFreeSpin(): number {
-  try {
-    const v = localStorage.getItem(STORAGE_KEY);
-    return v ? parseInt(v, 10) || 0 : 0;
-  } catch { return 0; }
-}
-function writeLastFreeSpin(ts: number) {
-  try { localStorage.setItem(STORAGE_KEY, String(ts)); } catch { /* ignore */ }
-}
-
-function fmt(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
+/** Re-exported for back-compat with Index.tsx integration. */
+export type LuckyRouletteRewardKind = RewardKind;
+export type LuckyRouletteReward = Reward;
 
 /** SVG arc path for a wedge from angle `a0` to `a1` (deg, 0 = top, clockwise). */
 function wedgePath(cx: number, cy: number, r: number, a0: number, a1: number): string {
