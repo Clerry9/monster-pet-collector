@@ -749,12 +749,6 @@ const Index = () => {
               game.addCardFlip(1);
               toast.success("🃏 Free card flip granted!");
               break;
-            case "free_card":
-              if (reward.card) {
-                game.grantCard(reward.card.id);
-                setDrawnCard(reward.card);
-              }
-              break;
             case "island_star":
               game.addStars(1);
               toast.success("⭐ Island Star!");
@@ -762,10 +756,6 @@ const Index = () => {
             case "season_xp":
               season.addSymbols(reward.amount);
               toast.success(`+${reward.amount} 🌟 season XP`);
-              break;
-            case "double_coins":
-              game.addCoins(reward.amount);
-              toast.success(`✨ 2× Coin Bonus! +${reward.amount} 🪙`);
               break;
           }
         }}

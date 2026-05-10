@@ -1,78 +1,61 @@
-# Entitlement Dashboard + Subscriptions
+# Plan: Fix tutorial overflow + Pick-the-Slot Roulette
 
-## Context
+## 1. Tutorial coachmark — keep tooltip on-screen
 
-Today the game only sells **one-time** packs and a one-time "Season Pass" — there is no `subscriptions` table, the webhook only handles `transaction.completed`, and there is nothing to cancel or resume. To deliver the request I need to add a real subscription system alongside the existing one-time catalog.
+In `src/components/TutorialCoachmark.tsx`, the tooltip is anchored at the highlighted element's horizontal center with `transform: translate(-50%, …)`. The current clamp (`Math.min(vw - 20, …)`) only constrains the anchor point — not the tooltip's right edge — so when a side-rail button on the right is highlighted, the card visibly clips off the right side.
 
-The Season Pass will stay a one-time per-season purchase (that's how the season system is designed). The "subscription" surface will be the two new recurring tiers below — they're what you'll be able to cancel/resume.
+Fix:
+- Estimate tooltip width as `min(340, vw - 24)` (matches `maxWidth`).
+- Clamp the anchor `left` so the card's left/right edges stay ≥12px inside the viewport: `left ∈ [halfWidth + 12, vw - halfWidth - 12]`.
+- Keep the existing vertical clamp logic.
 
-## What gets built
+This is a 1-block edit — no API changes.
 
-### 1. Two new subscription tiers (recurring)
+## 2. Lucky Roulette → Pick-the-Slot wheel
 
-Created in test via `create_product` / `create_price`, auto-synced to live on publish:
+Replace the current "press spin → random reward" flow in `src/components/LuckyRouletteModal.tsx` with a real roulette where the player **bets on a slot** before each spin. The ball lands on a random slot; the player only wins if their pick matches.
 
-- **Collector Club — $4.99 / month**
-  `collector_club` / `collector_club_monthly`
-  Perks granted on every renewal: +50 rolls, +500 coins, +1 card flip.
-- **Monster Elite — $14.99 / month**
-  `monster_elite` / `monster_elite_monthly`
-  Perks granted on every renewal: +200 rolls, +2,500 coins, +5 card flips, +10 island stars, gold dice tier unlocked, exclusive monsters (`mossfang`, `aurorix`) unlocked while active.
+### Wheel layout
+- Fixed 8-slot wheel (visual circle) with a known reward per slot:
 
-Both support cancel-at-period-end with grace access until `current_period_end`.
+  ```text
+  Slot  Reward                        Approx. odds
+  0     🪙  +150 coins                1/8
+  1     ⚡  +5 rolls                  1/8
+  2     🪙  +250 coins                1/8
+  3     🌟  +10 season XP             1/8
+  4     🪙  +400 coins                1/8
+  5     🃏  Free card flip            1/8
+  6     ⭐  +1 island star            1/8
+  7     💎  JACKPOT (+2000 coins)     1/8
+  ```
+- Slots rendered as colored wedges around an SVG circle with emoji + short label, plus a fixed pointer at the top.
 
-### 2. Database — new `subscriptions` table
+### Flow
+1. Modal opens → wheel idle, all 8 slots highlighted as pickable.
+2. Player taps a slot to **place their pick** (selected slot gets a gold ring). Pick can be changed until they spin.
+3. Press **FREE SPIN** (1×/24h) or **EXTRA SPIN — 100 coins**. Spin disabled until a pick exists.
+4. Wheel rotates with easing, ticking sound, lands on a random slot (uniform). Pointer aligns to the winning wedge.
+5. Resolution:
+   - **Match** → show "YOU WIN!" + the slot's reward, `CLAIM` button calls `onClaim(reward, paid)` exactly as today.
+   - **Miss** → show "So close!" with what the ball landed on and what they picked. No reward granted. `SPIN AGAIN` resets to step 2 (free-spin cooldown only consumed if it was the free spin; paid spin is consumed either way — same cost rules as now).
+6. After claim/dismiss, return to idle for another spin attempt (subject to cooldown / coins).
 
-Standard schema from the Paddle knowledge: `paddle_subscription_id` (unique), `paddle_customer_id`, `product_id`, `price_id` (human-readable external IDs), `status`, `current_period_start/end`, `cancel_at_period_end`, `environment`. RLS: users SELECT own; service role full access. Plus `has_active_subscription(uid, env)` SQL helper that respects the cancel-at-period-end grace window.
+### Reward shape
+- Reuse the existing `LuckyRouletteReward` type and `onClaim` / `onSpendCoins` / cooldown plumbing in `Index.tsx` — no parent changes needed.
+- Drop the random `pickReward()` weighted pool in favor of the fixed per-slot table above (kept inside the modal file).
 
-### 3. Webhook updates (`payments-webhook`)
+### Visuals
+- SVG wheel built from 8 `path` wedges, each filled with a token color (`--gold`, `--candy-red`, `--wood-dark`, etc., via existing semantic tokens — no raw colors).
+- Animate rotation with framer-motion (`animate={{ rotate: finalAngle }}`, ~3s ease-out, 4-6 full turns + offset to chosen slot).
+- Pointer is a small triangle pinned at 12 o'clock.
+- Selected pick: gold stroke + subtle pulse on its wedge.
+- Maintain a11y: `role="radiogroup"` for slot picks, each wedge is a `button` with `aria-pressed` and `aria-label="Slot N: 150 coins"`; live region announces win/miss outcome.
 
-Add handlers for `subscription.created`, `subscription.updated`, `subscription.canceled` — upsert the subscriptions row keyed on `paddle_subscription_id`. On each `transaction.completed` for a subscription price, also grant that tier's perks to `game_state` (so the first charge and every renewal credit the player).
+### Out of scope
+- No backend / pricing / entitlement changes.
+- Tutorial copy referencing the roulette stays valid ("pick a slot, spin, win if it matches").
 
-### 4. New edge functions
-
-- `cancel-subscription` — verifies JWT, looks up the user's subscription, calls Paddle `PATCH /subscriptions/{id}` with `scheduled_change.action = 'cancel'` (cancel at period end). Refuses if the subscription isn't owned by the caller.
-- `resume-subscription` — same auth model, calls Paddle to clear the scheduled cancellation while still inside the current period.
-
-Both route through `getPaddleClient(env)` from `_shared/paddle.ts` and pick env from the stored row.
-
-### 5. New `useSubscription` hook
-
-Filters by `user_id` + current `environment` (sandbox/live derived from the client token), orders by `created_at desc`, returns `{ subscription, isActive, willCancelAt, loading }`. Subscribes to realtime updates on the `subscriptions` table so cancel/resume reflects instantly.
-
-### 6. Entitlement Dashboard (new tab in `GameTabs`)
-
-A single screen that reads from existing hooks (`useGameState`, `useSeason`, `useSubscription`) and shows:
-
-- **Wallet & credits:** rolls, coins, energy, island stars, pending card flips, XP / level — all live from `game_state` via realtime.
-- **Unlocked dice tiers:** chips for each tier in `unlocked_dice_tiers`, with the active one highlighted.
-- **Unlocked monsters:** grid of every entry in `unlocked_monsters` with image + name; locked monsters shown dimmed.
-- **Season pass:** shows `pass_purchased` for the current season + days remaining. One-time, no cancel.
-- **Recurring subscriptions:** for each row in `subscriptions`, shows tier name, status badge, current period end, and either:
-  - a **Cancel at period end** button (active, not scheduled to cancel), or
-  - a **Resume subscription** button (scheduled to cancel, still inside current period), or
-  - a **Renew** CTA opening checkout (canceled / past_due past grace).
-- **Purchase history:** last 10 rows from `purchases` (read-only).
-
-### 7. Pricing page + in-app shop updates
-
-Add the two new subscription tiers to `Pricing.tsx` (`EXPECTED_EXTERNAL_IDS` + `FALLBACK_TIERS`) and to `list-pricing` so the public pricing page shows them with `/month` suffix. Add a "Subscriptions" card in the in-game shop that opens checkout for either tier.
-
-## Technical notes
-
-- Subscription perks are granted in `transaction.completed` (which fires for both initial charge and each renewal), keyed on `price.importMeta.externalId`. Avoids double-grant by upserting `purchases` on `paddle_transaction_id`.
-- Paddle webhooks for sub events are already subscribed by `enable_paddle_payments` — no webhook edits needed.
-- All UI access checks (subscription badges, etc.) are advisory; perk granting is server-side via the webhook only.
-- `subscriptions.environment` defaults to `'sandbox'` — webhook always sets it explicitly from the `?env=` query param.
-
-## Test plan (preview = test mode)
-
-1. Open the game, go to the new **My Account** tab → confirm credits, dice tiers, and monsters match what you have in-game.
-2. Open Shop → Subscriptions → buy **Collector Club**. Use test card `4242 4242 4242 4242`, CVC `123`, any future expiry.
-3. Within ~2 s the dashboard should show an **Active** Collector Club row with `cancel_at_period_end = false`, and your rolls / coins / flips should jump by the perk amounts.
-4. Click **Cancel at period end** → row updates to "Cancels on …", access stays active.
-5. Click **Resume subscription** → row flips back to plain Active.
-6. Repeat with **Monster Elite** to verify gold dice + bonus monster unlocks land in `game_state`.
-7. Failure card `4000 0000 0000 0002` should leave no subscription row.
-
-After publish, the same flows run against live with real cards; the dashboard auto-switches because it filters by environment.
+## Files touched
+- `src/components/TutorialCoachmark.tsx` — horizontal clamp fix.
+- `src/components/LuckyRouletteModal.tsx` — full UI/logic rewrite (props unchanged).

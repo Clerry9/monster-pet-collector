@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X, Coins, Clock } from "lucide-react";
 import { sfxDiceTick, sfxCoinGain, sfxLevelUp } from "@/lib/sfx";
-import { drawRandomCard, GameCard } from "@/data/cards";
 
 const STORAGE_KEY = "luckyRoulette.lastFreeSpinAt.v1";
 const COOLDOWN_MS = 24 * 60 * 60 * 1000;
@@ -13,45 +12,35 @@ export type LuckyRouletteRewardKind =
   | "coins_jackpot"
   | "rolls"
   | "card_flip"
-  | "free_card"
   | "island_star"
-  | "season_xp"
-  | "double_coins";
+  | "season_xp";
 
 export interface LuckyRouletteReward {
   kind: LuckyRouletteRewardKind;
   amount: number;
   emoji: string;
   label: string;
-  card?: GameCard;
 }
 
-const POOL: { weight: number; build: () => LuckyRouletteReward }[] = [
-  { weight: 30, build: () => ({ kind: "coins", amount: 100 + Math.floor(Math.random() * 200), emoji: "🪙", label: "Coins" }) },
-  { weight: 18, build: () => ({ kind: "coins", amount: 300 + Math.floor(Math.random() * 400), emoji: "💰", label: "Coin Stash" }) },
-  { weight: 14, build: () => ({ kind: "rolls", amount: 3 + Math.floor(Math.random() * 6), emoji: "⚡", label: "Free Rolls" }) },
-  { weight: 10, build: () => ({ kind: "season_xp", amount: 5 + Math.floor(Math.random() * 10), emoji: "🌟", label: "Season XP" }) },
-  { weight: 8,  build: () => ({ kind: "card_flip", amount: 1, emoji: "🃏", label: "Free Card Flip" }) },
-  { weight: 7,  build: () => ({ kind: "island_star", amount: 1, emoji: "⭐", label: "Island Star" }) },
-  { weight: 6,  build: () => ({ kind: "double_coins", amount: 500, emoji: "✨", label: "2× Coin Bonus" }) },
-  { weight: 5,  build: () => {
-      const card = drawRandomCard();
-      return { kind: "free_card", amount: 1, emoji: "🎴", label: `Card: ${card.name}`, card };
-    } },
-  { weight: 2,  build: () => ({ kind: "coins_jackpot", amount: 1500 + Math.floor(Math.random() * 2500), emoji: "💎", label: "JACKPOT!" }) },
+interface Slot {
+  reward: LuckyRouletteReward;
+  /** Tailwind/HSL token for the wedge fill. Uses semantic tokens only. */
+  fill: string;
+}
+
+const SLOTS: Slot[] = [
+  { reward: { kind: "coins",         amount: 150,  emoji: "🪙", label: "150 Coins" },     fill: "hsl(var(--gold))" },
+  { reward: { kind: "rolls",         amount: 5,    emoji: "⚡", label: "5 Rolls" },       fill: "hsl(var(--wood-dark))" },
+  { reward: { kind: "coins",         amount: 250,  emoji: "🪙", label: "250 Coins" },     fill: "hsl(var(--gold))" },
+  { reward: { kind: "season_xp",     amount: 10,   emoji: "🌟", label: "10 Season XP" },  fill: "hsl(var(--candy-red))" },
+  { reward: { kind: "coins",         amount: 400,  emoji: "🪙", label: "400 Coins" },     fill: "hsl(var(--gold))" },
+  { reward: { kind: "card_flip",     amount: 1,    emoji: "🃏", label: "Card Flip" },     fill: "hsl(var(--wood-dark))" },
+  { reward: { kind: "island_star",   amount: 1,    emoji: "⭐", label: "Island Star" },   fill: "hsl(var(--candy-red))" },
+  { reward: { kind: "coins_jackpot", amount: 2000, emoji: "💎", label: "JACKPOT" },       fill: "hsl(var(--gold))" },
 ];
 
-function pickReward(): LuckyRouletteReward {
-  const total = POOL.reduce((s, p) => s + p.weight, 0);
-  let r = Math.random() * total;
-  for (const p of POOL) {
-    r -= p.weight;
-    if (r <= 0) return p.build();
-  }
-  return POOL[0].build();
-}
-
-const STRIP = POOL.flatMap((p) => Array.from({ length: p.weight > 10 ? 3 : 2 }, () => p.build()));
+const N = SLOTS.length;
+const SLICE_DEG = 360 / N;
 
 function readLastFreeSpin(): number {
   try {
@@ -71,6 +60,17 @@ function fmt(ms: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+/** SVG arc path for a wedge from angle `a0` to `a1` (deg, 0 = top, clockwise). */
+function wedgePath(cx: number, cy: number, r: number, a0: number, a1: number): string {
+  const toRad = (a: number) => ((a - 90) * Math.PI) / 180;
+  const x0 = cx + r * Math.cos(toRad(a0));
+  const y0 = cy + r * Math.sin(toRad(a0));
+  const x1 = cx + r * Math.cos(toRad(a1));
+  const y1 = cy + r * Math.sin(toRad(a1));
+  const large = a1 - a0 > 180 ? 1 : 0;
+  return `M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`;
+}
+
 interface Props {
   open: boolean;
   coins: number;
@@ -79,30 +79,30 @@ interface Props {
   onSpendCoins: (amount: number) => boolean;
 }
 
-type Phase = "idle" | "spin" | "result";
+type Phase = "idle" | "spin" | "win" | "miss";
 
 export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins }: Props) {
   const [phase, setPhase] = useState<Phase>("idle");
-  const [reward, setReward] = useState<LuckyRouletteReward | null>(null);
+  const [pick, setPick] = useState<number | null>(null);
+  const [winningSlot, setWinningSlot] = useState<number | null>(null);
+  const [rotation, setRotation] = useState(0);
   const [lastSpinWasPaid, setLastSpinWasPaid] = useState(false);
-  const [tickIdx, setTickIdx] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [lastFree, setLastFree] = useState(() => readLastFreeSpin());
-  const tickRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const spinBtnRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setPhase("idle");
-    setReward(null);
+    setPick(null);
+    setWinningSlot(null);
+    setRotation(0);
     setLastFree(readLastFreeSpin());
     const id = window.setInterval(() => setNow(Date.now()), 1000);
-    // Focus management — focus the primary action when opening
-    const t = window.setTimeout(() => spinBtnRef.current?.focus(), 50);
-    return () => { window.clearInterval(id); window.clearTimeout(t); };
+    return () => window.clearInterval(id);
   }, [open]);
 
-  // Esc to close
   useEffect(() => {
     if (!open) return;
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -110,11 +110,16 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
     return () => window.removeEventListener("keydown", h);
   }, [open, onClose]);
 
+  useEffect(() => () => {
+    if (tickRef.current) clearInterval(tickRef.current);
+  }, []);
+
   const remainingMs = Math.max(0, lastFree + COOLDOWN_MS - now);
   const freeAvailable = remainingMs <= 0;
+  const canPaid = coins >= PAID_SPIN_COST;
 
   const startSpin = (paid: boolean) => {
-    if (phase === "spin") return;
+    if (phase === "spin" || pick === null) return;
     if (paid) {
       if (!onSpendCoins(PAID_SPIN_COST)) return;
     } else {
@@ -124,40 +129,54 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
       setLastFree(ts);
     }
     setLastSpinWasPaid(paid);
-    const r = pickReward();
-    setReward(r);
+    const winner = Math.floor(Math.random() * N);
+    setWinningSlot(winner);
     setPhase("spin");
-    setTickIdx(0);
-    let i = 0;
-    let interval = 70;
-    const step = () => {
-      sfxDiceTick();
-      setTickIdx((n) => n + 1);
-      i++;
-      interval = i < 12 ? 70 : i < 18 ? 130 : i < 22 ? 220 : 320;
-      if (i >= 24) {
-        if (tickRef.current) { clearTimeout(tickRef.current); tickRef.current = null; }
-        setPhase("result");
-        if (r.kind === "coins_jackpot") sfxLevelUp(); else sfxCoinGain();
+
+    // Compute target rotation: wheel rotates such that the winning slot's
+    // center sits under the pointer at the top (0deg). Add full turns for drama.
+    const turns = 5 + Math.floor(Math.random() * 3);
+    const slotCenter = winner * SLICE_DEG + SLICE_DEG / 2;
+    const target = turns * 360 - slotCenter;
+    setRotation(target);
+
+    if (tickRef.current) clearInterval(tickRef.current);
+    tickRef.current = setInterval(() => sfxDiceTick(), 110);
+
+    window.setTimeout(() => {
+      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+      const won = winner === pick;
+      if (won) {
+        if (SLOTS[winner].reward.kind === "coins_jackpot") sfxLevelUp(); else sfxCoinGain();
         if (navigator.vibrate) navigator.vibrate([20, 30, 60]);
-        return;
+        setPhase("win");
+      } else {
+        if (navigator.vibrate) navigator.vibrate(40);
+        setPhase("miss");
       }
-      tickRef.current = setTimeout(step, interval);
-    };
-    tickRef.current = setTimeout(step, interval);
+    }, 3600);
   };
 
   const handleClaim = () => {
-    if (!reward) return;
-    onClaim(reward, lastSpinWasPaid);
+    if (winningSlot === null) return;
+    onClaim(SLOTS[winningSlot].reward, lastSpinWasPaid);
     setPhase("idle");
-    setReward(null);
+    setPick(null);
+    setWinningSlot(null);
+  };
+
+  const handleSpinAgain = () => {
+    setPhase("idle");
+    setWinningSlot(null);
   };
 
   if (!open) return null;
 
-  const visible = STRIP[tickIdx % STRIP.length];
-  const canPaid = coins >= PAID_SPIN_COST;
+  // SVG geometry
+  const SIZE = 240;
+  const R = SIZE / 2 - 4;
+  const CX = SIZE / 2;
+  const CY = SIZE / 2;
 
   return (
     <AnimatePresence>
@@ -171,7 +190,7 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
         <motion.div
           initial={{ scale: 0.7, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.7, y: 30 }}
           transition={{ type: "spring", damping: 16 }}
-          className="panel-wood relative w-full max-w-sm p-5 text-center"
+          className="panel-wood relative w-full max-w-md p-5 text-center"
           style={{ background: "radial-gradient(ellipse at top, hsl(var(--gold) / 0.45), hsl(var(--wood)))" }}
         >
           <button
@@ -182,80 +201,136 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
             <X size={16} />
           </button>
 
-          <div className="flex items-center justify-center gap-2 mb-2 text-cream-light">
+          <div className="flex items-center justify-center gap-2 mb-1 text-cream-light">
             <Sparkles size={16} className="text-gold" aria-hidden />
             <h2 id="lucky-roulette-title" className="font-display text-base tracking-wide">LUCKY ROULETTE</h2>
             <Sparkles size={16} className="text-gold" aria-hidden />
           </div>
           <p className="text-[11px] font-display text-cream/80 mb-3">
-            {phase === "result" ? "You won a prize!" : phase === "spin" ? "Spinning..." : "1 free spin every 24 hours"}
+            {phase === "win"  ? "You called it! Claim your prize." :
+             phase === "miss" ? "So close — try another slot!" :
+             phase === "spin" ? "Spinning..." :
+             pick === null    ? "Pick a slot, then spin to match it." :
+                                "Locked in. Spin to test your luck!"}
           </p>
 
-          <div
-            className="relative mx-auto h-32 w-32 rounded-2xl border-4 border-gold bg-cream/95 shadow-chunky-sm flex items-center justify-center overflow-hidden"
-            role="status"
-            aria-live="polite"
-            aria-label={phase === "result" && reward ? `Won ${reward.amount} ${reward.label}` : phase === "spin" ? "Spinning roulette" : "Roulette ready"}
-          >
-            <div className="absolute inset-0 rounded-2xl pointer-events-none" style={{ boxShadow: "inset 0 0 24px hsl(var(--gold) / 0.6)" }} aria-hidden />
-            <AnimatePresence mode="wait">
-              {phase === "spin" ? (
-                <motion.div
-                  key={tickIdx}
-                  initial={{ y: 28, opacity: 0, scale: 0.7 }}
-                  animate={{ y: 0, opacity: 1, scale: 1 }}
-                  exit={{ y: -28, opacity: 0, scale: 0.7 }}
-                  transition={{ duration: 0.12 }}
-                  className="text-6xl"
-                  aria-hidden
-                >
-                  {visible.emoji}
-                </motion.div>
-              ) : phase === "result" && reward ? (
-                <motion.div
-                  key="result"
-                  initial={{ scale: 0.4, rotate: -20 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: "spring", damping: 9 }}
-                  className="text-7xl drop-shadow-[0_4px_0_hsl(var(--wood-dark))]"
-                  aria-hidden
-                >
-                  {reward.emoji}
-                </motion.div>
-              ) : (
-                <motion.div key="idle" className="text-6xl" aria-hidden>🎰</motion.div>
-              )}
-            </AnimatePresence>
+          {/* Wheel */}
+          <div className="relative mx-auto" style={{ width: SIZE, height: SIZE }}>
+            {/* Pointer */}
+            <div
+              className="absolute left-1/2 -translate-x-1/2 -top-2 z-10"
+              aria-hidden
+              style={{
+                width: 0, height: 0,
+                borderLeft: "10px solid transparent",
+                borderRight: "10px solid transparent",
+                borderTop: "16px solid hsl(var(--candy-red))",
+                filter: "drop-shadow(0 2px 0 hsl(var(--wood-dark)))",
+              }}
+            />
+            <motion.svg
+              width={SIZE} height={SIZE}
+              viewBox={`0 0 ${SIZE} ${SIZE}`}
+              animate={{ rotate: rotation }}
+              transition={phase === "spin"
+                ? { duration: 3.6, ease: [0.17, 0.67, 0.32, 0.99] }
+                : { duration: 0 }}
+              role="radiogroup"
+              aria-label="Roulette slots"
+              className="drop-shadow-[0_6px_0_hsl(var(--wood-dark))]"
+            >
+              {SLOTS.map((s, i) => {
+                const a0 = i * SLICE_DEG;
+                const a1 = a0 + SLICE_DEG;
+                const mid = a0 + SLICE_DEG / 2;
+                const labelR = R * 0.66;
+                const lx = CX + labelR * Math.cos(((mid - 90) * Math.PI) / 180);
+                const ly = CY + labelR * Math.sin(((mid - 90) * Math.PI) / 180);
+                const isPick = pick === i;
+                const isWinner = winningSlot === i && (phase === "win" || phase === "miss");
+                const interactive = phase === "idle";
+                return (
+                  <g key={i}>
+                    <path
+                      d={wedgePath(CX, CY, R, a0, a1)}
+                      fill={s.fill}
+                      stroke={isPick ? "hsl(var(--gold))" : "hsl(var(--wood-dark))"}
+                      strokeWidth={isPick ? 4 : 2}
+                      style={{
+                        cursor: interactive ? "pointer" : "default",
+                        opacity: phase === "miss" && !isWinner && !isPick ? 0.55 : 1,
+                        filter: isWinner ? "brightness(1.25)" : undefined,
+                      }}
+                      onClick={() => { if (interactive) setPick(i); }}
+                      role="radio"
+                      aria-checked={isPick}
+                      aria-label={`Slot ${i + 1}: ${s.reward.label}`}
+                      tabIndex={interactive ? 0 : -1}
+                    />
+                    <text
+                      x={lx} y={ly}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize="20"
+                      pointerEvents="none"
+                      transform={`rotate(${mid}, ${lx}, ${ly})`}
+                    >
+                      {s.reward.emoji}
+                    </text>
+                  </g>
+                );
+              })}
+              <circle cx={CX} cy={CY} r={18} fill="hsl(var(--gold))" stroke="hsl(var(--wood-dark))" strokeWidth={3} />
+            </motion.svg>
           </div>
 
-          <div className="mt-4 min-h-[3rem]">
-            {phase === "result" && reward && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
-                <div className="font-display text-lg text-cream-light">{reward.label}</div>
-                <div className="font-display text-2xl text-gold drop-shadow-[0_2px_0_hsl(var(--wood-dark))]">
-                  +{reward.amount} {reward.emoji}
-                </div>
-              </motion.div>
+          {/* Live region */}
+          <div className="sr-only" aria-live="polite">
+            {phase === "win" && winningSlot !== null && `You won ${SLOTS[winningSlot].reward.label}`}
+            {phase === "miss" && winningSlot !== null && pick !== null &&
+              `Miss. Ball landed on slot ${winningSlot + 1}, ${SLOTS[winningSlot].reward.label}. You picked slot ${pick + 1}.`}
+          </div>
+
+          {/* Pick summary */}
+          <div className="mt-3 min-h-[1.5rem] text-cream-light font-display text-[12px]">
+            {phase === "win" && winningSlot !== null && (
+              <span>+{SLOTS[winningSlot].reward.amount} {SLOTS[winningSlot].reward.emoji} {SLOTS[winningSlot].reward.label}</span>
+            )}
+            {phase === "miss" && winningSlot !== null && (
+              <span>Ball: {SLOTS[winningSlot].reward.emoji} {SLOTS[winningSlot].reward.label}</span>
+            )}
+            {phase !== "win" && phase !== "miss" && pick !== null && (
+              <span>Your pick: {SLOTS[pick].reward.emoji} {SLOTS[pick].reward.label}</span>
             )}
           </div>
 
-          {phase === "result" ? (
+          {/* Actions */}
+          {phase === "win" ? (
             <button
               ref={spinBtnRef}
               onClick={handleClaim}
-              className="btn-press mt-4 w-full py-2.5 rounded-full font-display text-base"
+              className="btn-press mt-3 w-full py-2.5 rounded-full font-display text-base"
               autoFocus
             >
               CLAIM REWARD
             </button>
+          ) : phase === "miss" ? (
+            <button
+              ref={spinBtnRef}
+              onClick={handleSpinAgain}
+              className="btn-press mt-3 w-full py-2.5 rounded-full font-display text-base"
+              autoFocus
+            >
+              TRY AGAIN
+            </button>
           ) : (
-            <div className="mt-4 space-y-2">
+            <div className="mt-3 space-y-2">
               <button
                 ref={spinBtnRef}
                 onClick={() => startSpin(false)}
-                disabled={!freeAvailable || phase === "spin"}
+                disabled={!freeAvailable || phase === "spin" || pick === null}
                 className="btn-press w-full py-2.5 rounded-full font-display text-base disabled:opacity-50 flex items-center justify-center gap-2"
-                aria-label={freeAvailable ? "Spin for free" : `Free spin in ${fmt(remainingMs)}`}
+                aria-label={pick === null ? "Pick a slot first" : freeAvailable ? "Spin for free" : `Free spin in ${fmt(remainingMs)}`}
               >
                 {freeAvailable ? (
                   <>🎰 FREE SPIN</>
@@ -265,7 +340,7 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
               </button>
               <button
                 onClick={() => startSpin(true)}
-                disabled={!canPaid || phase === "spin"}
+                disabled={!canPaid || phase === "spin" || pick === null}
                 className="w-full py-2 rounded-full font-display text-[12px] border-2 border-gold bg-wood-dark text-cream-light disabled:opacity-40 hover:bg-wood-dark/80 flex items-center justify-center gap-2"
                 aria-label={`Extra spin for ${PAID_SPIN_COST} coins`}
                 title={!canPaid ? `Need ${PAID_SPIN_COST} coins` : `Spend ${PAID_SPIN_COST} coins`}
@@ -273,7 +348,7 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
                 <Coins size={14} aria-hidden /> EXTRA SPIN — {PAID_SPIN_COST}
               </button>
               <p className="text-[10px] font-display text-cream/70">
-                Win coins, rolls, cards, season XP, and island prizes!
+                Pick a slot. Win only if the ball lands on it!
               </p>
             </div>
           )}
