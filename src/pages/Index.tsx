@@ -327,6 +327,12 @@ const Index = () => {
       emoji: "🃏",
     },
     {
+      selector: "[data-rail='roulette']",
+      title: "Lucky Roulette",
+      body: "Brand new! Spin once free every 24h, or pay 100 🪙 for extra spins. Win coins, rolls, cards, season XP, and 2× bonuses.",
+      emoji: "🎰",
+    },
+    {
       selector: "[data-rail='daily']",
       title: "Daily reward",
       body: "Right rail, top: claim a free reward every 24 hours. Streaks pay more — don't miss a day!",
@@ -370,6 +376,7 @@ const Index = () => {
     season: tutorialSteps.findIndex((s) => s.selector === "[data-rail='season']"),
     specials: tutorialSteps.findIndex((s) => s.selector === "[data-rail='specials']"),
     cards: tutorialSteps.findIndex((s) => s.selector === "[data-rail='cards']"),
+    roulette: tutorialSteps.findIndex((s) => s.selector === "[data-rail='roulette']"),
     daily: tutorialSteps.findIndex((s) => s.selector === "[data-rail='daily']"),
     spin: tutorialSteps.findIndex((s) => s.selector === "[data-rail='spin']"),
     collection: tutorialSteps.findIndex((s) => s.selector === "[data-rail='collection']"),
