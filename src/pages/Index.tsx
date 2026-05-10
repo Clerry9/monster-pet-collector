@@ -246,6 +246,7 @@ const Index = () => {
   const [rouletteOpen, setRouletteOpen] = useState(false);
   // Lucky Roulette mini-game (separate side-rail entry, not tied to board tiles)
   const [luckyOpen, setLuckyOpen] = useState(false);
+  const luckyCooldown = useLuckyRouletteCooldown();
 
   // Tutorial + help
   const mainTutorial = mainTutorialPreCheck;
