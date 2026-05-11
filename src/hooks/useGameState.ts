@@ -116,6 +116,12 @@ export function energyCapForLevel(level: number): number {
   return Math.floor(ENERGY_BASE_CAP * (1 + ENERGY_PER_LEVEL_PCT * Math.max(0, level - 1)));
 }
 
+/** Energy cost charged per roll for a given bet multiplier.
+ *  Single source of truth shared by rollDice and the UI. */
+export function energyCostForBet(mult: number): number {
+  return Math.max(1, Math.floor(mult || 1));
+}
+
 /** Pure: advance regen ticks since `state.energyUpdatedAt`.
  *  Caps at level cap, but leaves overflow energy alone (no auto-tick when at/over cap).
  *  When energy >= cap, the regen anchor is held at `nowMs` so that the very moment
@@ -699,11 +705,11 @@ export function useGameState() {
 
   const setBetMultiplier = useCallback(
     (mult: number) => {
-      const available = getAvailableBets(state.coins);
+      const available = getAvailableBets(state.coins, state.energy);
       if (!available.includes(mult)) return;
       update((s) => ({ ...s, betMultiplier: mult }));
     },
-    [state.coins, update]
+    [state.coins, state.energy, update]
   );
 
   const addXp = useCallback(
