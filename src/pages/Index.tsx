@@ -439,6 +439,14 @@ const Index = () => {
       setLastResult(result);
       // NOTE: card reveal + island-star toast are deferred to handleLanded()
       // so they only fire AFTER the monster has finished hopping.
+    } else {
+      // rollDice returns null when energy < energyCost. Surface why.
+      const cost = Math.max(1, game.betMultiplier);
+      if (game.energy < cost) {
+        toast.error("Not enough energy", {
+          description: `Bet ×${game.betMultiplier} costs ${cost}⚡. You have ${game.energy}⚡.`,
+        });
+      }
     }
   };
 

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { MONSTERS, getMonsterEvolution } from "@/data/monsters";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -114,6 +115,12 @@ export const ENERGY_PER_LEVEL_PCT = 0.10;
 
 export function energyCapForLevel(level: number): number {
   return Math.floor(ENERGY_BASE_CAP * (1 + ENERGY_PER_LEVEL_PCT * Math.max(0, level - 1)));
+}
+
+/** Energy cost charged per roll for a given bet multiplier.
+ *  Single source of truth shared by rollDice and the UI. */
+export function energyCostForBet(mult: number): number {
+  return Math.max(1, Math.floor(mult || 1));
 }
 
 /** Pure: advance regen ticks since `state.energyUpdatedAt`.
@@ -351,6 +358,33 @@ export function useGameState() {
     };
   }, [user?.id]);
 
+  // Realtime: server-side Special Pack fulfillment writes a row to
+  // pack_analytics. When that lands for the current user, surface a
+  // confirmation toast that includes the exact (clamped) card count.
+  useEffect(() => {
+    const userId = user?.id;
+    if (!userId) return;
+    const channel = supabase
+      .channel(`pack_analytics:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'pack_analytics', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const row = payload.new as { event?: string; cards_granted?: number; pack_id?: string } | null;
+          if (!row || row.event !== 'pack_fulfilled') return;
+          const cards = row.cards_granted ?? 0;
+          toast.success("Pack purchased!", {
+            description: cards > 0
+              ? `+${cards} card${cards === 1 ? '' : 's'} added — open the card reveal to flip them.`
+              : `Your ${row.pack_id ?? 'pack'} rewards have been credited.`,
+            duration: 5000,
+          });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+
   // Debounced save to DB
   const saveToDb = useCallback(
     (newState: GameState) => {
@@ -455,7 +489,7 @@ export function useGameState() {
 
   const rollDice = useCallback((): { steps: number; tile: BoardTile; card?: GameCard; monsterLevelUp?: { name: string; level: number; coinBonus: number }; islandStarEarned?: boolean } | null => {
     // Each roll costs `betMultiplier` energy (×1 = 1, ×2 = 2, ×3 = 3 …).
-    const energyCost = Math.max(1, state.betMultiplier);
+    const energyCost = energyCostForBet(state.betMultiplier);
     if (state.energy < energyCost) return null;
     const tier = DICE_TIERS.find((t) => t.id === state.activeDiceTier) ?? DICE_TIERS[0];
     const steps = Math.floor(Math.random() * tier.maxRoll) + 1;
@@ -699,11 +733,11 @@ export function useGameState() {
 
   const setBetMultiplier = useCallback(
     (mult: number) => {
-      const available = getAvailableBets(state.coins);
+      const available = getAvailableBets(state.coins, state.energy);
       if (!available.includes(mult)) return;
       update((s) => ({ ...s, betMultiplier: mult }));
     },
-    [state.coins, update]
+    [state.coins, state.energy, update]
   );
 
   const addXp = useCallback(

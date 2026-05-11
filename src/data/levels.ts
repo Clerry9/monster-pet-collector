@@ -130,7 +130,15 @@ export const BET_MULTIPLIERS = [
   { mult: 250, minCoins: 2500 },
   { mult: 500, minCoins: 5000 },
   { mult: 1000, minCoins: 10000 },
+  { mult: 2000, minCoins: 20000 },
+  { mult: 5000, minCoins: 50000 },
+  { mult: 10000, minCoins: 100000 },
+  { mult: 100000, minCoins: 1000000 },
 ];
+
+/** Bet multipliers above this require the player to also have HIGH_ENERGY_BET_THRESHOLD energy. */
+export const HIGH_ENERGY_BET_THRESHOLD = 1000;
+const HIGH_ENERGY_BET_FLOOR = 1000;
 
 /** Get the current level for a given XP amount — closed-form, O(1). */
 export function getLevelForXp(xp: number): LevelTheme {
@@ -178,6 +186,9 @@ export function getLevelProgress(xp: number): { current: LevelTheme; next: Level
 }
 
 /** Get available bet multipliers for a given coin balance */
-export function getAvailableBets(coins: number): number[] {
-  return BET_MULTIPLIERS.filter((b) => coins >= b.minCoins).map((b) => b.mult);
+export function getAvailableBets(coins: number, energy = Infinity): number[] {
+  return BET_MULTIPLIERS
+    .filter((b) => coins >= b.minCoins)
+    .filter((b) => b.mult <= HIGH_ENERGY_BET_FLOOR || energy >= HIGH_ENERGY_BET_THRESHOLD)
+    .map((b) => b.mult);
 }

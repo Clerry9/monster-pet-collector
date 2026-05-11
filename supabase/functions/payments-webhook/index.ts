@@ -56,7 +56,7 @@ const PACK_MAP: Record<string, Perk> = {
   monster_elite_monthly:  { packId: "monster_elite",  rolls: 200, coins: 2500, cardFlips: 5, stars: 10, unlockDiceTier: "gold", unlockMonsters: ["mossfang", "aurorix"] },
 };
 
-async function grantPerks(userId: string, perk: Perk) {
+async function grantPerks(userId: string, perk: Perk, ctx?: { priceId?: string; transactionId?: string; environment?: string }) {
   // Clamp Special Pack card grants to the hard ceiling. Applies to any
   // perk in PACK_MAP — defense-in-depth against a future entry exceeding
   // the limit by mistake.
@@ -83,6 +83,27 @@ async function grantPerks(userId: string, perk: Perk) {
     diceTier: perk.unlockDiceTier ?? null,
     monsters: perk.unlockMonsters ?? [],
   }));
+  // Persist analytics to a queryable table (in addition to the structured log).
+  // Failures here are non-fatal — we never want analytics to block fulfillment.
+  try {
+    const { error: analyticsErr } = await supabase.from('pack_analytics').insert({
+      user_id: userId,
+      pack_id: perk.packId,
+      price_id: ctx?.priceId ?? null,
+      paddle_transaction_id: ctx?.transactionId ?? null,
+      event: 'pack_fulfilled',
+      rolls_granted: rolls,
+      coins_granted: coins,
+      stars_granted: stars,
+      cards_granted: flips,
+      dice_tier: perk.unlockDiceTier ?? null,
+      monsters_granted: perk.unlockMonsters ?? [],
+      environment: ctx?.environment ?? 'sandbox',
+    });
+    if (analyticsErr) console.error('pack_analytics insert failed:', analyticsErr);
+  } catch (e) {
+    console.error('pack_analytics insert threw:', e);
+  }
   if (gameState) {
     const tiers = gameState.unlocked_dice_tiers || ['basic'];
     const monsters = gameState.unlocked_monsters || ['gobby'];
@@ -192,7 +213,7 @@ Deno.serve(async (req) => {
         // Apply ALL economic rewards in a single read-modify-write so
         // multiple bundles (e.g. VIP) credit atomically.
         if (perk && (rollsToGrant || coinsToGrant || starsToGrant || cardFlipsToGrant || perk.unlockDiceTier || perk.unlockMonsters)) {
-          await grantPerks(userId, perk);
+          await grantPerks(userId, perk, { priceId: priceExternalId, transactionId: data.id, environment: env });
         }
 
         // Handle Season Pass purchase
@@ -269,7 +290,7 @@ Deno.serve(async (req) => {
         if (isNewPeriod && (data.status === 'active' || data.status === 'trialing')) {
           const subPerk = PACK_MAP[priceId];
           if (subPerk) {
-            await grantPerks(userId, subPerk);
+            await grantPerks(userId, subPerk, { priceId, transactionId: data.id, environment: env });
             console.log(`Granted subscription perks for ${priceId} period ${periodStart}`);
           }
         }

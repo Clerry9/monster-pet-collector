@@ -92,6 +92,57 @@ export type Database = {
         }
         Relationships: []
       }
+      pack_analytics: {
+        Row: {
+          cards_granted: number
+          coins_granted: number
+          created_at: string
+          dice_tier: string | null
+          environment: string
+          event: string
+          id: string
+          monsters_granted: string[]
+          pack_id: string
+          paddle_transaction_id: string | null
+          price_id: string | null
+          rolls_granted: number
+          stars_granted: number
+          user_id: string
+        }
+        Insert: {
+          cards_granted?: number
+          coins_granted?: number
+          created_at?: string
+          dice_tier?: string | null
+          environment?: string
+          event: string
+          id?: string
+          monsters_granted?: string[]
+          pack_id: string
+          paddle_transaction_id?: string | null
+          price_id?: string | null
+          rolls_granted?: number
+          stars_granted?: number
+          user_id: string
+        }
+        Update: {
+          cards_granted?: number
+          coins_granted?: number
+          created_at?: string
+          dice_tier?: string | null
+          environment?: string
+          event?: string
+          id?: string
+          monsters_granted?: string[]
+          pack_id?: string
+          paddle_transaction_id?: string | null
+          price_id?: string | null
+          rolls_granted?: number
+          stars_granted?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
