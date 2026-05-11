@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { getAvailableBets } from "@/data/levels";
+import { energyCostForBet } from "@/hooks/useGameState";
 
 interface BetSelectorProps {
   coins: number;
@@ -18,7 +19,9 @@ interface BetSelectorProps {
 export function BetSelector({
   coins, currentBet, onSetBet, energy, energyCap, energyUpdatedAt, energyRegenMs = 180_000,
 }: BetSelectorProps) {
-  const available = getAvailableBets(coins);
+  const available = getAvailableBets(coins, energy ?? 0);
+  const cost = energyCostForBet(currentBet);
+  const insufficient = typeof energy === "number" && energy < cost;
   // Real energy if provided, otherwise fall back to the legacy bet-relative pill.
   const useReal = typeof energy === "number" && typeof energyCap === "number" && energyCap > 0;
   const cur = useReal ? Math.min(energy!, energyCap!) : currentBet;
@@ -67,6 +70,12 @@ export function BetSelector({
         <span className="text-[11px] font-display leading-none">
           {useReal ? `${energy}/${energyCap}` : `${currentBet}/${max}`}
           {overflow > 0 && <span className="ml-1 text-[9px] opacity-90">+{overflow}</span>}
+          <span
+            className={`ml-1 text-[9px] tabular-nums ${insufficient ? "text-destructive font-bold" : "opacity-80"}`}
+            aria-label={`Each roll costs ${cost} energy`}
+          >
+            −{cost}⚡/roll
+          </span>
           {countdown && (
             <span
               className="ml-1 text-[9px] opacity-80 tabular-nums"
