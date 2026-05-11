@@ -13,6 +13,7 @@ import Refund from "./pages/Refund";
 import AcceptableUse from "./pages/AcceptableUse";
 import Pricing from "./pages/Pricing";
 import PurchaseHistory from "./pages/PurchaseHistory";
+import AdminRewards from "./pages/AdminRewards";
 import { CookieConsent } from "./components/CookieConsent";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -98,6 +99,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <PurchaseHistory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/rewards"
+              element={
+                <ProtectedRoute>
+                  <AdminRewards />
                 </ProtectedRoute>
               }
             />

@@ -331,3 +331,45 @@ export function sfxLevelUp() {
     osc.stop(shimmerTime + 0.8);
   });
 }
+
+/** Soft descending "aww" tone for roulette miss. */
+export function sfxRouletteMiss() {
+  const c = getCtx();
+  if (!c) return;
+  const v = _volumes.skull;
+  if (v <= 0) return;
+  const notes = [440, 349, 277];
+  notes.forEach((freq, i) => {
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = "triangle";
+    const t = c.currentTime + i * 0.12;
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.12 * v, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t);
+    osc.stop(t + 0.25);
+  });
+}
+
+/** Slot-machine win jingle. */
+export function sfxRouletteWin() {
+  const c = getCtx();
+  if (!c) return;
+  const v = _volumes.win;
+  if (v <= 0) return;
+  const notes = [659, 784, 988, 1319]; // E5 G5 B5 E6
+  notes.forEach((freq, i) => {
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = "square";
+    const t = c.currentTime + i * 0.07;
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.14 * v, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t);
+    osc.stop(t + 0.2);
+  });
+}
