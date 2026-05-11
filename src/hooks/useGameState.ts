@@ -358,6 +358,33 @@ export function useGameState() {
     };
   }, [user?.id]);
 
+  // Realtime: server-side Special Pack fulfillment writes a row to
+  // pack_analytics. When that lands for the current user, surface a
+  // confirmation toast that includes the exact (clamped) card count.
+  useEffect(() => {
+    const userId = user?.id;
+    if (!userId) return;
+    const channel = supabase
+      .channel(`pack_analytics:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'pack_analytics', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const row = payload.new as { event?: string; cards_granted?: number; pack_id?: string } | null;
+          if (!row || row.event !== 'pack_fulfilled') return;
+          const cards = row.cards_granted ?? 0;
+          toast.success("Pack purchased!", {
+            description: cards > 0
+              ? `+${cards} card${cards === 1 ? '' : 's'} added — open the card reveal to flip them.`
+              : `Your ${row.pack_id ?? 'pack'} rewards have been credited.`,
+            duration: 5000,
+          });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+
   // Debounced save to DB
   const saveToDb = useCallback(
     (newState: GameState) => {
