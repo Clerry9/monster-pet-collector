@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { CreditCard, Sparkles } from "lucide-react";
+import { CreditCard, Sparkles, Layers } from "lucide-react";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -80,6 +80,17 @@ export function SpecialPacks() {
       toast.error("Please log in to make purchases");
       return;
     }
+    // Lightweight analytics — logged to the browser console and surfaced in
+    // any analytics relay listening to console events. Records the clamped
+    // card count we expect the server to grant.
+    const clampedCards = Math.min(pack.cards ?? 0, MAX_CARDS_PER_PACK);
+    console.info("[analytics] special_pack_purchase_initiated", {
+      packId: `special_${pack.id}`,
+      priceId: pack.priceId,
+      costCents: pack.costCents,
+      cards: clampedCards,
+      userId: user.id,
+    });
     try {
       await openCheckout({
         priceId: pack.priceId,
@@ -135,7 +146,8 @@ export function SpecialPacks() {
                   if (clampedCards <= 0) return null;
                   return (
                     <li className="text-[11px] font-body font-bold text-wood-dark flex items-center gap-1.5">
-                      <span className="text-candy-red" aria-hidden>✦</span> +{clampedCards} Card{clampedCards === 1 ? "" : "s"}
+                      <Layers className="text-candy-red shrink-0" size={12} aria-hidden />
+                      +{clampedCards} Card{clampedCards === 1 ? "" : "s"}
                     </li>
                   );
                 })()}

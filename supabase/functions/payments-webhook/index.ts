@@ -19,6 +19,11 @@ interface Perk {
   unlockMonsters?: string[]; // monster ids to add to unlocked_monsters
 }
 
+/** Server-side hard ceiling on cards granted per Special Pack. Mirrors
+ *  MAX_CARDS_PER_PACK in src/components/SpecialPacks.tsx. The client cannot
+ *  influence this — even a tampered checkout cannot grant more than this. */
+const MAX_CARDS_PER_PACK = 8;
+
 const PACK_MAP: Record<string, Perk> = {
   // Roll bundles
   value_pack_price: { packId: "value", rolls: 15 },
@@ -44,7 +49,7 @@ const PACK_MAP: Record<string, Perk> = {
   special_starter_price: { packId: "special_starter", rolls: 30,  coins: 500,   cardFlips: 1 },
   special_card_price:    { packId: "special_card",    rolls: 50,  coins: 1000,  cardFlips: 3 },
   special_monster_price: { packId: "special_monster", rolls: 150, coins: 3000,  unlockDiceTier: "gold" },
-  special_vip_price:     { packId: "special_vip",     rolls: 500, coins: 10000, unlockDiceTier: "gold", unlockMonsters: ["mossfang", "aurorix"] },
+  special_vip_price:     { packId: "special_vip",     rolls: 500, coins: 10000, cardFlips: 8, unlockDiceTier: "gold", unlockMonsters: ["mossfang", "aurorix"] },
 
   // Recurring subscriptions — perks granted on every renewal
   collector_club_monthly: { packId: "collector_club", rolls: 50,  coins: 500,  cardFlips: 1 },
@@ -52,12 +57,32 @@ const PACK_MAP: Record<string, Perk> = {
 };
 
 async function grantPerks(userId: string, perk: Perk) {
+  // Clamp Special Pack card grants to the hard ceiling. Applies to any
+  // perk in PACK_MAP — defense-in-depth against a future entry exceeding
+  // the limit by mistake.
+  const clampedFlips = perk.packId.startsWith("special_")
+    ? Math.min(perk.cardFlips ?? 0, MAX_CARDS_PER_PACK)
+    : (perk.cardFlips ?? 0);
+  if ((perk.cardFlips ?? 0) !== clampedFlips) {
+    console.warn(`[analytics] pack ${perk.packId}: card grant clamped from ${perk.cardFlips} to ${clampedFlips}`);
+  }
   const { data: gameState } = await supabase
     .from('game_state')
     .select('rolls, coins, island_stars, pending_card_flips, unlocked_dice_tiers, active_dice_tier, unlocked_monsters')
     .eq('user_id', userId)
     .maybeSingle();
-  const rolls = perk.rolls ?? 0, coins = perk.coins ?? 0, stars = perk.stars ?? 0, flips = perk.cardFlips ?? 0;
+  const rolls = perk.rolls ?? 0, coins = perk.coins ?? 0, stars = perk.stars ?? 0, flips = clampedFlips;
+  // Structured analytics event — surfaced in edge function logs and easy to
+  // grep for downstream pipelines. Includes the (clamped) card count so we
+  // can audit how many cards each pack actually granted.
+  console.log(JSON.stringify({
+    event: "pack_fulfilled",
+    userId,
+    packId: perk.packId,
+    rolls, coins, stars, cardFlips: flips,
+    diceTier: perk.unlockDiceTier ?? null,
+    monsters: perk.unlockMonsters ?? [],
+  }));
   if (gameState) {
     const tiers = gameState.unlocked_dice_tiers || ['basic'];
     const monsters = gameState.unlocked_monsters || ['gobby'];

@@ -454,7 +454,9 @@ export function useGameState() {
   // Monster XP is now gained from "food" tiles during rollDice, no more tapping
 
   const rollDice = useCallback((): { steps: number; tile: BoardTile; card?: GameCard; monsterLevelUp?: { name: string; level: number; coinBonus: number }; islandStarEarned?: boolean } | null => {
-    if (state.energy <= 0) return null;
+    // Each roll costs `betMultiplier` energy (×1 = 1, ×2 = 2, ×3 = 3 …).
+    const energyCost = Math.max(1, state.betMultiplier);
+    if (state.energy < energyCost) return null;
     const tier = DICE_TIERS.find((t) => t.id === state.activeDiceTier) ?? DICE_TIERS[0];
     const steps = Math.floor(Math.random() * tier.maxRoll) + 1;
     const newPosition = (state.position + steps) % BOARD_TILES.length;
@@ -562,7 +564,7 @@ export function useGameState() {
       return {
         ...s,
         rolls: s.rolls,
-        energy: Math.max(0, s.energy - 1),
+        energy: Math.max(0, s.energy - energyCost),
         position: newPosition,
         totalSteps: s.totalSteps + steps,
         coins: Math.max(0, s.coins + coinGain + bonusCoins),
