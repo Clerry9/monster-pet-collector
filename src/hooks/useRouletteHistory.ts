@@ -84,7 +84,7 @@ export function useRouletteHistory() {
     };
     fetchHistory();
     const channel = supabase
-      .channel(`roulette_spins:${user.id}`)
+      .channel(`roulette_spins:${user.id}:${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "roulette_spins", filter: `user_id=eq.${user.id}` },
