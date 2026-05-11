@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { MONSTERS, getMonsterEvolution } from "@/data/monsters";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -461,7 +462,7 @@ export function useGameState() {
 
   const rollDice = useCallback((): { steps: number; tile: BoardTile; card?: GameCard; monsterLevelUp?: { name: string; level: number; coinBonus: number }; islandStarEarned?: boolean } | null => {
     // Each roll costs `betMultiplier` energy (×1 = 1, ×2 = 2, ×3 = 3 …).
-    const energyCost = Math.max(1, state.betMultiplier);
+    const energyCost = energyCostForBet(state.betMultiplier);
     if (state.energy < energyCost) return null;
     const tier = DICE_TIERS.find((t) => t.id === state.activeDiceTier) ?? DICE_TIERS[0];
     const steps = Math.floor(Math.random() * tier.maxRoll) + 1;
