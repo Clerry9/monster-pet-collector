@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Gem, Coins, Key, Star, Flame, PawPrint, Plus } from "lucide-react";
 import { getLevelProgress } from "@/data/levels";
+import { energyCostForBet } from "@/hooks/useGameState";
 
 interface TopHudProps {
   gems: number;
@@ -92,6 +93,12 @@ export function TopHud({
           </div>
           <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-display bg-wood-dark text-cream-light px-1 rounded-full border border-cream-light/60 leading-none py-[1px]">
             ×{betMultiplier}
+          </span>
+          <span
+            className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-display text-cream-light/90 leading-none whitespace-nowrap drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]"
+            aria-label={`Each roll costs ${energyCostForBet(betMultiplier)} energy`}
+          >
+            −{energyCostForBet(betMultiplier)}⚡
           </span>
         </div>
       </div>
