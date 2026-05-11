@@ -1121,19 +1121,22 @@ const Index = () => {
         startIndex={coachStartIndex}
         steps={tutorialSteps}
         onStepChange={(_i, step) => {
-          // Pre-open the lucky roulette modal so its wedges/pointer exist in the DOM
-          // when those tutorial steps try to highlight them.
-          if (step.selector?.startsWith("[data-tutorial='roulette-")) {
-            setLuckyOpen(true);
-          }
+          // Pre-open the lucky roulette modal so its wedges/pointer exist in
+          // the DOM when roulette-specific steps try to highlight them — but
+          // close it again as soon as the tutorial moves to a non-roulette
+          // step so the modal never blocks subsequent coachmarks.
+          const isRouletteStep = step.selector?.startsWith("[data-tutorial='roulette-");
+          setLuckyOpen(!!isRouletteStep);
         }}
         onClose={() => {
           setCoachOpen(false);
+          setLuckyOpen(false);
           mainTutorial.markCompleted();
           setCoachStartIndex(0);
         }}
         onFinish={() => {
           setCoachOpen(false);
+          setLuckyOpen(false);
           mainTutorial.markCompleted();
           setCoachStartIndex(0);
           // Kick off the post-tutorial onboarding chain: daily reward first.
