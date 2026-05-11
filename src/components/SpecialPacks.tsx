@@ -13,7 +13,12 @@ export interface SpecialPack {
   perks: string[];
   costCents: number;
   highlight?: "best" | "popular" | "new";
+  /** Number of cards granted by this pack. Clamped to MAX_CARDS_PER_PACK. */
+  cards?: number;
 }
+
+/** Hard ceiling: no Special Pack may grant more than this many cards. */
+export const MAX_CARDS_PER_PACK = 8;
 
 const SPECIAL_PACKS: SpecialPack[] = [
   {
@@ -22,7 +27,8 @@ const SPECIAL_PACKS: SpecialPack[] = [
     emoji: "🎁",
     name: "Starter Bundle",
     tagline: "Kickstart your journey",
-    perks: ["+30 Rolls", "+500 Coins", "1× Mystery Card"],
+    perks: ["+30 Rolls", "+500 Coins"],
+    cards: 1,
     costCents: 199,
     highlight: "new",
   },
@@ -32,7 +38,8 @@ const SPECIAL_PACKS: SpecialPack[] = [
     emoji: "🃏",
     name: "Card Collector",
     tagline: "Boosted card chances",
-    perks: ["+50 Rolls", "+1,000 Coins", "3× Card Packs"],
+    perks: ["+50 Rolls", "+1,000 Coins"],
+    cards: 3,
     costCents: 499,
     highlight: "popular",
   },
@@ -52,6 +59,7 @@ const SPECIAL_PACKS: SpecialPack[] = [
     name: "VIP Mega Bundle",
     tagline: "Everything, everywhere",
     perks: ["+500 Rolls", "+10,000 Coins", "Gold Dice + 2 Monsters"],
+    cards: 8,
     costCents: 2999,
     highlight: "best",
   },
@@ -122,6 +130,15 @@ export function SpecialPacks() {
               </div>
 
               <ul className="w-full bg-cream/95 rounded-xl border-2 border-wood-dark px-2 py-1.5 space-y-0.5">
+                {(() => {
+                  const clampedCards = Math.min(pack.cards ?? 0, MAX_CARDS_PER_PACK);
+                  if (clampedCards <= 0) return null;
+                  return (
+                    <li className="text-[11px] font-body font-bold text-wood-dark flex items-center gap-1.5">
+                      <span className="text-candy-red" aria-hidden>✦</span> +{clampedCards} Card{clampedCards === 1 ? "" : "s"}
+                    </li>
+                  );
+                })()}
                 {pack.perks.map((perk) => (
                   <li key={perk} className="text-[11px] font-body font-bold text-wood-dark flex items-center gap-1.5">
                     <span className="text-candy-red" aria-hidden>✦</span> {perk}
