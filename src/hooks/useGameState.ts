@@ -610,6 +610,17 @@ export function useGameState() {
         level: newLevel.id,
         islandStars: newIslandStars,
         pendingCardFlips: newPendingFlips,
+        // Auto-clamp the bet multiplier if the new energy/coin balance
+        // pushes the current selection out of the available list (e.g.
+        // dropping below the high-energy gate after a roll). This keeps
+        // the BetSelector in sync without a follow-up user action.
+        betMultiplier: (() => {
+          const nextEnergy = Math.max(0, s.energy - energyCost);
+          const nextCoins = Math.max(0, s.coins + coinGain + bonusCoins);
+          const avail = getAvailableBets(nextCoins, nextEnergy);
+          if (avail.includes(s.betMultiplier)) return s.betMultiplier;
+          return avail[avail.length - 1] ?? 1;
+        })(),
       };
     });
     return { steps, tile: modifiedTile, card: drawnCard, monsterLevelUp, islandStarEarned };
