@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getLevelForXp, getLevelProgress, getAvailableBets } from "@/data/levels";
 import { drawRandomCard, GameCard, CARD_SETS, TRADE_VALUES } from "@/data/cards";
+import { isSeasonPassActive } from "@/hooks/useSeason";
 
 export interface DiceTier {
   id: string;
@@ -431,7 +432,11 @@ export function useGameState() {
   }, [saveToDb]);
 
   const addCoins = useCallback(
-    (amount: number) => update((s) => ({ ...s, coins: Math.max(0, s.coins + amount) })),
+    (amount: number) => update((s) => {
+      // Season Pass perk: 2× coins on positive grants while pass is active.
+      const mult = amount > 0 && isSeasonPassActive() ? 2 : 1;
+      return { ...s, coins: Math.max(0, s.coins + amount * mult) };
+    }),
     [update]
   );
 
@@ -753,7 +758,9 @@ export function useGameState() {
 
   const addXp = useCallback(
     (amount: number) => update((s) => {
-      const newXp = Math.max(0, s.xp + amount);
+      // Season Pass perk: 2× XP on positive grants while pass is active.
+      const mult = amount > 0 && isSeasonPassActive() ? 2 : 1;
+      const newXp = Math.max(0, s.xp + amount * mult);
       const newLevel = getLevelForXp(newXp);
       return { ...s, xp: newXp, level: newLevel.id };
     }),
