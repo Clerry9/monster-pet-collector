@@ -42,7 +42,7 @@ export function FriendSearch({ activeMonsterId, paused = false, className = "" }
         const friends = MONSTERS.filter((m) => m.id !== activeMonsterId);
         if (friends.length === 0) { schedule(); return; }
         const friend = friends[Math.floor(Math.random() * friends.length)];
-        setVisible({ id: friend.id, emoji: friend.emoji ?? "👾" });
+        setVisible({ id: friend.id, emoji: friend.image });
         setTimeout(() => { if (!cancelled) setVisible(null); schedule(); }, 1600);
       }, wait);
     };
@@ -62,7 +62,12 @@ export function FriendSearch({ activeMonsterId, paused = false, className = "" }
           aria-hidden="true"
         >
           <span>🔍</span>
-          <span style={{ filter: "grayscale(0.4) opacity(0.85)" }}>{visible.emoji}</span>
+          <img
+            src={visible.emoji}
+            alt=""
+            className="w-5 h-5 object-contain"
+            style={{ filter: "grayscale(0.4)" }}
+          />
         </motion.div>
       )}
     </AnimatePresence>
