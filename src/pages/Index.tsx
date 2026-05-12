@@ -668,7 +668,14 @@ const Index = () => {
             >
               <Gift size={16} />
             </button>
-            <NavLinkAchievements />
+            <button
+              onClick={() => navigate("/achievements")}
+              className="icon-tile-gold w-9 h-9 flex items-center justify-center"
+              title="Achievements"
+              aria-label="Achievements"
+            >
+              <Trophy size={16} />
+            </button>
             <AuthStatusBadge compact />
           </div>
         </div>
