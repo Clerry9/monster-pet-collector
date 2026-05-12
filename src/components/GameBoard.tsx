@@ -373,6 +373,22 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
           seasonGlow={seasonGlow}
           fullscreen={fullscreen}
         />
+        {/* Lottery wheel + friend-search bubble float above the monster.
+            Positioned roughly over the board center; purely decorative. */}
+        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[18%] flex flex-col items-center gap-1 z-20">
+          <LotteryRoulette
+            spinning={isRolling || (!!lastResult && !showResult)}
+            result={
+              showResult && lastResult
+                ? (lastResult.tile.type as "coins" | "bonus" | "chest" | "food" | "skull" | "star")
+                : null
+            }
+          />
+          <FriendSearch
+            activeMonsterId={monster.id}
+            paused={isRolling || frozen || !!lastResult}
+          />
+        </div>
         {/* Season symbol particle burst */}
         <AnimatePresence>
           {seasonSymbol && seasonBurstKey > 0 && (
