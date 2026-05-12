@@ -4,6 +4,8 @@ import { MONSTERS } from "@/data/monsters";
 
 const KEY = "lov_friend_search_enabled";
 const CHANGED_EVENT = "friend-search:changed";
+const NEXT_EVENT = "friend-search:next";
+const FORCE_EVENT = "friend-search:force";
 
 export function getFriendSearchEnabled(): boolean {
   if (typeof window === "undefined") return true;
@@ -15,6 +17,25 @@ export function setFriendSearchEnabled(on: boolean) {
     localStorage.setItem(KEY, on ? "1" : "0");
     window.dispatchEvent(new Event(CHANGED_EVENT));
   } catch { /* ignore */ }
+}
+
+/** Force the next friend-search bubble to fire on the next tick. */
+export function forceFriendBubble() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(FORCE_EVENT));
+}
+
+/**
+ * Subscribe to next-bubble timestamp updates. Listener receives an epoch ms
+ * value (or null when the loop is paused/disabled).
+ */
+export function subscribeFriendSearchNext(cb: (nextAt: number | null) => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const handler = (e: Event) => {
+    const ce = e as CustomEvent<number | null>;
+    cb(ce.detail ?? null);
+  };
+  window.addEventListener(NEXT_EVENT, handler);
+  return () => window.removeEventListener(NEXT_EVENT, handler);
 }
 
 interface FriendSearchProps {
@@ -42,15 +63,20 @@ export function FriendSearch({ activeMonsterId, paused = false, className = "" }
   }, []);
 
   useEffect(() => {
-    if (paused) { setVisible(null); return; }
-    if (!getFriendSearchEnabled()) return;
+    if (paused) {
+      setVisible(null);
+      window.dispatchEvent(new CustomEvent(NEXT_EVENT, { detail: null }));
+      return;
+    }
+    if (!getFriendSearchEnabled()) {
+      window.dispatchEvent(new CustomEvent(NEXT_EVENT, { detail: null }));
+      return;
+    }
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     let hideTimer: ReturnType<typeof setTimeout>;
 
-    const schedule = () => {
-      const wait = 8000 + Math.random() * 6000;
-      timer = setTimeout(() => {
+    const fire = () => {
         if (cancelled) return;
         // Re-check toggle on each tick so disabling without remount takes effect.
         if (!getFriendSearchEnabled()) return;
@@ -59,13 +85,25 @@ export function FriendSearch({ activeMonsterId, paused = false, className = "" }
         const friend = friends[Math.floor(Math.random() * friends.length)];
         setVisible({ id: friend.id, emoji: friend.image });
         hideTimer = setTimeout(() => { if (!cancelled) setVisible(null); schedule(); }, 1600);
-      }, wait);
     };
+    const schedule = (forced = false) => {
+      const wait = forced ? 0 : 8000 + Math.random() * 6000;
+      const nextAt = Date.now() + wait;
+      window.dispatchEvent(new CustomEvent(NEXT_EVENT, { detail: nextAt }));
+      timer = setTimeout(fire, wait);
+    };
+    const onForce = () => {
+      clearTimeout(timer);
+      clearTimeout(hideTimer);
+      schedule(true);
+    };
+    window.addEventListener(FORCE_EVENT, onForce);
     schedule();
     return () => {
       cancelled = true;
       clearTimeout(timer);
       clearTimeout(hideTimer);
+      window.removeEventListener(FORCE_EVENT, onForce);
     };
   }, [activeMonsterId, paused, enabledTick]);
 

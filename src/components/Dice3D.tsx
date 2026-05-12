@@ -22,7 +22,7 @@ const TIER_COLORS: Record<string, { color: string; emissive: string; metalness: 
 };
 
 // Standard dice face-to-rotation map (for face value 1..6)
-const FACE_ROT: Record<number, [number, number, number]> = {
+export const FACE_ROT: Record<number, [number, number, number]> = {
   1: [0, 0, 0],
   2: [Math.PI / 2, 0, 0],
   3: [0, -Math.PI / 2, 0],
@@ -135,6 +135,7 @@ export function Dice3D({ value, tier = "basic", size = 90, className = "", settl
         }}
         aria-label={`Dice showing ${value}`}
         role="img"
+        data-testid="dice3d-face"
       >
         {value}
       </div>
