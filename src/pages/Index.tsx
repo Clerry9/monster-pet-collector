@@ -50,6 +50,11 @@ import { useSeasonNotice } from "@/hooks/useSeasonNotice";
 import { SeasonRotationModal } from "@/components/SeasonRotationModal";
 import { Footer } from "@/components/Footer";
 import { AuthStatusBadge } from "@/components/AuthStatusBadge";
+import { AdRewardMenu, AdRewardLauncher } from "@/components/AdRewardMenu";
+import { DailyStreakModal } from "@/components/DailyStreakModal";
+import { AnimatedBackdrop } from "@/components/effects/AnimatedBackdrop";
+import { Trophy } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season" | "account";
 
@@ -252,6 +257,7 @@ const Index = () => {
   const mainTutorial = mainTutorialPreCheck;
   const [helpOpen, setHelpOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [adRewardsOpen, setAdRewardsOpen] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   // After the tutorial finishes, run a short onboarding chain:
@@ -654,6 +660,15 @@ const Index = () => {
             >
               <SettingsIcon size={16} />
             </button>
+            <button
+              onClick={() => setAdRewardsOpen(true)}
+              className="icon-tile-gold w-9 h-9 flex items-center justify-center"
+              title="Free rewards"
+              aria-label="Free rewards"
+            >
+              <Gift size={16} />
+            </button>
+            <NavLinkAchievements />
             <AuthStatusBadge compact />
           </div>
         </div>
