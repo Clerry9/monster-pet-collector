@@ -457,6 +457,7 @@ const Index = () => {
     const result = game.rollDice();
     if (result) {
       setLastResult(result);
+      setHasLanded(false);
       void missions.bump("roll_10", 1);
       void missions.bump("roll_30", 1);
       // NOTE: card reveal + island-star toast are deferred to handleLanded()
