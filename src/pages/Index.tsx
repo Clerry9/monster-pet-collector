@@ -292,6 +292,12 @@ const Index = () => {
     }
   }, [mainTutorial.completed]);
 
+  // Notify CrazyGames SDK that gameplay is active (no-op without the SDK).
+  useEffect(() => {
+    gameplayStart();
+    return () => gameplayStop();
+  }, []);
+
   // Chain: when daily modal closes (and we're in the post-tutorial flow), open the mini-game.
   useEffect(() => {
     if (postTutorialStep === "daily" && !daily.showModal) {
@@ -696,6 +702,19 @@ const Index = () => {
               aria-label="Achievements"
             >
               <Trophy size={16} />
+            </button>
+            <button
+              onClick={() => setMissionsOpen(true)}
+              className="icon-tile-gold w-9 h-9 flex items-center justify-center relative"
+              title="Daily missions"
+              aria-label={`Daily missions${missions.unclaimedCount > 0 ? `, ${missions.unclaimedCount} ready` : ""}`}
+            >
+              <Target size={16} />
+              {missions.unclaimedCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-500 text-cream-light text-[10px] font-bold flex items-center justify-center">
+                  {missions.unclaimedCount}
+                </span>
+              )}
             </button>
             <AuthStatusBadge compact />
           </div>
