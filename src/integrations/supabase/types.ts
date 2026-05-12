@@ -74,6 +74,48 @@ export type Database = {
         }
         Relationships: []
       }
+      cosmetics_def: {
+        Row: {
+          asset_key: string | null
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          kind: string
+          name: string
+          preview_color: string | null
+          price_coins: number
+          rarity: string
+          sort_order: number
+        }
+        Insert: {
+          asset_key?: string | null
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id: string
+          kind: string
+          name: string
+          preview_color?: string | null
+          price_coins?: number
+          rarity?: string
+          sort_order?: number
+        }
+        Update: {
+          asset_key?: string | null
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          kind?: string
+          name?: string
+          preview_color?: string | null
+          price_coins?: number
+          rarity?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       daily_missions: {
         Row: {
           claimed_at: string | null
@@ -154,6 +196,7 @@ export type Database = {
           created_at: string
           energy: number
           energy_updated_at: string
+          equipped_cosmetics: Json
           id: string
           island_stars: number
           last_spin_at: string | null
@@ -179,6 +222,7 @@ export type Database = {
           created_at?: string
           energy?: number
           energy_updated_at?: string
+          equipped_cosmetics?: Json
           id?: string
           island_stars?: number
           last_spin_at?: string | null
@@ -204,6 +248,7 @@ export type Database = {
           created_at?: string
           energy?: number
           energy_updated_at?: string
+          equipped_cosmetics?: Json
           id?: string
           island_stars?: number
           last_spin_at?: string | null
@@ -602,6 +647,35 @@ export type Database = {
         }
         Relationships: []
       }
+      user_cosmetics: {
+        Row: {
+          acquired_at: string
+          cosmetic_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string
+          cosmetic_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string
+          cosmetic_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_cosmetics_cosmetic_id_fkey"
+            columns: ["cosmetic_id"]
+            isOneToOne: false
+            referencedRelation: "cosmetics_def"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -649,6 +723,21 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      buy_cosmetic: {
+        Args: { p_cosmetic_id: string }
+        Returns: {
+          acquired_at: string
+          cosmetic_id: string
+          id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_cosmetics"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       buy_dice_pack: {
         Args: { p_pack_id: string }
         Returns: {
@@ -661,6 +750,7 @@ export type Database = {
           created_at: string
           energy: number
           energy_updated_at: string
+          equipped_cosmetics: Json
           id: string
           island_stars: number
           last_spin_at: string | null
@@ -756,6 +846,41 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      equip_cosmetic: {
+        Args: { p_cosmetic_id: string }
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_ad_reward_status: {
         Args: never
         Returns: {
@@ -839,6 +964,42 @@ export type Database = {
           created_at: string
           energy: number
           energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      unequip_cosmetic: {
+        Args: { p_kind: string }
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
           id: string
           island_stars: number
           last_spin_at: string | null
@@ -873,6 +1034,7 @@ export type Database = {
           created_at: string
           energy: number
           energy_updated_at: string
+          equipped_cosmetics: Json
           id: string
           island_stars: number
           last_spin_at: string | null
