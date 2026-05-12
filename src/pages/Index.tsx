@@ -940,6 +940,10 @@ const Index = () => {
                   onLanded={handleLanded}
                   activeDiceMax={game.activeDiceTierData.maxRoll}
                   diceTier={(["basic","silver","gold"] as const).includes(game.activeDiceTier as "basic"|"silver"|"gold") ? (game.activeDiceTier as "basic"|"silver"|"gold") : "basic"}
+                  onLuckyEnergy={(amt) => {
+                    game.addEnergy(amt);
+                    toast.success(`Lucky spin! +${amt} ⚡`, { duration: 2000 });
+                  }}
                   frozen={!!drawnCard}
                   levelId={getLevelForXp(game.xp).id}
                   seasonAccent={`hsl(${season.season.palette.accent})`}

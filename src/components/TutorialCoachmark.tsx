@@ -29,6 +29,7 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
 ) {
   const [index, setIndex] = useState(startIndex);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const [cardHeight, setCardHeight] = useState<number>(260);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const nextBtnRef = useRef<HTMLButtonElement | null>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
@@ -121,6 +122,22 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
     return () => window.removeEventListener("keydown", handler);
   }, [open, index, steps.length, onClose, onFinish]);
 
+  // Measure the actual rendered tooltip card so the off-screen clamp uses
+  // the real height instead of a fixed estimate. Without this, taller
+  // tooltips (e.g. the Season hub step on small viewports) can overflow.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const card = cardRef.current;
+    if (!card) return;
+    const measure = () => setCardHeight(card.offsetHeight || 260);
+    measure();
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(measure);
+      ro.observe(card);
+      return () => ro.disconnect();
+    }
+  }, [open, index, rect]);
+
   // Track previously focused element so we can restore focus on close.
   useEffect(() => {
     if (open) {
@@ -166,7 +183,8 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
     // Conservative — covers our tallest tooltip (emoji + 3-line body +
     // progress bar + buttons) on the smallest mobile viewport so the last
     // tutorial step never falls below the visible area.
-    const ESTIMATED_HEIGHT = 260;
+    // Use the measured card height when available so we clamp accurately.
+    const ESTIMATED_HEIGHT = Math.max(180, cardHeight);
     const MARGIN = 12;
     const spaceBelow = vh - rect.bottom;
     const spaceAbove = rect.top;

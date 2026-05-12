@@ -5,7 +5,6 @@ import { Monster } from "@/data/monsters";
 import { sfxDiceTick, sfxHop, sfxLand, sfxCoinGain, sfxSkull } from "@/lib/sfx";
 import { IsometricBoard } from "@/components/IsometricBoard";
 import { Zap } from "lucide-react";
-import { Dice3D } from "@/components/Dice3D";
 import { LotteryRoulette } from "@/components/LotteryRoulette";
 import { FriendSearch } from "@/components/FriendSearch";
 import { getCameraSettings, subscribeCameraSettings } from "@/lib/cameraSettings";
@@ -21,6 +20,8 @@ interface GameBoardProps {
   activeDiceMax: number;
   /** Visual tier for the 3D dice (basic/silver/gold). */
   diceTier?: "basic" | "silver" | "gold";
+  /** Fired when the floating lottery reel lands on the lucky-energy bonus. */
+  onLuckyEnergy?: (amount: number) => void;
   /** When true, freeze idle ambient (e.g. a card reveal is open). */
   frozen?: boolean;
   levelId?: number;
@@ -71,7 +72,7 @@ interface Particle {
 const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
 let particleIdCounter = 0;
 
-export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, onRollDice, onLanded, activeDiceMax, diceTier = "basic", frozen = false, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1 }: GameBoardProps) {
+export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, onRollDice, onLanded, activeDiceMax, diceTier = "basic", onLuckyEnergy, frozen = false, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1 }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -385,6 +386,7 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
                 ? (lastResult.tile.type as "coins" | "bonus" | "chest" | "food" | "skull" | "star")
                 : null
             }
+            onLuckyEnergy={onLuckyEnergy}
           />
           <FriendSearch
             activeMonsterId={monster.id}
@@ -494,17 +496,34 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
               )}
               {(isRolling || (lastResult && !showResult)) && (diceValue || lastResult) && (
                 <div className="absolute -top-5 -right-5" aria-hidden="true">
-                  <Dice3D
-                    // While ticking, tumble through random faces; once the server
-                    // result is in (lastResult set, isRolling cleared), snap to
-                    // the authoritative steps value so the landed face matches
-                    // the result banner.
-                    value={!isRolling && lastResult ? lastResult.steps : (diceValue ?? 1)}
-                    tier={diceTier}
-                    size={44}
-                    settleMs={reducedMotion ? 0 : 700}
-                    reducedMotion={reducedMotion}
-                  />
+                  {/* Energy badge replaces the old 3D dice. While the reel is
+                      ticking it cycles random numbers; once the server result
+                      arrives (isRolling cleared) it snaps to the authoritative
+                      steps value, and the whole badge unmounts the moment the
+                      monster lands (showResult flips true). */}
+                  <motion.div
+                    initial={reducedMotion ? false : { scale: 0.6, rotate: -15 }}
+                    animate={
+                      reducedMotion
+                        ? { scale: 1 }
+                        : isRolling
+                          ? { scale: [1, 1.12, 1], rotate: [0, 6, -6, 0] }
+                          : { scale: 1.18, rotate: 0 }
+                    }
+                    transition={
+                      reducedMotion
+                        ? { duration: 0 }
+                        : isRolling
+                          ? { repeat: Infinity, duration: 0.4 }
+                          : { type: "spring", stiffness: 320, damping: 16 }
+                    }
+                    className="relative w-11 h-11 rounded-full bg-gradient-to-b from-yellow-300 to-amber-500 border-2 border-amber-700 shadow-chunky flex items-center justify-center"
+                  >
+                    <Zap size={18} className="text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.5)]" fill="currentColor" />
+                    <span className="absolute -bottom-1.5 right-0 text-[11px] font-display text-wood-dark bg-cream rounded-full px-1.5 leading-tight border border-wood-dark/60 shadow-sm">
+                      {!isRolling && lastResult ? lastResult.steps : (diceValue ?? 1)}
+                    </span>
+                  </motion.div>
                 </div>
               )}
             </motion.button>
