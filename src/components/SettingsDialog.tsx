@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Cpu, Box, Volume2, GraduationCap, Camera, RotateCcw, Play } from "lucide-react";
+import { X, Cpu, Box, Volume2, GraduationCap, Camera, RotateCcw, Play, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getLowPowerMode, setLowPowerMode, subscribeLowPower, type LowPowerMode } from "@/lib/lowPower";
 import {
@@ -13,6 +13,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { getCelebrationsEnabled, setCelebrationsEnabled } from "@/components/RewardCelebration";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -47,6 +48,8 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
 
   const [cam, setCam] = useState<CameraSettings>(() => getCameraSettings());
   useEffect(() => subscribeCameraSettings(() => setCam(getCameraSettings())), []);
+
+  const [celebrationsOn, setCelebrationsOn] = useState<boolean>(() => getCelebrationsEnabled());
 
   const selectMode = (m: LowPowerMode) => { setLowPowerMode(m); setMode(m); };
 
@@ -145,6 +148,23 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
               >
                 <Play size={14} /> Replay tutorial
               </Button>
+            </section>
+
+            {/* --- Celebrations --- */}
+            <section aria-labelledby="celeb-heading" className="space-y-2 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-bold" id="celeb-heading">
+                  <Sparkles size={14} /> Reward celebrations
+                </div>
+                <Switch
+                  checked={celebrationsOn}
+                  onCheckedChange={(v) => { setCelebrationsEnabled(!!v); setCelebrationsOn(!!v); }}
+                  aria-label="Reward celebrations toggle"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Plays a quick burst when you land on energy refills, big coins, cards, or crits.
+              </p>
             </section>
 
             {/* --- Camera --- */}

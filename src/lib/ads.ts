@@ -43,6 +43,18 @@ function hasCrazyGames(): boolean {
   return !!w?.CrazyGames?.SDK;
 }
 
+function getCrazySdk(): any | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const w = typeof window !== "undefined" ? (window as any) : null;
+  return w?.CrazyGames?.SDK ?? null;
+}
+
+/** Manual override: append `?crazygames=1` to force the SDK path during QA. */
+function forceCrazyOverride(): boolean {
+  if (typeof window === "undefined") return false;
+  return new URLSearchParams(window.location.search).get("crazygames") === "1";
+}
+
 /** Initializes the chosen provider. Safe to call multiple times. */
 export async function initAds(): Promise<AdProvider> {
   if (initialized) return activeProvider;
@@ -71,9 +83,20 @@ export async function initAds(): Promise<AdProvider> {
 
   if (hasCrazyGames()) {
     activeProvider = "crazygames";
+    try {
+      const sdk = getCrazySdk();
+      // Init is sync in v3 but call defensively
+      await sdk.init?.();
+      console.info("[ads] CrazyGames SDK initialized");
+    } catch (e) {
+      console.warn("[ads] CrazyGames init failed", e);
+    }
     return activeProvider;
   }
 
+  if (forceCrazyOverride()) {
+    console.warn("[ads] crazygames=1 override set but SDK not loaded yet");
+  }
   activeProvider = "demo";
   return activeProvider;
 }
@@ -125,3 +148,36 @@ export function getAdReward(playerLevel: number): number {
 
 export const AD_DAILY_CAP = 5;
 export const AD_COOLDOWN_MS = 60_000;
+
+/**
+ * Notify the CrazyGames SDK that active gameplay has started.
+ * This is required by their portal — ad pacing + analytics depend on it.
+ * Safe to call before init; no-op on other providers.
+ */
+export function gameplayStart() {
+  try { getCrazySdk()?.game?.gameplayStart?.(); } catch { /* ignore */ }
+}
+
+/** Pair to gameplayStart — call when the player pauses or leaves active play. */
+export function gameplayStop() {
+  try { getCrazySdk()?.game?.gameplayStop?.(); } catch { /* ignore */ }
+}
+
+/**
+ * Hint to the SDK that this is a natural break / win moment — they may
+ * choose to insert an interstitial here. Player still sees rewarded ads
+ * only when they click a Watch Ad button.
+ */
+export function adBreakHappytime() {
+  try { getCrazySdk()?.game?.happytime?.(); } catch { /* ignore */ }
+}
+
+/** Returns true if CrazyGames detects an ad blocker. Best-effort. */
+export async function isAdBlocked(): Promise<boolean> {
+  try {
+    const r = await getCrazySdk()?.ad?.hasAdblock?.();
+    return !!r;
+  } catch {
+    return false;
+  }
+}

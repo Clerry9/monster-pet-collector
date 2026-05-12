@@ -53,7 +53,11 @@ import { AuthStatusBadge } from "@/components/AuthStatusBadge";
 import { AdRewardMenu, AdRewardLauncher } from "@/components/AdRewardMenu";
 import { DailyStreakModal } from "@/components/DailyStreakModal";
 import { AnimatedBackdrop } from "@/components/effects/AnimatedBackdrop";
-import { Trophy } from "lucide-react";
+import { Trophy, Target } from "lucide-react";
+import { DailyMissionsModal } from "@/components/DailyMissions";
+import { useDailyMissions } from "@/hooks/useDailyMissions";
+import { RewardCelebration, type CelebrationKind } from "@/components/RewardCelebration";
+import { gameplayStart, gameplayStop, adBreakHappytime } from "@/lib/ads";
 import { useNavigate } from "react-router-dom";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season" | "account";
@@ -258,6 +262,9 @@ const Index = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adRewardsOpen, setAdRewardsOpen] = useState(false);
+  const [missionsOpen, setMissionsOpen] = useState(false);
+  const [celebration, setCelebration] = useState<CelebrationKind>(null);
+  const missions = useDailyMissions();
   const navigate = useNavigate();
   const [coachOpen, setCoachOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -284,6 +291,12 @@ const Index = () => {
       return () => window.clearTimeout(t);
     }
   }, [mainTutorial.completed]);
+
+  // Notify CrazyGames SDK that gameplay is active (no-op without the SDK).
+  useEffect(() => {
+    gameplayStart();
+    return () => gameplayStop();
+  }, []);
 
   // Chain: when daily modal closes (and we're in the post-tutorial flow), open the mini-game.
   useEffect(() => {
@@ -444,6 +457,8 @@ const Index = () => {
     const result = game.rollDice();
     if (result) {
       setLastResult(result);
+      void missions.bump("roll_10", 1);
+      void missions.bump("roll_30", 1);
       // NOTE: card reveal + island-star toast are deferred to handleLanded()
       // so they only fire AFTER the monster has finished hopping.
     } else {
@@ -468,6 +483,16 @@ const Index = () => {
     } else if (tileType === "coins" || tileType === "bonus" || tileType === "chest" || tileType === "star") {
       sfxCoinGain();
     }
+    if (tileType === "star") setCelebration("star");
+    else if (tileType === "chest") setCelebration("card");
+    else if (tileType === "bonus") setCelebration("energy");
+    else if (tileType === "coins" && (result.tile?.value ?? 0) >= 20) setCelebration("coins");
+    if (result.tile?.value && (tileType === "coins" || tileType === "chest")) {
+      void missions.bump("coins_500", result.tile.value);
+      void missions.bump("coins_2000", result.tile.value);
+    }
+    if (result.card) void missions.bump("cards_2", 1);
+    if (tileType === "star" || tileType === "chest") adBreakHappytime();
     if (result.card) {
       setDrawnCard(result.card);
     }
@@ -519,6 +544,7 @@ const Index = () => {
     game.grantCard(card.id);
     setDrawnCard(card);
     toast.success("🌟 Free Card Flip!", { description: "From your collected island stars" });
+    void missions.bump("pack_1", 1);
     // Released by onComplete handler when the reveal closes.
   }, [game.pendingCardFlips, drawnCard, tab]);
 
@@ -676,6 +702,19 @@ const Index = () => {
               aria-label="Achievements"
             >
               <Trophy size={16} />
+            </button>
+            <button
+              onClick={() => setMissionsOpen(true)}
+              className="icon-tile-gold w-9 h-9 flex items-center justify-center relative"
+              title="Daily missions"
+              aria-label={`Daily missions${missions.unclaimedCount > 0 ? `, ${missions.unclaimedCount} ready` : ""}`}
+            >
+              <Target size={16} />
+              {missions.unclaimedCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-500 text-cream-light text-[10px] font-bold flex items-center justify-center">
+                  {missions.unclaimedCount}
+                </span>
+              )}
             </button>
             <AuthStatusBadge compact />
           </div>
@@ -1188,6 +1227,8 @@ const Index = () => {
         onClose={() => setAdRewardsOpen(false)}
       />
       <DailyStreakModal />
+      <DailyMissionsModal open={missionsOpen} onClose={() => setMissionsOpen(false)} />
+      <RewardCelebration kind={celebration} onDone={() => setCelebration(null)} />
     </div>
   );
 };
