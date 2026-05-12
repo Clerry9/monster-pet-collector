@@ -1,67 +1,98 @@
-# Plan
+## Overview
 
-## 1. Admin-only `pack_analytics` dashboard
+Two parallel tracks: (A) graphics & gameplay polish, (B) optional rewarded-ad system that grants player-chosen rewards. The project already has `src/lib/ads.ts`, `useRewardedAd`, and a `RewardedAdButton` scaffold wired to the CrazyGames SDK and AdMob — we'll extend that scaffolding rather than start from scratch.
 
-- New route `/admin/pack-analytics` (protected + admin-gated, mirroring `/admin/rewards`).
-- New page `src/pages/AdminPackAnalytics.tsx`:
-  - Use `useUserRole()` → if not `isAdmin`, render an "Access denied" card.
-  - Fetch from `pack_analytics` (RLS already allows admins to SELECT all).
-  - Filters (client-side state, server-side query):
-    - **User**: text input that matches `user_id` (UUID) — exact match.
-    - **Pack**: `<Select>` populated from distinct `pack_id` values (loaded once).
-    - **Date range**: two `<Calendar>` popovers (from / to). Use shadcn DatePicker pattern.
-    - **Event**: optional select (`pack_fulfilled` / `purchase_initiated` / all).
-  - Pagination: 50 rows per page, "Load more" button.
-  - Table columns: created_at, event, pack_id, price_id, user_id (truncated, copy button), cards_granted, rolls_granted, coins_granted, stars_granted, dice_tier, monsters_granted, environment, paddle_transaction_id.
-  - Summary strip at top: total rows in current filter, sum of cards/rolls/coins granted.
-- Add a link to the page from `AdminRewards.tsx` header (admin-only).
-- Register the route in `App.tsx` inside `<ProtectedRoute>`.
+---
 
-## 2. Bet selector refresh on energy regen + after rolls
+## A. Graphics & Gameplay
 
-The selector already re-renders when `energy` changes via props, but the bet *list* in `useGameState.setBetMultiplier` and the realtime energy updates may be stale. Fixes:
+### 1. 3D-style animated dice rolls
+- Add `react-three-fiber@^8.18` + `@react-three/drei@^9.122.0` + `three@^0.160`.
+- New `src/components/Dice3D.tsx`: a tumbling cube with face textures matching current dice tiers (basic/silver/gold). Use a deterministic settle animation that lands on the rolled value (passed in as prop) so visuals match game logic.
+- Replace existing 2D dice render in `GameBoard.tsx`/`Index.tsx` (whichever currently shows the roll) with `<Dice3D value={rolled} tier={activeDiceTier} />`. Fall back to the current 2D version when `prefers-reduced-motion` is set or `lowPower` mode is on.
 
-- In `useGameState.ts`, ensure the realtime `game_state` subscription updates `state.energy` and `state.energy_updated_at` — verify the channel exists; if missing, add one filtered by `user_id`.
-- Add a 1-second `setInterval` ticker in `BetSelector` (already present for countdown) that also recomputes `available` via `getAvailableBets(coins, predictedEnergy)` where `predictedEnergy` factors elapsed regen since `energyUpdatedAt`. This way ×2000+ pills appear the moment the player crosses 1000 energy without waiting for a server round-trip.
-- After `rollDice` resolves, the existing optimistic `setState` already drops `energy` — confirm `BetSelector` receives the latest `energy` prop from `Index.tsx` (it does via `game.energy`). No change needed beyond the predictive ticker.
-- If current bet becomes unavailable (e.g. energy fell below threshold), auto-clamp `betMultiplier` down to the highest available tier in `useGameState` after each roll.
+### 2. Reward landing celebrations (toggleable)
+- New `src/components/RewardCelebration.tsx`: short Lottie/Framer-Motion animation triggered when the player lands on a high-value tile (energy refill, big coin tile, card pack, crit). Variants per reward type (energy = lightning + monster dance, coins = coin shower, card = card flip glow).
+- Add `celebrations_enabled` boolean to `SettingsDialog.tsx` (persisted in `localStorage`); default on. Wrap celebration trigger in this flag.
+- Hook the trigger into `useGameState.rollDice` so when the resolved tile matches a "great reward" category, it fires `celebrationBus.emit(type)`.
 
-## 3. Season Hub tutorial box off-screen
+### 3. Particle effects on wins/crits
+- Lightweight CSS/Framer-Motion confetti + coin-burst component in `src/components/effects/Particles.tsx` (no extra deps). Triggered alongside celebrations and on level-up / pack open.
 
-The coachmark targeting `[data-rail='season']` (or season-related step) renders its popover off-screen on the current 828×724 viewport.
+### 4. Polished theme & typography
+- In `index.css` + `tailwind.config.ts`: introduce a refined HSL token palette (deepen background, add `--accent-glow`, `--surface-elevated`, `--gradient-hero`, `--shadow-glow`).
+- Add a display font (e.g. "Space Grotesk" or "Bricolage Grotesque") via `<link>` in `index.html`; map to `font-display` Tailwind utility. Keep body font.
+- Sweep `TopHud`, `GameTabs`, `SeasonHub`, `DiceShop` headings to use `font-display` and the new gradient/shadow tokens — tokens only, no raw colors.
 
-- In `TutorialCoachmark.tsx`, audit the popover positioning logic (around line 157, the "never falls below the visible area" comment). Add horizontal clamping: ensure `left` is clamped to `[8, viewportWidth - popoverWidth - 8]` and `top` to `[8, viewportHeight - popoverHeight - 8]`.
-- Add a small responsive max-width to the popover (`max-w-[min(360px,calc(100vw-32px))]`) so it never exceeds viewport width on narrow screens.
-- Verify by walking the tutorial on the current viewport.
+### 5. Animated backgrounds
+- New `src/components/effects/AnimatedBackdrop.tsx`: slow-moving radial gradient blobs (CSS `@keyframes`, GPU-friendly). Mounted in `Index.tsx` behind game content; respects reduced-motion.
 
-## 4. Buy Lucky Roulette spins with cash from the Shop
+### 6. Daily streaks & login bonuses
+- Migration: new table `daily_streaks(user_id pk, current_streak int, best_streak int, last_claim_date date, updated_at)`. RLS: user reads/updates own row; service role full.
+- New hook `useDailyStreak.ts`: on app open if `last_claim_date < today`, show modal with current streak day; if yesterday → increment, else reset to 1. Reward ladder (day 1: 50 coins, day 3: 100 coins + 1 roll, day 7: rare card pack, day 14: gold, etc.).
+- New `src/components/DailyStreakModal.tsx` shown via `Index.tsx`.
 
-- New Paddle product/price: `roulette_spins_5` ($1.99) and `roulette_spins_25` ($7.99) — created via `payments--batch_create_product`.
-- Add server-side fulfillment in `supabase/functions/payments-webhook/index.ts`:
-  - Recognize `roulette_spins_5` / `roulette_spins_25` price IDs.
-  - Grant N paid spins by inserting N rows into a new `purchased_roulette_spins` counter, OR (simpler) add a `paid_spin_credits` integer column to `roulette_state` and increment it. Recommend the column approach.
-- Migration: `ALTER TABLE roulette_state ADD COLUMN paid_spin_credits int NOT NULL DEFAULT 0;`
-- Update `useLuckyRouletteCooldown` to expose `paidSpinCredits` and a `consumePaidSpin()` RPC.
-- New RPC `consume_paid_roulette_spin()` (SECURITY DEFINER) — decrements `paid_spin_credits` by 1 if > 0.
-- Update `LuckyRouletteModal`: when `freeAvailable` is false but `paidSpinCredits > 0`, allow spinning by calling `consumePaidSpin()` instead of charging coins.
-- Add a "Roulette Spins" section to `DiceShop.tsx` with two cards (5-pack, 25-pack), each with a Paddle "Buy" button. Mirror existing pack card styling.
-- Log purchase to `pack_analytics` (event `pack_fulfilled`, `pack_id = roulette_spins_5/25`, store count in `rolls_granted` for now or add a dedicated field — keep using `rolls_granted` to avoid schema churn).
+### 7. Achievements with rewards
+- Migration: `achievements_def` (static seed: code, title, description, target, reward_kind, reward_amount) + `user_achievements(user_id, achievement_code, progress, completed_at, claimed_at)`. Seed ~12 starter achievements (first roll, 100 rolls, 1000 rolls, first crit, 10 crits, collect 5/25/all cards, open 5 packs, level 5/25/50, 7-day streak).
+- New `src/hooks/useAchievements.ts` increments progress on game events (rolls, crits, packs, level-ups). Auto-toast when unlocked + grant reward via existing `spend_coins_rolls`-style RPC.
+- New `src/pages/Achievements.tsx` listed in `GameTabs`.
 
-## Files touched
+### 8. Mini-quests / daily missions
+- Migration: `daily_missions(user_id, mission_date, mission_code, target, progress, claimed)`. A small static catalog (`src/data/missions.ts`) with rotating picks (3/day) — server-side helper RPC `roll_daily_missions()` to assign deterministically per user/date.
+- New `src/components/DailyMissions.tsx` panel in `Index.tsx` sidebar / tab. Same event hooks as achievements.
 
-- New: `src/pages/AdminPackAnalytics.tsx`
-- New migration: `paid_spin_credits` column + `consume_paid_roulette_spin` RPC
-- `src/App.tsx` — register admin route
-- `src/pages/AdminRewards.tsx` — link to new page
-- `src/components/BetSelector.tsx` — predictive ticker recompute
-- `src/hooks/useGameState.ts` — clamp bet after rolls; ensure realtime updates
-- `src/components/TutorialCoachmark.tsx` — viewport clamping
-- `src/components/DiceShop.tsx` — roulette spin packs section
-- `src/components/LuckyRouletteModal.tsx` — paid spin credit flow
-- `src/hooks/useLuckyRouletteCooldown.ts` — expose paid credits
-- `supabase/functions/payments-webhook/index.ts` — fulfill roulette spin packs
-- Paddle: 2 new products via `payments--batch_create_product`
+---
 
-## Open question
+## B. Optional rewarded ads (player-choice)
 
-Roulette spin pack pricing — happy with **5 spins / $1.99** and **25 spins / $7.99**, or different tiers/prices?
+The user keeps full control: nothing auto-plays, every reward shows a "Watch Ad to Claim" button next to a "No thanks / Skip" button.
+
+### 1. Provider
+- Use existing CrazyGames SDK adapter in `src/lib/ads.ts` (already implemented). Add the script tag conditionally in `index.html`:
+  `<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>`
+- Keep the existing `demo` fallback (3-second simulated ad) for local dev.
+- AdMob path stays for future native build.
+
+### 2. Reward menu
+- New `src/components/AdRewardMenu.tsx`: opens a modal with 4 options (each a card with icon + cooldown timer):
+  | Reward | Cooldown | Daily cap |
+  |---|---|---|
+  | +50 energy | 30 min | 6 |
+  | +200 coins | 30 min | 6 |
+  | Free roulette spin | 24 h | 1 |
+  | Free common card pack | 24 h | 1 |
+- Each card shows "Watch Ad" (primary) and an "X / Close" (secondary). No reward without finishing the ad. If user closes early, no penalty.
+
+### 3. State & enforcement
+- Migration: `ad_reward_claims(user_id, reward_kind, claimed_at)`. RLS: user reads own; insert via SECURITY DEFINER RPC `claim_ad_reward(p_kind text)` that:
+  - Verifies cooldown (30 min or 24 h depending on kind) and daily cap.
+  - Grants reward (energy/coins/roulette spin via `grant_paid_roulette_spins`-style helper, or queues a card pack flip via `pending_card_flips`).
+  - Inserts log row.
+- Client calls `showRewardedAd()` first; only on successful completion calls the RPC. RPC is the single source of truth so users can't bypass via DevTools.
+- Log to `pack_analytics` with `event = 'ad_reward_claimed'` so they appear in the existing admin dashboard.
+
+### 4. Entry points
+- "Free Rewards" button in `TopHud` (gift icon with pulse when any reward is off-cooldown).
+- Inline "Out of energy? Watch an ad for +50" prompt on `BetSelector` when `energy < requiredEnergy` and that ad reward is available.
+- Optional "Double your roulette reward — Watch Ad?" after a roulette spin (purely opt-in, dismissible).
+
+### 5. Settings
+- `SettingsDialog.tsx`: add "Show ad reward prompts" toggle (default on). When off, only the manual `AdRewardMenu` button remains; no contextual prompts appear.
+
+---
+
+## Database changes (single migration)
+- `daily_streaks`, `achievements_def`, `user_achievements`, `daily_missions`, `ad_reward_claims` tables with RLS.
+- RPCs: `claim_daily_streak()`, `claim_achievement(code)`, `claim_mission(code)`, `claim_ad_reward(kind)`, `roll_daily_missions()`.
+- Seed `achievements_def` with starter rows.
+
+## Files (new)
+`src/components/Dice3D.tsx`, `src/components/RewardCelebration.tsx`, `src/components/effects/Particles.tsx`, `src/components/effects/AnimatedBackdrop.tsx`, `src/components/DailyStreakModal.tsx`, `src/components/DailyMissions.tsx`, `src/components/AdRewardMenu.tsx`, `src/hooks/useDailyStreak.ts`, `src/hooks/useAchievements.ts`, `src/hooks/useDailyMissions.ts`, `src/data/missions.ts`, `src/pages/Achievements.tsx`, plus migration.
+
+## Files (edited)
+`index.html` (CrazyGames SDK + display font), `index.css`, `tailwind.config.ts`, `src/components/SettingsDialog.tsx`, `src/components/TopHud.tsx`, `src/components/BetSelector.tsx`, `src/components/GameBoard.tsx`, `src/components/GameTabs.tsx`, `src/pages/Index.tsx`, `src/hooks/useGameState.ts`, `src/hooks/useRewardedAd.ts`, `src/lib/ads.ts`, `src/App.tsx`.
+
+## Out of scope (ask before adding)
+- Real CrazyGames developer registration / publisher account setup (you'll need to register the game and may need to swap the SDK script for your publisher build).
+- Native AdMob production IDs (currently using Google test IDs).
+- Music/sfx pack expansion.
