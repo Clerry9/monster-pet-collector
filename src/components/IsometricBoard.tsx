@@ -1198,7 +1198,9 @@ function CameraRig({ monsterPosRef, isMoving, recenterRef }: { monsterPosRef: Re
       }
     }
     lookAt.current.copy(lerpedTarget.current);
-    lookAt.current.y += isMoving ? 0.55 : 0.3;
+    // Bumped up so the camera looks higher, which pushes the monster lower
+    // on screen — keeps it clear of the top energy pill.
+    lookAt.current.y += isMoving ? 1.15 : 0.95;
     state.camera.lookAt(lookAt.current);
   });
   return null;
@@ -1210,7 +1212,7 @@ function SyncedOrbitControls({ monsterPosRef, enabled }: { monsterPosRef: React.
   useFrame(() => {
     if (!controlsRef.current) return;
     target.current.copy(monsterPosRef.current);
-    target.current.y += enabled ? 0.3 : 0.55;
+    target.current.y += enabled ? 0.95 : 1.15;
     controlsRef.current.target.copy(target.current);
     if (enabled) controlsRef.current.update();
   });
