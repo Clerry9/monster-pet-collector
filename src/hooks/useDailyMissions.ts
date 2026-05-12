@@ -32,6 +32,7 @@ export function useDailyMissions() {
   const [defs, setDefs] = useState<Record<string, MissionDef>>({});
   const [missions, setMissions] = useState<DailyMission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [claimingCode, setClaimingCode] = useState<string | null>(null);
 
   // Load catalog
   useEffect(() => {
@@ -89,9 +90,12 @@ export function useDailyMissions() {
   const claim = useCallback(
     async (code: string) => {
       if (!user) return;
+      if (claimingCode) return;
+      setClaimingCode(code);
       const { error } = await (supabase as any).rpc("claim_mission", { p_code: code });
       if (error) {
         toast.error(error.message ?? "Could not claim");
+        setClaimingCode(null);
         return;
       }
       const def = defs[code];
@@ -101,8 +105,9 @@ export function useDailyMissions() {
         });
       }
       await refresh();
+      setClaimingCode(null);
     },
-    [user, defs, refresh],
+    [user, defs, refresh, claimingCode],
   );
 
   const list: DailyMission[] = missions
@@ -113,5 +118,5 @@ export function useDailyMissions() {
     (m) => m.progress >= m.target && !m.claimed_at,
   ).length;
 
-  return { list, loading, claim, bump, refresh, unclaimedCount };
+  return { list, loading, claim, bump, refresh, unclaimedCount, claimingCode };
 }
