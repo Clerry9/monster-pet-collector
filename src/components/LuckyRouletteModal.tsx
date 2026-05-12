@@ -62,7 +62,7 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
   const primaryActionRef = useRef<HTMLButtonElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
-  const { freeAvailable, remainingMs, consumeFreeSpin } = useLuckyRouletteCooldown();
+  const { freeAvailable, remainingMs, consumeFreeSpin, paidCredits, consumePaidSpin } = useLuckyRouletteCooldown();
   const { entries, append, clear, markClaimed } = useRouletteHistory();
   const canPaid = coins >= PAID_SPIN_COST;
 
@@ -149,14 +149,18 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
     });
   }, [N]);
 
-  const startSpin = (paid: boolean) => {
+  const startSpin = async (mode: "free" | "coins" | "credit") => {
     if (phase === "spin" || pick === null) return;
-    if (paid) {
+    if (mode === "coins") {
       if (!onSpendCoins(PAID_SPIN_COST)) return;
+    } else if (mode === "credit") {
+      const ok = await consumePaidSpin();
+      if (!ok) return;
     } else {
       if (!freeAvailable) return;
       consumeFreeSpin();
     }
+    const paid = mode !== "free";
     setLastSpinWasPaid(paid);
     setClaimed(false);
     setActiveSpinId(null);
