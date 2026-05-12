@@ -21,6 +21,8 @@ interface GameBoardProps {
   activeDiceMax: number;
   /** Visual tier for the 3D dice (basic/silver/gold). */
   diceTier?: "basic" | "silver" | "gold";
+  /** Fired when the floating lottery reel lands on the lucky-energy bonus. */
+  onLuckyEnergy?: (amount: number) => void;
   /** When true, freeze idle ambient (e.g. a card reveal is open). */
   frozen?: boolean;
   levelId?: number;
