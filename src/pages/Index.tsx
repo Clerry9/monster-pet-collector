@@ -480,6 +480,7 @@ const Index = () => {
   const handleLanded = () => {
     const result = lastResult;
     if (!result) return;
+    setHasLanded(true);
     // Personality reactions: celebrate or commiserate based on what we landed on.
     const tileType = result.tile?.type;
     if (tileType === "skull") {
