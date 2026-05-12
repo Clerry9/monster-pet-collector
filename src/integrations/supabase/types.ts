@@ -74,6 +74,45 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_missions: {
+        Row: {
+          claimed_at: string | null
+          code: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          mission_date: string
+          progress: number
+          target: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          code: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          mission_date: string
+          progress?: number
+          target: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string | null
+          code?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          mission_date?: string
+          progress?: number
+          target?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_streaks: {
         Row: {
           best_streak: number
@@ -179,6 +218,42 @@ export type Database = {
           updated_at?: string
           user_id?: string
           xp?: number
+        }
+        Relationships: []
+      }
+      missions_def: {
+        Row: {
+          code: string
+          created_at: string
+          description: string
+          enabled: boolean
+          reward_amount: number
+          reward_kind: string
+          target: number
+          title: string
+          weight: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description: string
+          enabled?: boolean
+          reward_amount?: number
+          reward_kind: string
+          target?: number
+          title: string
+          weight?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          reward_amount?: number
+          reward_kind?: string
+          target?: number
+          title?: string
+          weight?: number
         }
         Relationships: []
       }
@@ -553,6 +628,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bump_mission_progress: {
+        Args: { p_code: string; p_delta?: number }
+        Returns: {
+          claimed_at: string | null
+          code: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          mission_date: string
+          progress: number
+          target: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_missions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       buy_dice_pack: {
         Args: { p_pack_id: string }
         Returns: {
@@ -612,6 +708,13 @@ export type Database = {
           reward_rolls: number
         }[]
       }
+      claim_mission: {
+        Args: { p_code: string }
+        Returns: {
+          reward_amount: number
+          reward_kind: string
+        }[]
+      }
       claim_roulette_spin: {
         Args: { p_spin_id: string }
         Returns: {
@@ -668,6 +771,27 @@ export type Database = {
           level: number
           user_id: string
         }[]
+      }
+      get_or_roll_daily_missions: {
+        Args: never
+        Returns: {
+          claimed_at: string | null
+          code: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          mission_date: string
+          progress: number
+          target: number
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "daily_missions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_season_leaderboard: {
         Args: { _limit?: number; _season_id: string }
