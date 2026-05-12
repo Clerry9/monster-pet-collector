@@ -375,7 +375,9 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
         />
         {/* Lottery wheel + friend-search bubble float above the monster.
             Positioned roughly over the board center; purely decorative. */}
-        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[18%] flex flex-col items-center gap-1 z-20">
+        {/* Pushed down to ~32% so the bubble area sits below the top energy pill
+            and is fully visible above the monster's head. */}
+        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[32%] flex flex-col items-center gap-1 z-20">
           <LotteryRoulette
             spinning={isRolling || (!!lastResult && !showResult)}
             result={
