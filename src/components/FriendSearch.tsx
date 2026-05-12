@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { MONSTERS } from "@/data/monsters";
 
 const KEY = "lov_friend_search_enabled";
+const CHANGED_EVENT = "friend-search:changed";
 
 export function getFriendSearchEnabled(): boolean {
   if (typeof window === "undefined") return true;
@@ -10,7 +11,10 @@ export function getFriendSearchEnabled(): boolean {
 }
 
 export function setFriendSearchEnabled(on: boolean) {
-  try { localStorage.setItem(KEY, on ? "1" : "0"); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(KEY, on ? "1" : "0");
+    window.dispatchEvent(new Event(CHANGED_EVENT));
+  } catch { /* ignore */ }
 }
 
 interface FriendSearchProps {
@@ -28,27 +32,42 @@ interface FriendSearchProps {
  */
 export function FriendSearch({ activeMonsterId, paused = false, className = "" }: FriendSearchProps) {
   const [visible, setVisible] = useState<{ id: string; emoji: string } | null>(null);
+  const [enabledTick, setEnabledTick] = useState(0);
+
+  // Re-run the schedule effect whenever the toggle flips.
+  useEffect(() => {
+    const onChange = () => setEnabledTick((n) => n + 1);
+    window.addEventListener(CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(CHANGED_EVENT, onChange);
+  }, []);
 
   useEffect(() => {
     if (paused) { setVisible(null); return; }
     if (!getFriendSearchEnabled()) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
+    let hideTimer: ReturnType<typeof setTimeout>;
 
     const schedule = () => {
       const wait = 8000 + Math.random() * 6000;
       timer = setTimeout(() => {
         if (cancelled) return;
+        // Re-check toggle on each tick so disabling without remount takes effect.
+        if (!getFriendSearchEnabled()) return;
         const friends = MONSTERS.filter((m) => m.id !== activeMonsterId);
         if (friends.length === 0) { schedule(); return; }
         const friend = friends[Math.floor(Math.random() * friends.length)];
         setVisible({ id: friend.id, emoji: friend.image });
-        setTimeout(() => { if (!cancelled) setVisible(null); schedule(); }, 1600);
+        hideTimer = setTimeout(() => { if (!cancelled) setVisible(null); schedule(); }, 1600);
       }, wait);
     };
     schedule();
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [activeMonsterId, paused]);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      clearTimeout(hideTimer);
+    };
+  }, [activeMonsterId, paused, enabledTick]);
 
   return (
     <AnimatePresence>
