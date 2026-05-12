@@ -28,7 +28,7 @@ const FACE_ROT: Record<number, [number, number, number]> = {
 };
 
 function Cube({ value, tier }: { value: number; tier: "basic" | "silver" | "gold" }) {
-  const ref = useRef<THREE.Mesh>(null);
+  const ref = useRef<THREE.Group>(null);
   const startRef = useRef<number>(0);
   const fromRot = useRef<THREE.Euler>(new THREE.Euler(0, 0, 0));
   const toRot = useRef<THREE.Euler>(new THREE.Euler(0, 0, 0));
