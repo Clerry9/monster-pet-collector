@@ -56,6 +56,49 @@ const PACK_MAP: Record<string, Perk> = {
   monster_elite_monthly:  { packId: "monster_elite",  rolls: 200, coins: 2500, cardFlips: 5, stars: 10, unlockDiceTier: "gold", unlockMonsters: ["mossfang", "aurorix"] },
 };
 
+/** Lucky Roulette paid spin packs — fulfilled by inserting paid spin
+ *  credits via the `grant_paid_roulette_spins` RPC instead of touching
+ *  game_state. Keep in sync with ROULETTE_SPIN_PACKS in DiceShop.tsx. */
+const ROULETTE_SPIN_MAP: Record<string, { packId: string; spins: number }> = {
+  roulette_spins_5_price:  { packId: "roulette_spins_5",  spins: 5  },
+  roulette_spins_25_price: { packId: "roulette_spins_25", spins: 25 },
+};
+
+async function grantRouletteSpins(userId: string, priceId: string, transactionId: string, environment: string) {
+  const entry = ROULETTE_SPIN_MAP[priceId];
+  if (!entry) return false;
+  const { error } = await supabase.rpc('grant_paid_roulette_spins', {
+    p_user_id: userId,
+    p_amount: entry.spins,
+  });
+  if (error) {
+    console.error('grant_paid_roulette_spins failed:', error);
+    return false;
+  }
+  console.log(JSON.stringify({
+    event: 'pack_fulfilled',
+    userId,
+    packId: entry.packId,
+    spins: entry.spins,
+  }));
+  try {
+    await supabase.from('pack_analytics').insert({
+      user_id: userId,
+      pack_id: entry.packId,
+      price_id: priceId,
+      paddle_transaction_id: transactionId,
+      event: 'pack_fulfilled',
+      // No dedicated spins column on pack_analytics — record under
+      // rolls_granted so admin dashboards have a single quantity column.
+      rolls_granted: entry.spins,
+      environment,
+    });
+  } catch (e) {
+    console.error('pack_analytics insert (roulette) threw:', e);
+  }
+  return true;
+}
+
 async function grantPerks(userId: string, perk: Perk, ctx?: { priceId?: string; transactionId?: string; environment?: string }) {
   // Clamp Special Pack card grants to the hard ceiling. Applies to any
   // perk in PACK_MAP — defense-in-depth against a future entry exceeding
@@ -214,6 +257,12 @@ Deno.serve(async (req) => {
         // multiple bundles (e.g. VIP) credit atomically.
         if (perk && (rollsToGrant || coinsToGrant || starsToGrant || cardFlipsToGrant || perk.unlockDiceTier || perk.unlockMonsters)) {
           await grantPerks(userId, perk, { priceId: priceExternalId, transactionId: data.id, environment: env });
+        }
+
+        // Roulette spin packs — independent fulfillment path (writes to
+        // roulette_state, not game_state).
+        if (ROULETTE_SPIN_MAP[priceExternalId]) {
+          await grantRouletteSpins(userId, priceExternalId, data.id, env);
         }
 
         // Handle Season Pass purchase

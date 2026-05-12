@@ -62,7 +62,7 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
   const primaryActionRef = useRef<HTMLButtonElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
 
-  const { freeAvailable, remainingMs, consumeFreeSpin } = useLuckyRouletteCooldown();
+  const { freeAvailable, remainingMs, consumeFreeSpin, paidCredits, consumePaidSpin } = useLuckyRouletteCooldown();
   const { entries, append, clear, markClaimed } = useRouletteHistory();
   const canPaid = coins >= PAID_SPIN_COST;
 
@@ -149,14 +149,18 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
     });
   }, [N]);
 
-  const startSpin = (paid: boolean) => {
+  const startSpin = async (mode: "free" | "coins" | "credit") => {
     if (phase === "spin" || pick === null) return;
-    if (paid) {
+    if (mode === "coins") {
       if (!onSpendCoins(PAID_SPIN_COST)) return;
+    } else if (mode === "credit") {
+      const ok = await consumePaidSpin();
+      if (!ok) return;
     } else {
       if (!freeAvailable) return;
       consumeFreeSpin();
     }
+    const paid = mode !== "free";
     setLastSpinWasPaid(paid);
     setClaimed(false);
     setActiveSpinId(null);
@@ -591,15 +595,25 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
             <div className="mt-3 space-y-2">
               <button
                 ref={primaryActionRef}
-                onClick={() => startSpin(false)}
+                onClick={() => startSpin("free")}
                 disabled={!freeAvailable || phase === "spin" || pick === null}
                 className="btn-press w-full py-2.5 rounded-full font-display text-base disabled:opacity-50 flex items-center justify-center gap-2"
                 aria-label={pick === null ? "Pick a wedge first" : freeAvailable ? "Spin for free" : `Free spin in ${formatCountdown(remainingMs)}`}
               >
                 {freeAvailable ? <>🎰 FREE SPIN</> : <><Clock size={14} aria-hidden /> Free in {formatCountdown(remainingMs)}</>}
               </button>
+              {paidCredits > 0 && (
+                <button
+                  onClick={() => startSpin("credit")}
+                  disabled={phase === "spin" || pick === null}
+                  className="w-full py-2 rounded-full font-display text-[12px] border-2 border-gold bg-gold/20 text-cream-light disabled:opacity-40 hover:bg-gold/30 flex items-center justify-center gap-2"
+                  aria-label={`Use a paid spin credit (${paidCredits} remaining)`}
+                >
+                  🎟️ PAID SPIN — {paidCredits} left
+                </button>
+              )}
               <button
-                onClick={() => startSpin(true)}
+                onClick={() => startSpin("coins")}
                 disabled={!canPaid || phase === "spin" || pick === null}
                 className="w-full py-2 rounded-full font-display text-[12px] border-2 border-gold bg-wood-dark text-cream-light disabled:opacity-40 hover:bg-wood-dark/80 flex items-center justify-center gap-2"
                 aria-label={`Extra spin for ${PAID_SPIN_COST} coins`}

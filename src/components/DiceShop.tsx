@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { DICE_PACKS, DICE_TIERS } from "@/hooks/useGameState";
-import { Lock, Check, Zap, CreditCard } from "lucide-react";
+import { Lock, Check, Zap, CreditCard, Sparkles } from "lucide-react";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -16,6 +16,13 @@ const TIER_PRICE_IDS: Record<string, string> = {
   silver: "silver_dice_price",
   gold: "gold_dice_price",
 };
+
+/** Cash-purchasable Lucky Roulette spin packs. Server fulfilled via the
+ *  `payments-webhook` edge function which inserts paid spin credits. */
+const ROULETTE_SPIN_PACKS = [
+  { id: "roulette_spins_5", priceId: "roulette_spins_5_price", spins: 5, costReal: 199, label: "5 Spins" },
+  { id: "roulette_spins_25", priceId: "roulette_spins_25_price", spins: 25, costReal: 799, label: "25 Spins" },
+] as const;
 
 interface DiceShopProps {
   coins: number;
@@ -218,6 +225,37 @@ export function DiceShop({
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Lucky Roulette Spin Packs */}
+      <div>
+        <h3 className="font-display text-xl text-foreground text-glow-green mb-3">
+          Lucky Roulette Spins
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
+          {ROULETTE_SPIN_PACKS.map((pack) => (
+            <div
+              key={pack.id}
+              className="rounded-xl border-2 border-accent/40 bg-card p-4 flex flex-col items-center gap-2"
+            >
+              <span className="text-3xl">🎰</span>
+              <span className="font-bold font-body text-sm text-foreground">{pack.label}</span>
+              <div className="flex items-center gap-1 text-primary font-body">
+                <Sparkles size={14} />
+                <span className="font-extrabold">{pack.spins} spins</span>
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleBuyWithMoney(pack.priceId, pack.id, pack.spins)}
+                disabled={loading}
+                className="w-full rounded-lg bg-primary/20 text-primary hover:bg-primary/30 py-1.5 text-xs font-bold font-body flex items-center justify-center gap-1 cursor-pointer transition-all"
+              >
+                <CreditCard size={12} />
+                ${(pack.costReal / 100).toFixed(2)}
+              </motion.button>
+            </div>
+          ))}
         </div>
       </div>
     </div>
