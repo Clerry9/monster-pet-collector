@@ -4,8 +4,12 @@ import { Dice3D, FACE_ROT } from "./Dice3D";
 
 // Mock @react-three/fiber so the test runs without WebGL.
 vi.mock("@react-three/fiber", () => {
-  const Canvas = ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="r3f-canvas">{children}</div>
+  // Render the canvas as a plain div WITHOUT children, to avoid mounting the
+  // three.js intrinsic JSX nodes (<group>, <mesh>, ...) which require a real
+  // r3f reconciler. The behaviours we care about (face-value plumbing, prop
+  // shape, and the FACE_ROT export) don't need the cube tree mounted.
+  const Canvas = (_props: { children?: React.ReactNode }) => (
+    <div data-testid="r3f-canvas" />
   );
   // useFrame: never fires in tests — we only need the canvas + Cube tree to mount.
   const useFrame = (_cb: unknown) => {};
