@@ -543,6 +543,10 @@ const Index = () => {
     if (drawnCard) return;
     if (game.pendingCardFlips <= 0) return;
     if (drawingFlipRef.current) return;
+    // Wait until the monster has finished hopping AND any tile-card reveal
+    // for this roll has already been queued — otherwise a free flip from
+    // an island-star bonus races the tile card and stomps it.
+    if (!hasLanded) return;
     drawingFlipRef.current = true;
     const card = drawRandomCard();
     game.consumeCardFlip();
@@ -551,7 +555,7 @@ const Index = () => {
     toast.success("🌟 Free Card Flip!", { description: "From your collected island stars" });
     void missions.bump("pack_1", 1);
     // Released by onComplete handler when the reveal closes.
-  }, [game.pendingCardFlips, drawnCard, tab]);
+  }, [game.pendingCardFlips, drawnCard, tab, hasLanded]);
 
   // Mini-game costs 1 roll to play
   const handlePlayMiniGame = (): boolean => {
