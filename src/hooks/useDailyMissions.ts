@@ -92,20 +92,27 @@ export function useDailyMissions() {
       if (!user) return;
       if (claimingCode) return;
       setClaimingCode(code);
-      const { error } = await (supabase as any).rpc("claim_mission", { p_code: code });
-      if (error) {
-        toast.error(error.message ?? "Could not claim");
+      try {
+        const { error } = await (supabase as any).rpc("claim_mission", { p_code: code });
+        if (error) {
+          toast.error(error.message ?? "Could not claim");
+          return;
+        }
+        const def = defs[code];
+        if (def) {
+          toast.success("Mission claimed!", {
+            description: `+${def.reward_amount} ${def.reward_kind}`,
+          });
+        }
+        await refresh();
+        // Notify the rest of the app (HUD coins/rolls/energy) to refetch
+        // game_state without waiting for the next poll.
+        try { window.dispatchEvent(new Event("game-state:refresh")); } catch { /* ignore */ }
+      } catch (e: any) {
+        toast.error(e?.message ?? "Could not claim");
+      } finally {
         setClaimingCode(null);
-        return;
       }
-      const def = defs[code];
-      if (def) {
-        toast.success("Mission claimed!", {
-          description: `+${def.reward_amount} ${def.reward_kind}`,
-        });
-      }
-      await refresh();
-      setClaimingCode(null);
     },
     [user, defs, refresh, claimingCode],
   );
