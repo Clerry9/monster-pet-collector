@@ -475,7 +475,9 @@ const Index = () => {
       if (game.energy < cost) {
         toast.error("Not enough energy", {
           description: `Bet ×${game.betMultiplier} costs ${cost}⚡. You have ${game.energy}⚡.`,
+          action: { label: "Refill", onClick: () => setRefillOpen(true) },
         });
+        setRefillOpen(true);
       }
     }
   };
