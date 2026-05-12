@@ -491,15 +491,15 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
                 </>
               )}
               {diceValue && isRolling && (
-                <motion.span
-                  key={diceValue}
-                  initial={{ scale: 1.5 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-3 -right-3 pill-gold w-9 h-9 flex items-center justify-center text-base"
-                  aria-hidden="true"
-                >
-                  {diceValue}
-                </motion.span>
+                <div className="absolute -top-5 -right-5" aria-hidden="true">
+                  <Dice3D
+                    value={diceValue}
+                    tier={diceTier}
+                    size={44}
+                    settleMs={120}
+                    reducedMotion={reducedMotion}
+                  />
+                </div>
               )}
             </motion.button>
           </div>
