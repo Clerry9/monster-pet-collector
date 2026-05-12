@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -12,7 +13,7 @@ const KEY = "lov_crazygames_setup_checks";
 interface Step {
   id: string;
   title: string;
-  body: React.ReactNode;
+  body: ReactNode;
 }
 
 const STEPS: Step[] = [
