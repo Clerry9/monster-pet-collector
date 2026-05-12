@@ -1,52 +1,74 @@
-## 1. 3D dice + landing celebrations + particles (Phase 2 of graphics)
+## Scope
 
-- Add deps: `three`, `@react-three/fiber`, `@react-three/drei`.
-- New `src/components/Dice3D.tsx`: tumbling cube, deterministic settle on `value` prop, tier-based materials (basic/silver/gold). Falls back to current 2D dice if `prefers-reduced-motion` or `lowPower` is on.
-- Wire into `GameBoard.tsx` / `Index.tsx` where the dice currently render.
-- New `src/components/RewardCelebration.tsx`: per-reward Framer Motion variants (energy = lightning + monster wiggle, coins = coin shower, card = flip glow, crit = burst). Triggered from `useGameState.rollDice` after tile resolves.
-- Wire `ParticleBurst` (already exists) into level-up, crit, and pack-open moments.
-- `SettingsDialog.tsx`: add `celebrations_enabled` toggle (localStorage, default on); gate celebrations + particles behind it.
+Six related changes across game polish, missions UX, monster behavior, ads ops docs, and a card-reveal bug fix.
 
-## 2. Daily missions (rotate per day, same shape as achievements)
+---
 
-Database (single migration):
-- `missions_def(code pk, title, description, target int, reward_kind text, reward_amount int, weight int default 1, enabled bool default true)` — static catalog seeded with ~10 missions (roll N times, earn N coins, land N crits, open 1 pack, level up once, win at roulette, etc.).
-- `daily_missions(id, user_id, mission_date date, code, target, progress, completed_at, claimed_at, created_at, updated_at)` with `unique(user_id, mission_date, code)`.
-- RLS: user reads/updates own rows on `daily_missions`; `missions_def` is public-read.
-- RPC `get_or_roll_daily_missions()` SECURITY DEFINER: if user has no rows for today (UTC), deterministically pick 3 from `missions_def` using a hash of `(user_id, mission_date)` so it's stable per day per user, insert them, return today's rows.
-- RPC `claim_mission(p_code text)` SECURITY DEFINER: same shape as `claim_achievement` — verifies progress >= target and not yet claimed, grants reward via `game_state` update, marks `claimed_at`.
+### 1. Replace 2D dice animation with `Dice3D` in `GameBoard.tsx`
 
-Client:
-- `src/hooks/useDailyMissions.ts` — fetches today's missions on mount, exposes `progress(code, delta)` to bump local state, and a `claim(code)` wrapper. Mirrors `useAchievements.ts` exactly.
-- `src/components/DailyMissions.tsx` — panel in `Index.tsx` (next to the achievements/streak entry points) showing 3 cards with progress bars + Claim buttons.
-- Hook event bumps into `useGameState` (rolls, crits, coins earned, packs opened, level-ups) — extend the same callsites already used by `useAchievements`.
+- Import `Dice3D` and gate it with a `prefers-reduced-motion` media query (and a 3D-disabled fallback for low-power mode via existing `lib/lowPower.ts`).
+- During `performRoll`'s tick interval, keep updating `diceValue` (so 3D cube re-tumbles each tick by key change) — but render `<Dice3D value={diceValue ?? 1} tier={activeDiceTier}/>` in the corner badge instead of the plain number.
+- Pass `active_dice_tier` from `useGameState` down through `GameBoard` props as `diceTier`.
+- Tune `Dice3D` settle from 900 ms → match the existing finish window: roll completes after 12 ticks × 80 ms = ~960 ms, plus the post-roll hop delay. Change `Dice3D` settle constant to ~800 ms so the cube lands a hair before the monster starts hopping. Verify by watching `lastResult` arrive after the cube settles.
+- Reduced-motion / low-power: render the existing 2D number badge instead of `<Canvas>`.
 
-## 3. CrazyGames SDK — production wiring
+### 2. Daily Missions claim flow
 
-Code side (what I will do):
-- Keep current SDK script in `index.html` (already added).
-- Update `src/lib/ads.ts`: log SDK init result, surface `isAdBlocked()` check, and call `sdk.game.gameplayStart()` / `gameplayStop()` around active play sessions so CrazyGames analytics + ad pacing work correctly. Also call `sdk.game.happytime()` after wins (their recommended hook for natural ad break moments).
-- Add a small `CrazyGamesProvider` init in `App.tsx` that runs once on mount.
-- Add `?crazygames=1` URL flag override so we can force the SDK path during QA on the lovable preview.
+`DailyMissionsModal` already calls `claim(code)` via `useDailyMissions`, which calls the `claim_mission` RPC and shows a `toast.success("Mission claimed!", { description: "+N kind" })` then refreshes. Verify it actually fires:
 
-What you must do in the CrazyGames developer portal (cannot be automated):
-1. Finish the developer registration (you said you've signed up).
-2. Create a new game entry, upload a build (zip of `dist/` after `vite build`), set orientation = landscape/portrait as appropriate, and submit for review.
-3. Under your game's **Monetization** tab, enable rewarded ads.
-4. Under **Payments / Payout settings**: add PayPal or bank info, tax form (W-8BEN if outside the US, W-9 if US), and confirm payout threshold.
-5. Once approved, CrazyGames hosts the build on their CDN — real ads only fill when players play on crazygames.com (or in approved embeds), not on your own domain.
+- Confirm `claim_mission` RPC returns the granted reward and updates `game_state` server-side (read the existing migration; if it doesn't grant, add a follow-up migration that updates `game_state` inside the RPC and returns `{kind, amount}`).
+- After a successful claim, also call `game.refresh()` (or whatever the existing pattern is in `useGameState`) so coins/rolls/energy update in the HUD immediately.
+- Make the Claim button show a brief loading state and disable while the RPC is in flight.
+- Confirmation toast already exists via `sonner`; keep it but include the new server-issued amount in the description.
 
-Revenue mechanics (informational):
-- CrazyGames pays a revenue share of net ad revenue, monthly, once you hit the $100 minimum payout. Reporting is in their developer dashboard.
-- Embedding the SDK on monsterpetcol.com will not earn revenue — only submitted builds hosted by CrazyGames monetize.
+### 3. Monster searches for a friend monster
 
-## Out of scope (ask before adding)
-- Replacing the demo fallback entirely (kept so local dev / your own domain still works).
-- Native AdMob production IDs (still on Google test IDs).
-- Cross-promo / branded-content units from CrazyGames Playhub.
+Light ambient behavior on the board, idle only (does not affect gameplay):
 
-## Files
+- In `IsometricBoard` / `MonsterDisplay` (whichever renders the active monster on the board), add an idle "searching" loop:
+  - Every 8–14 s while not rolling, the monster turns its head left/right (rotateY tween), emits a small `🔍` thought bubble, and a tiny silhouette of a random unlocked-or-locked friend monster fades in nearby for ~1.5 s, then fades out.
+  - Pull candidate friends from `src/data/monsters.ts` excluding the active monster.
+  - Pause this loop while `isRolling` or while a `CardReveal` modal is open.
+- New tiny component `FriendSearch.tsx` rendered inside the board container.
+- Settings toggle `friend_search_enabled` (default on) in `SettingsDialog.tsx`, persisted to localStorage, mirroring the existing `celebrations_enabled` pattern.
 
-New: `src/components/Dice3D.tsx`, `src/components/RewardCelebration.tsx`, `src/components/DailyMissions.tsx`, `src/hooks/useDailyMissions.ts`, plus one migration.
+### 4. CrazyGames Setup help panel
 
-Edited: `src/components/GameBoard.tsx`, `src/pages/Index.tsx`, `src/hooks/useGameState.ts`, `src/components/SettingsDialog.tsx`, `src/lib/ads.ts`, `src/App.tsx`, `package.json` (three deps).
+- New component `src/components/CrazyGamesSetupDialog.tsx` — a Dialog with a step-by-step checklist:
+  1. Build the production bundle (`npm run build`) → produces `dist/`.
+  2. Zip the `dist/` folder (instructions for mac/Win).
+  3. Log in at developers.crazygames.com → Games → New Game → upload zip.
+  4. Fill metadata (orientation, controls, age rating, thumbnail 1280×720, logo).
+  5. Monetization tab → enable Rewarded Ads.
+  6. Submit for review (24–72 h).
+  7. Validation: open the published portal URL with `?crazygames=1` (already supported in `lib/ads.ts`), open devtools, confirm `[ads] CrazyGames SDK initialized` log, click a "Watch ad" button, confirm a real ad plays (not the 3 s demo).
+  8. Note: real revenue only flows from games hosted on crazygames.com, not monsterpetcol.com.
+- Each step has a checkbox; state persists to localStorage so the user can resume.
+- Add an entry-point: button in `SettingsDialog.tsx` ("CrazyGames setup") and in `AdminPackAnalytics.tsx` admin page.
+
+### 5. Lottery wheel above monster's head + pause until card collected
+
+The current bug: when a tile awards a card, `CardReveal` opens but the result banner / `pendingCardFlips` triggers a loop (re-fires the reveal effect every tick).
+
+- New component `LotteryRoulette.tsx`: a small horizontal strip that mounts above the monster's head from the moment the dice is rolled. It shows reward icons (coins, energy, card, star, bonus) sliding/rotating, and after the monster lands it snaps to the actual reward type from `lastResult.tile.type`. Driven by Framer Motion.
+- Sequence: dice roll → wheel appears above monster, spins → monster does N hops → monster lands → wheel snaps to result icon → 300 ms pulse → wheel disappears → result banner shows briefly → if `pendingCardFlips > 0` the monster freezes (no idle bob, no friend-search) and `CardReveal` opens → on `onComplete`, monster resumes idle.
+- Add a `frozen` prop / boolean to `IsometricBoard`/`MonsterDisplay` that disables idle animations while a card reveal is active.
+
+### 6. Banner-loop fix (card never appears with a monster type)
+
+In `src/pages/Index.tsx` lines ~531–549 the effect that opens `CardReveal` depends on `[game.pendingCardFlips, drawnCard, tab]`. The result banner re-render appears to trip the gate. Fix:
+
+- Move banner rendering out of the same vertical stack as the card reveal so they don't compete for the same z-layer (banner sits at `z-30`, `CardReveal` should sit at `z-50` and be a true overlay over the board).
+- Only open `CardReveal` after `showResult` from `GameBoard` has fired AND `pendingCardFlips > 0` AND no reveal is already open. Add a `revealOpenRef` guard so the effect cannot re-enter while a reveal is queued.
+- When a monster-type tile (food/star) lands and also yields a card, draw the card AFTER the monster's hop completes (already gated by `onLanded`); ensure `drawnCard` only sets once per `pendingCardFlips` decrement.
+- Hide the result banner while `CardReveal` is mounted to remove the visual overlap (`{!drawnCard && <Banner/>}`).
+
+---
+
+## Technical details
+
+- Files added: `src/components/LotteryRoulette.tsx`, `src/components/FriendSearch.tsx`, `src/components/CrazyGamesSetupDialog.tsx`.
+- Files edited: `src/components/GameBoard.tsx`, `src/components/Dice3D.tsx`, `src/components/IsometricBoard.tsx` (or `MonsterDisplay.tsx`), `src/components/DailyMissions.tsx`, `src/hooks/useDailyMissions.ts`, `src/components/SettingsDialog.tsx`, `src/pages/Index.tsx`, `src/pages/AdminPackAnalytics.tsx`.
+- Possible new migration: ensure `claim_mission` RPC actually credits `game_state` and returns the granted amount.
+- No new dependencies (three / framer-motion already installed).
+- Out of scope: redesigning the dice tier shop, replacing IsometricBoard, native AdMob production IDs, leaderboard changes.

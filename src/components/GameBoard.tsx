@@ -5,6 +5,10 @@ import { Monster } from "@/data/monsters";
 import { sfxDiceTick, sfxHop, sfxLand, sfxCoinGain, sfxSkull } from "@/lib/sfx";
 import { IsometricBoard } from "@/components/IsometricBoard";
 import { Zap } from "lucide-react";
+import { Dice3D } from "@/components/Dice3D";
+import { LotteryRoulette } from "@/components/LotteryRoulette";
+import { FriendSearch } from "@/components/FriendSearch";
+import { getCameraSettings, subscribeCameraSettings } from "@/lib/cameraSettings";
 
 interface GameBoardProps {
   position: number;
@@ -15,6 +19,10 @@ interface GameBoardProps {
   onRollDice: () => void;
   onLanded?: () => void;
   activeDiceMax: number;
+  /** Visual tier for the 3D dice (basic/silver/gold). */
+  diceTier?: "basic" | "silver" | "gold";
+  /** When true, freeze idle ambient (e.g. a card reveal is open). */
+  frozen?: boolean;
   levelId?: number;
   seasonAccent?: string;
   seasonGlow?: string;
@@ -63,7 +71,7 @@ interface Particle {
 const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
 let particleIdCounter = 0;
 
-export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, onRollDice, onLanded, activeDiceMax, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1 }: GameBoardProps) {
+export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, onRollDice, onLanded, activeDiceMax, diceTier = "basic", frozen = false, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1 }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -72,6 +80,8 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
   const [holdProgress, setHoldProgress] = useState(0);
   const [seasonBurstKey, setSeasonBurstKey] = useState(0);
   const [showResult, setShowResult] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState<boolean>(() => getCameraSettings().reducedMotion);
+  useEffect(() => subscribeCameraSettings(() => setReducedMotion(getCameraSettings().reducedMotion)), []);
   const rollCounterRef = useRef(0);
   const monsterControls = useAnimation();
   const prevPositionRef = useRef(position);
@@ -363,6 +373,22 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
           seasonGlow={seasonGlow}
           fullscreen={fullscreen}
         />
+        {/* Lottery wheel + friend-search bubble float above the monster.
+            Positioned roughly over the board center; purely decorative. */}
+        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[18%] flex flex-col items-center gap-1 z-20">
+          <LotteryRoulette
+            spinning={isRolling || (!!lastResult && !showResult)}
+            result={
+              showResult && lastResult
+                ? (lastResult.tile.type as "coins" | "bonus" | "chest" | "food" | "skull" | "star")
+                : null
+            }
+          />
+          <FriendSearch
+            activeMonsterId={monster.id}
+            paused={isRolling || frozen || (!!lastResult && !showResult)}
+          />
+        </div>
         {/* Season symbol particle burst */}
         <AnimatePresence>
           {seasonSymbol && seasonBurstKey > 0 && (
@@ -374,7 +400,7 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
       {/* Result display — only after monster lands */}
       <div className={fullscreen ? "absolute left-1/2 -translate-x-1/2 bottom-[12.5rem] z-30 flex flex-col items-center gap-2 pointer-events-none" : "contents"}>
       <AnimatePresence>
-        {lastResult && showResult && (
+        {lastResult && showResult && !frozen && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -465,15 +491,15 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
                 </>
               )}
               {diceValue && isRolling && (
-                <motion.span
-                  key={diceValue}
-                  initial={{ scale: 1.5 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-3 -right-3 pill-gold w-9 h-9 flex items-center justify-center text-base"
-                  aria-hidden="true"
-                >
-                  {diceValue}
-                </motion.span>
+                <div className="absolute -top-5 -right-5" aria-hidden="true">
+                  <Dice3D
+                    value={diceValue}
+                    tier={diceTier}
+                    size={44}
+                    settleMs={120}
+                    reducedMotion={reducedMotion}
+                  />
+                </div>
               )}
             </motion.button>
           </div>

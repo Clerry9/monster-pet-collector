@@ -9,6 +9,10 @@ interface Dice3DProps {
   tier?: "basic" | "silver" | "gold";
   size?: number;
   className?: string;
+  /** Settle duration in ms. Tune to match the host's roll interval. */
+  settleMs?: number;
+  /** Disable the WebGL canvas and render a flat fallback. */
+  reducedMotion?: boolean;
 }
 
 const TIER_COLORS: Record<string, { color: string; emissive: string; metalness: number }> = {
@@ -27,7 +31,7 @@ const FACE_ROT: Record<number, [number, number, number]> = {
   6: [Math.PI, 0, 0],
 };
 
-function Cube({ value, tier }: { value: number; tier: "basic" | "silver" | "gold" }) {
+function Cube({ value, tier, settleMs }: { value: number; tier: "basic" | "silver" | "gold"; settleMs: number }) {
   const ref = useRef<THREE.Group>(null);
   const startRef = useRef<number>(0);
   const fromRot = useRef<THREE.Euler>(new THREE.Euler(0, 0, 0));
@@ -50,7 +54,7 @@ function Cube({ value, tier }: { value: number; tier: "basic" | "silver" | "gold
 
   useFrame(() => {
     if (!ref.current) return;
-    const elapsed = (performance.now() - startRef.current) / 900; // 0.9s settle
+    const elapsed = (performance.now() - startRef.current) / Math.max(150, settleMs);
     const t = Math.min(1, Math.max(0, elapsed));
     // ease-out cubic
     const e = 1 - Math.pow(1 - t, 3);
@@ -116,7 +120,26 @@ function Pips({ face, mat }: { face: number; mat: THREE.Material }) {
   );
 }
 
-export function Dice3D({ value, tier = "basic", size = 90, className = "" }: Dice3DProps) {
+export function Dice3D({ value, tier = "basic", size = 90, className = "", settleMs = 800, reducedMotion = false }: Dice3DProps) {
+  if (reducedMotion) {
+    const palette = TIER_COLORS[tier];
+    return (
+      <div
+        className={`flex items-center justify-center font-display text-2xl rounded-md border-2 ${className}`}
+        style={{
+          width: size,
+          height: size,
+          background: palette.color,
+          borderColor: palette.emissive,
+          color: "#1a1a1a",
+        }}
+        aria-label={`Dice showing ${value}`}
+        role="img"
+      >
+        {value}
+      </div>
+    );
+  }
   return (
     <div
       className={className}
@@ -127,7 +150,7 @@ export function Dice3D({ value, tier = "basic", size = 90, className = "" }: Dic
       <Canvas camera={{ position: [2, 2, 2.6], fov: 35 }} dpr={[1, 2]}>
         <ambientLight intensity={0.7} />
         <directionalLight position={[3, 4, 2]} intensity={1.0} />
-        <Cube value={value} tier={tier} />
+        <Cube value={value} tier={tier} settleMs={settleMs} />
       </Canvas>
     </div>
   );

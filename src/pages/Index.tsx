@@ -244,6 +244,9 @@ const Index = () => {
   const [levelUpData, setLevelUpData] = useState<ReturnType<typeof getLevelForXp> | null>(null);
   const [prestigeTier, setPrestigeTier] = useState<number | null>(null);
   const [drawnCard, setDrawnCard] = useState<GameCard | null>(null);
+  // True once handleLanded has fired for the current `lastResult` — gates
+  // the auto card-flip effect so it can't open the reveal mid-hop.
+  const [hasLanded, setHasLanded] = useState(true);
   const prevLevelRef = useRef(game.level);
   // Stash a level-up that happened while the monster is still hopping,
   // so the celebration only plays after handleLanded() fires.
@@ -457,6 +460,7 @@ const Index = () => {
     const result = game.rollDice();
     if (result) {
       setLastResult(result);
+      setHasLanded(false);
       void missions.bump("roll_10", 1);
       void missions.bump("roll_30", 1);
       // NOTE: card reveal + island-star toast are deferred to handleLanded()
@@ -476,6 +480,7 @@ const Index = () => {
   const handleLanded = () => {
     const result = lastResult;
     if (!result) return;
+    setHasLanded(true);
     // Personality reactions: celebrate or commiserate based on what we landed on.
     const tileType = result.tile?.type;
     if (tileType === "skull") {
@@ -538,6 +543,10 @@ const Index = () => {
     if (drawnCard) return;
     if (game.pendingCardFlips <= 0) return;
     if (drawingFlipRef.current) return;
+    // Wait until the monster has finished hopping AND any tile-card reveal
+    // for this roll has already been queued — otherwise a free flip from
+    // an island-star bonus races the tile card and stomps it.
+    if (!hasLanded) return;
     drawingFlipRef.current = true;
     const card = drawRandomCard();
     game.consumeCardFlip();
@@ -546,7 +555,7 @@ const Index = () => {
     toast.success("🌟 Free Card Flip!", { description: "From your collected island stars" });
     void missions.bump("pack_1", 1);
     // Released by onComplete handler when the reveal closes.
-  }, [game.pendingCardFlips, drawnCard, tab]);
+  }, [game.pendingCardFlips, drawnCard, tab, hasLanded]);
 
   // Mini-game costs 1 roll to play
   const handlePlayMiniGame = (): boolean => {
@@ -899,6 +908,8 @@ const Index = () => {
                   onRollDice={handleRollDice}
                   onLanded={handleLanded}
                   activeDiceMax={game.activeDiceTierData.maxRoll}
+                  diceTier={(["basic","silver","gold"] as const).includes(game.activeDiceTier as "basic"|"silver"|"gold") ? (game.activeDiceTier as "basic"|"silver"|"gold") : "basic"}
+                  frozen={!!drawnCard}
                   levelId={getLevelForXp(game.xp).id}
                   seasonAccent={`hsl(${season.season.palette.accent})`}
                   seasonGlow={`hsl(${season.season.palette.glow})`}

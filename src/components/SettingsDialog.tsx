@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Cpu, Box, Volume2, GraduationCap, Camera, RotateCcw, Play, Sparkles } from "lucide-react";
+import { X, Cpu, Box, Volume2, GraduationCap, Camera, RotateCcw, Play, Sparkles, Gamepad2, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getLowPowerMode, setLowPowerMode, subscribeLowPower, type LowPowerMode } from "@/lib/lowPower";
 import {
@@ -14,6 +14,8 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { getCelebrationsEnabled, setCelebrationsEnabled } from "@/components/RewardCelebration";
+import { getFriendSearchEnabled, setFriendSearchEnabled } from "@/components/FriendSearch";
+import { CrazyGamesSetupDialog } from "@/components/CrazyGamesSetupDialog";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -50,10 +52,13 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
   useEffect(() => subscribeCameraSettings(() => setCam(getCameraSettings())), []);
 
   const [celebrationsOn, setCelebrationsOn] = useState<boolean>(() => getCelebrationsEnabled());
+  const [friendSearchOn, setFriendSearchOn] = useState<boolean>(() => getFriendSearchEnabled());
+  const [crazyOpen, setCrazyOpen] = useState(false);
 
   const selectMode = (m: LowPowerMode) => { setLowPowerMode(m); setMode(m); };
 
   return (
+    <>
     <AnimatePresence>
       {open && (
         <motion.div
@@ -165,6 +170,37 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
               <p className="text-xs text-muted-foreground">
                 Plays a quick burst when you land on energy refills, big coins, cards, or crits.
               </p>
+            </section>
+
+            {/* --- Friend search --- */}
+            <section aria-labelledby="friend-heading" className="space-y-2 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-bold" id="friend-heading">
+                  <Search size={14} /> Monster friend search
+                </div>
+                <Switch
+                  checked={friendSearchOn}
+                  onCheckedChange={(v) => { setFriendSearchEnabled(!!v); setFriendSearchOn(!!v); }}
+                  aria-label="Friend search toggle"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Your monster occasionally peeks around looking for friend monsters. Decorative only.
+              </p>
+            </section>
+
+            {/* --- CrazyGames setup --- */}
+            <section aria-labelledby="cg-heading" className="space-y-2 mb-6">
+              <div className="flex items-center gap-2 text-sm font-bold" id="cg-heading">
+                <Gamepad2 size={14} /> CrazyGames setup
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Step-by-step checklist for shipping the build to the CrazyGames portal and turning
+                on rewarded ads in production.
+              </p>
+              <Button variant="outline" className="w-full" onClick={() => setCrazyOpen(true)}>
+                <Gamepad2 size={14} /> Open setup checklist
+              </Button>
             </section>
 
             {/* --- Camera --- */}
@@ -283,5 +319,7 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
         </motion.div>
       )}
     </AnimatePresence>
+    <CrazyGamesSetupDialog open={crazyOpen} onClose={() => setCrazyOpen(false)} />
+    </>
   );
 }

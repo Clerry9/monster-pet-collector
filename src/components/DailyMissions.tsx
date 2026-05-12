@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Target, Gift } from "lucide-react";
+import { X, Target, Gift, Loader2 } from "lucide-react";
 import { useDailyMissions } from "@/hooks/useDailyMissions";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ const REWARD_EMOJI: Record<string, string> = {
 };
 
 export function DailyMissionsModal({ open, onClose }: Props) {
-  const { list, loading, claim } = useDailyMissions();
+  const { list, loading, claim, claimingCode } = useDailyMissions();
 
   return (
     <AnimatePresence>
@@ -87,12 +87,22 @@ export function DailyMissionsModal({ open, onClose }: Props) {
                       <Button
                         size="sm"
                         variant={claimed ? "ghost" : completed ? "default" : "outline"}
-                        disabled={!completed || claimed}
+                        disabled={!completed || claimed || claimingCode === m.code}
                         onClick={() => claim(m.code)}
                         className="h-7 text-xs"
                       >
-                        <Gift size={12} className="mr-1" />
-                        {claimed ? "Claimed" : completed ? "Claim" : "In progress"}
+                        {claimingCode === m.code ? (
+                          <Loader2 size={12} className="mr-1 animate-spin" />
+                        ) : (
+                          <Gift size={12} className="mr-1" />
+                        )}
+                        {claimed
+                          ? "Claimed"
+                          : claimingCode === m.code
+                            ? "Claiming…"
+                            : completed
+                              ? "Claim"
+                              : "In progress"}
                       </Button>
                     </div>
                   </div>
