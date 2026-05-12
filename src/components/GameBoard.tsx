@@ -5,6 +5,10 @@ import { Monster } from "@/data/monsters";
 import { sfxDiceTick, sfxHop, sfxLand, sfxCoinGain, sfxSkull } from "@/lib/sfx";
 import { IsometricBoard } from "@/components/IsometricBoard";
 import { Zap } from "lucide-react";
+import { Dice3D } from "@/components/Dice3D";
+import { LotteryRoulette } from "@/components/LotteryRoulette";
+import { FriendSearch } from "@/components/FriendSearch";
+import { getCameraSettings, subscribeCameraSettings } from "@/lib/cameraSettings";
 
 interface GameBoardProps {
   position: number;
@@ -15,6 +19,10 @@ interface GameBoardProps {
   onRollDice: () => void;
   onLanded?: () => void;
   activeDiceMax: number;
+  /** Visual tier for the 3D dice (basic/silver/gold). */
+  diceTier?: "basic" | "silver" | "gold";
+  /** When true, freeze idle ambient (e.g. a card reveal is open). */
+  frozen?: boolean;
   levelId?: number;
   seasonAccent?: string;
   seasonGlow?: string;
@@ -63,7 +71,7 @@ interface Particle {
 const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
 let particleIdCounter = 0;
 
-export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, onRollDice, onLanded, activeDiceMax, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1 }: GameBoardProps) {
+export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, onRollDice, onLanded, activeDiceMax, diceTier = "basic", frozen = false, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1 }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -72,6 +80,8 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
   const [holdProgress, setHoldProgress] = useState(0);
   const [seasonBurstKey, setSeasonBurstKey] = useState(0);
   const [showResult, setShowResult] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState<boolean>(() => getCameraSettings().reducedMotion);
+  useEffect(() => subscribeCameraSettings(() => setReducedMotion(getCameraSettings().reducedMotion)), []);
   const rollCounterRef = useRef(0);
   const monsterControls = useAnimation();
   const prevPositionRef = useRef(position);
