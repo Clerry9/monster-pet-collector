@@ -899,6 +899,8 @@ const Index = () => {
                   onRollDice={handleRollDice}
                   onLanded={handleLanded}
                   activeDiceMax={game.activeDiceTierData.maxRoll}
+                  diceTier={(["basic","silver","gold"] as const).includes(game.activeDiceTier as "basic"|"silver"|"gold") ? (game.activeDiceTier as "basic"|"silver"|"gold") : "basic"}
+                  frozen={!!drawnCard}
                   levelId={getLevelForXp(game.xp).id}
                   seasonAccent={`hsl(${season.season.palette.accent})`}
                   seasonGlow={`hsl(${season.season.palette.glow})`}
