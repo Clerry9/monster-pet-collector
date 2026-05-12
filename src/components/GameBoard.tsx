@@ -386,7 +386,7 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
           />
           <FriendSearch
             activeMonsterId={monster.id}
-            paused={isRolling || frozen || !!lastResult}
+            paused={isRolling || frozen || (!!lastResult && !showResult)}
           />
         </div>
         {/* Season symbol particle burst */}
