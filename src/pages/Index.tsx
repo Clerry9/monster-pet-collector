@@ -19,6 +19,7 @@ import { MonsterCollection } from "@/components/MonsterCollection";
 import { CardCollection } from "@/components/CardCollection";
 import { SpinWheel } from "@/components/SpinWheel";
 import { DiceShop } from "@/components/DiceShop";
+import { CosmeticStore } from "@/components/CosmeticStore";
 import { GameTabs } from "@/components/GameTabs";
 import { SideRails } from "@/components/SideRails";
 import { useLuckyRouletteCooldown } from "@/hooks/useLuckyRouletteCooldown";
@@ -1097,6 +1098,10 @@ const Index = () => {
                 onBuyPack={game.buyDicePack}
                 onUnlockTier={game.unlockDiceTier}
                 onSelectTier={game.setActiveDiceTier}
+              />
+              <CosmeticStore
+                coins={game.coins}
+                onCoinsChanged={(next) => game.addCoins(next - game.coins)}
               />
               <div className="flex justify-center pt-2">
                 <AdBanner />
