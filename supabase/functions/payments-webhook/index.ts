@@ -37,13 +37,14 @@ const PACK_MAP: Record<string, Perk> = {
   // Star pack — boosts season progression / card flips
   star_pack_price: { packId: "star_pack", stars: 15, cardFlips: 3 },
 
-  // Season pass handled separately further below (writes to season_progress)
-  season_pass_one_time: { packId: "season_pass" },
-  season_pass_t1_price: { packId: "season_pass" },
-  season_pass_t2_price: { packId: "season_pass" },
-  season_pass_t3_price: { packId: "season_pass" },
-  season_pass_t4_price: { packId: "season_pass" },
-  season_pass_t5_price: { packId: "season_pass" },
+  // Season pass — also writes pass_purchased=true to season_progress further below.
+  // Premium perks (per plan): +5 bonus rolls, exclusive monster auto-unlock.
+  season_pass_one_time: { packId: "season_pass", rolls: 5, unlockMonsters: ["drako"] },
+  season_pass_t1_price: { packId: "season_pass", rolls: 5, unlockMonsters: ["drako"] },
+  season_pass_t2_price: { packId: "season_pass", rolls: 5, unlockMonsters: ["drako"] },
+  season_pass_t3_price: { packId: "season_pass", rolls: 5, unlockMonsters: ["mossfang"] },
+  season_pass_t4_price: { packId: "season_pass", rolls: 5, unlockMonsters: ["mossfang"] },
+  season_pass_t5_price: { packId: "season_pass", rolls: 5, unlockMonsters: ["aurorix"] },
 
   // Special bundles — must match perk strings shown in SpecialPacks.tsx
   special_starter_price: { packId: "special_starter", rolls: 30,  coins: 500,   cardFlips: 1 },
