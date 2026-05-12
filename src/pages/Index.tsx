@@ -244,6 +244,9 @@ const Index = () => {
   const [levelUpData, setLevelUpData] = useState<ReturnType<typeof getLevelForXp> | null>(null);
   const [prestigeTier, setPrestigeTier] = useState<number | null>(null);
   const [drawnCard, setDrawnCard] = useState<GameCard | null>(null);
+  // True once handleLanded has fired for the current `lastResult` — gates
+  // the auto card-flip effect so it can't open the reveal mid-hop.
+  const [hasLanded, setHasLanded] = useState(true);
   const prevLevelRef = useRef(game.level);
   // Stash a level-up that happened while the monster is still hopping,
   // so the celebration only plays after handleLanded() fires.
