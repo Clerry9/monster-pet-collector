@@ -3,6 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getCurrentSeason, Season } from "@/data/seasons";
 
+// Module-level flag mirrored from the current season's `pass_purchased`.
+// useGameState reads this synchronously inside addCoins/addXp without
+// taking on a dependency on this hook. Updated by the effects below.
+let _passActive = false;
+export function isSeasonPassActive(): boolean { return _passActive; }
+
 export interface SeasonProgress {
   seasonInstanceId: string;
   symbols: number;
@@ -70,6 +76,7 @@ export function useSeason() {
           claimedTiers: data.claimed_tiers ?? [],
           cardsUnlocked: data.cards_unlocked ?? [],
         });
+        _passActive = !!data.pass_purchased;
       } else {
         // Lazy create row
         await supabase.from("season_progress").insert({
@@ -77,6 +84,7 @@ export function useSeason() {
           season_id: info.seasonInstanceId,
         });
         setProgress({ ...DEFAULT, seasonInstanceId: info.seasonInstanceId });
+        _passActive = false;
       }
       setLoaded(true);
     })();
@@ -101,6 +109,7 @@ export function useSeason() {
             claimedTiers: row.claimed_tiers ?? [],
             cardsUnlocked: row.cards_unlocked ?? [],
           });
+          _passActive = !!row.pass_purchased;
         }
       )
       .subscribe();
