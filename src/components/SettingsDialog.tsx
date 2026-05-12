@@ -58,6 +58,7 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
   const selectMode = (m: LowPowerMode) => { setLowPowerMode(m); setMode(m); };
 
   return (
+    <>
     <AnimatePresence>
       {open && (
         <motion.div
@@ -317,9 +318,8 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
           </motion.div>
         </motion.div>
       )}
-      {open && (
-        <CrazyGamesSetupDialog open={crazyOpen} onClose={() => setCrazyOpen(false)} />
-      )}
     </AnimatePresence>
+    <CrazyGamesSetupDialog open={crazyOpen} onClose={() => setCrazyOpen(false)} />
+    </>
   );
 }
