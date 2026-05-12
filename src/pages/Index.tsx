@@ -600,6 +600,21 @@ const Index = () => {
   };
 
   const isBoardTab = tab === "board";
+  // Auto-open the refill modal once when the player drops to zero energy on the board.
+  useEffect(() => {
+    if (!isBoardTab) return;
+    if (game.energy === 0 && !autoRefillFiredRef.current && !drawnCard) {
+      autoRefillFiredRef.current = true;
+      setRefillOpen(true);
+    }
+    if (game.energy > 0) autoRefillFiredRef.current = false;
+  }, [isBoardTab, game.energy, drawnCard]);
+
+  // Derived FriendSearch pause reason for the debug panel.
+  const friendPauseReason: FriendSearchPauseReason =
+    drawnCard ? "reveal"
+    : (lastResult && !hasLanded) ? "hopping"
+    : "idle";
   // On the board tab, the 3D scene is fullscreen — collapse old top chrome into a drawer
   const showChrome = !isBoardTab || menuOpen;
   // Derived display values for the HUD (no extra DB schema needed)
