@@ -54,7 +54,18 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
         return;
       }
       el.scrollIntoView({ behavior: "smooth", block: "center" });
-      setRect(el.getBoundingClientRect());
+      const r = el.getBoundingClientRect();
+      // If the target is hidden, has zero size, or sits fully outside the
+      // viewport (common for side-rail items on small screens), treat it as
+      // missing so the tooltip falls back to a centered position instead of
+      // anchoring off-screen.
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const offscreen =
+        r.width === 0 || r.height === 0 ||
+        r.right < 0 || r.bottom < 0 ||
+        r.left > vw || r.top > vh;
+      setRect(offscreen ? null : r);
     };
     update();
     const id = window.setTimeout(update, 350); // re-measure after scroll
