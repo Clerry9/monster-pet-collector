@@ -400,7 +400,7 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
       {/* Result display — only after monster lands */}
       <div className={fullscreen ? "absolute left-1/2 -translate-x-1/2 bottom-[12.5rem] z-30 flex flex-col items-center gap-2 pointer-events-none" : "contents"}>
       <AnimatePresence>
-        {lastResult && showResult && (
+        {lastResult && showResult && !frozen && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
