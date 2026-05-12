@@ -15,6 +15,7 @@ import Pricing from "./pages/Pricing";
 import PurchaseHistory from "./pages/PurchaseHistory";
 import AdminRewards from "./pages/AdminRewards";
 import AdminPackAnalytics from "./pages/AdminPackAnalytics";
+import AdminCosmetics from "./pages/AdminCosmetics";
 import Achievements from "./pages/Achievements";
 import { CookieConsent } from "./components/CookieConsent";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -117,6 +118,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <AdminPackAnalytics />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/cosmetics"
+              element={
+                <ProtectedRoute>
+                  <AdminCosmetics />
                 </ProtectedRoute>
               }
             />
