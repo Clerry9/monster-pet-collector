@@ -1186,7 +1186,6 @@ const Index = () => {
       <AdRewardMenu
         open={adRewardsOpen}
         onClose={() => setAdRewardsOpen(false)}
-        onChanged={() => { void game.refresh?.(); }}
       />
       <DailyStreakModal />
     </div>
