@@ -53,7 +53,11 @@ import { AuthStatusBadge } from "@/components/AuthStatusBadge";
 import { AdRewardMenu, AdRewardLauncher } from "@/components/AdRewardMenu";
 import { DailyStreakModal } from "@/components/DailyStreakModal";
 import { AnimatedBackdrop } from "@/components/effects/AnimatedBackdrop";
-import { Trophy } from "lucide-react";
+import { Trophy, Target } from "lucide-react";
+import { DailyMissionsModal } from "@/components/DailyMissions";
+import { useDailyMissions } from "@/hooks/useDailyMissions";
+import { RewardCelebration, type CelebrationKind } from "@/components/RewardCelebration";
+import { gameplayStart, gameplayStop, adBreakHappytime } from "@/lib/ads";
 import { useNavigate } from "react-router-dom";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season" | "account";
@@ -258,6 +262,9 @@ const Index = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adRewardsOpen, setAdRewardsOpen] = useState(false);
+  const [missionsOpen, setMissionsOpen] = useState(false);
+  const [celebration, setCelebration] = useState<CelebrationKind>(null);
+  const missions = useDailyMissions();
   const navigate = useNavigate();
   const [coachOpen, setCoachOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -444,6 +451,8 @@ const Index = () => {
     const result = game.rollDice();
     if (result) {
       setLastResult(result);
+      void missions.bump("roll_10", 1);
+      void missions.bump("roll_30", 1);
       // NOTE: card reveal + island-star toast are deferred to handleLanded()
       // so they only fire AFTER the monster has finished hopping.
     } else {
@@ -468,6 +477,16 @@ const Index = () => {
     } else if (tileType === "coins" || tileType === "bonus" || tileType === "chest" || tileType === "star") {
       sfxCoinGain();
     }
+    if (tileType === "star") setCelebration("star");
+    else if (tileType === "chest") setCelebration("card");
+    else if (tileType === "bonus") setCelebration("energy");
+    else if (tileType === "coins" && (result.tile?.value ?? 0) >= 20) setCelebration("coins");
+    if (result.tile?.value && (tileType === "coins" || tileType === "chest")) {
+      void missions.bump("coins_500", result.tile.value);
+      void missions.bump("coins_2000", result.tile.value);
+    }
+    if (result.card) void missions.bump("cards_2", 1);
+    if (tileType === "star" || tileType === "chest") adBreakHappytime();
     if (result.card) {
       setDrawnCard(result.card);
     }
@@ -1189,6 +1208,8 @@ const Index = () => {
         onClose={() => setAdRewardsOpen(false)}
       />
       <DailyStreakModal />
+      <DailyMissionsModal open={missionsOpen} onClose={() => setMissionsOpen(false)} />
+      <RewardCelebration kind={celebration} onDone={() => setCelebration(null)} />
     </div>
   );
 };
