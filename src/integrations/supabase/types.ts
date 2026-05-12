@@ -14,6 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements_def: {
+        Row: {
+          code: string
+          created_at: string
+          description: string
+          enabled: boolean
+          reward_amount: number
+          reward_kind: string
+          sort_order: number
+          target: number
+          title: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description: string
+          enabled?: boolean
+          reward_amount?: number
+          reward_kind: string
+          sort_order?: number
+          target?: number
+          title: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          reward_amount?: number
+          reward_kind?: string
+          sort_order?: number
+          target?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      ad_reward_claims: {
+        Row: {
+          amount: number
+          claimed_at: string
+          id: string
+          reward_kind: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          claimed_at?: string
+          id?: string
+          reward_kind: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          claimed_at?: string
+          id?: string
+          reward_kind?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      daily_streaks: {
+        Row: {
+          best_streak: number
+          created_at: string
+          current_streak: number
+          last_claim_date: string | null
+          total_claims: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          best_streak?: number
+          created_at?: string
+          current_streak?: number
+          last_claim_date?: string | null
+          total_claims?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          best_streak?: number
+          created_at?: string
+          current_streak?: number
+          last_claim_date?: string | null
+          total_claims?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       game_state: {
         Row: {
           active_dice_tier: string
@@ -407,6 +497,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_achievements: {
+        Row: {
+          claimed_at: string | null
+          code: string
+          completed_at: string | null
+          id: string
+          progress: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          code: string
+          completed_at?: string | null
+          id?: string
+          progress?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string | null
+          code?: string
+          completed_at?: string | null
+          id?: string
+          progress?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -467,6 +587,31 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      claim_achievement: {
+        Args: { p_code: string }
+        Returns: {
+          reward_amount: number
+          reward_kind: string
+        }[]
+      }
+      claim_ad_reward: {
+        Args: { p_kind: string }
+        Returns: {
+          amount: number
+          reward_kind: string
+        }[]
+      }
+      claim_daily_streak: {
+        Args: never
+        Returns: {
+          already_claimed: boolean
+          best_streak: number
+          current_streak: number
+          reward_coins: number
+          reward_energy: number
+          reward_rolls: number
+        }[]
+      }
       claim_roulette_spin: {
         Args: { p_spin_id: string }
         Returns: {
@@ -507,6 +652,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_ad_reward_status: {
+        Args: never
+        Returns: {
+          last_claim_at: string
+          reward_kind: string
+          today_count: number
+        }[]
       }
       get_leaderboard_profiles: {
         Args: { _user_ids: string[] }
