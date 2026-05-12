@@ -303,18 +303,21 @@ export type Database = {
         Row: {
           created_at: string
           last_free_spin_at: string | null
+          paid_spin_credits: number
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           last_free_spin_at?: string | null
+          paid_spin_credits?: number
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           last_free_spin_at?: string | null
+          paid_spin_credits?: number
           updated_at?: string
           user_id?: string
         }
@@ -489,6 +492,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      consume_paid_roulette_spin: {
+        Args: never
+        Returns: {
+          created_at: string
+          last_free_spin_at: string | null
+          paid_spin_credits: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "roulette_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_leaderboard_profiles: {
         Args: { _user_ids: string[] }
         Returns: {
@@ -503,6 +522,22 @@ export type Database = {
           symbols: number
           user_id: string
         }[]
+      }
+      grant_paid_roulette_spins: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: {
+          created_at: string
+          last_free_spin_at: string | null
+          paid_spin_credits: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "roulette_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
