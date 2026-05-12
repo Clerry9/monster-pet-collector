@@ -90,6 +90,7 @@ export function DailyMissionsModal({ open, onClose }: Props) {
                         disabled={!completed || claimed || claimingCode === m.code}
                         onClick={() => claim(m.code)}
                         className="h-7 text-xs"
+                        data-testid={`claim-${m.code}`}
                       >
                         {claimingCode === m.code ? (
                           <Loader2 size={12} className="mr-1 animate-spin" />

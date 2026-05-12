@@ -1,74 +1,71 @@
-## Scope
+## Goal
 
-Six related changes across game polish, missions UX, monster behavior, ads ops docs, and a card-reveal bug fix.
+Add a documented QA checklist plus a small set of code tightenings so the three flows are demonstrably correct: daily mission claim, FriendSearch idle loop, and Dice3D landing alignment.
 
----
+## 1. Daily Missions claim — end-to-end QA
 
-### 1. Replace 2D dice animation with `Dice3D` in `GameBoard.tsx`
+Add `docs/QA-daily-missions.md` with this checklist, plus the small code fixes below.
 
-- Import `Dice3D` and gate it with a `prefers-reduced-motion` media query (and a 3D-disabled fallback for low-power mode via existing `lib/lowPower.ts`).
-- During `performRoll`'s tick interval, keep updating `diceValue` (so 3D cube re-tumbles each tick by key change) — but render `<Dice3D value={diceValue ?? 1} tier={activeDiceTier}/>` in the corner badge instead of the plain number.
-- Pass `active_dice_tier` from `useGameState` down through `GameBoard` props as `diceTier`.
-- Tune `Dice3D` settle from 900 ms → match the existing finish window: roll completes after 12 ticks × 80 ms = ~960 ms, plus the post-roll hop delay. Change `Dice3D` settle constant to ~800 ms so the cube lands a hair before the monster starts hopping. Verify by watching `lastResult` arrive after the cube settles.
-- Reduced-motion / low-power: render the existing 2D number badge instead of `<Canvas>`.
+Checklist:
+- Happy path: complete a mission (e.g. roll 5×), open modal, claim button enables, spinner shows, toast fires `+N kind`, HUD updates (coins/rolls/energy), button switches to "Claimed", row dims, badge counter on launcher decrements.
+- Idempotency: clicking Claim twice quickly only credits once (button disabled while `claimingCode` set).
+- Refresh: after claim, `refresh()` reloads list; reopening modal still shows "Claimed".
+- Multiple ready: claim each in turn; only one spinner at a time.
+- Slow network: throttle to "Slow 3G" in DevTools; spinner stays visible until RPC resolves; UI not duplicated; no double-credit if user clicks again.
+- Failure: temporarily point RPC to a bad name (or simulate via a dev flag) — toast.error fires, button returns to "Claim", no reward credited.
+- Auth: signed out → modal shows empty state, no RPC fired.
+- Day rollover: change `mission_date` row to yesterday in DB → `get_or_roll_daily_missions` rolls fresh set; previous claims do not bleed in.
+- A11y: focus trap on modal, Esc closes, claim button reachable by keyboard, aria labels read counts.
 
-### 2. Daily Missions claim flow
+Code tightenings in `useDailyMissions.ts` / `DailyMissions.tsx`:
+- Wrap `claim` in try/finally so `setClaimingCode(null)` always runs even on thrown error.
+- After successful claim, also call `game.refresh?.()` (export a hook callback or trigger via window event already used) so HUD updates without waiting for next poll.
+- Add a `data-testid="claim-<code>"` for future automated tests.
 
-`DailyMissionsModal` already calls `claim(code)` via `useDailyMissions`, which calls the `claim_mission` RPC and shows a `toast.success("Mission claimed!", { description: "+N kind" })` then refreshes. Verify it actually fires:
+## 2. FriendSearch loop — pause/resume + persistence QA
 
-- Confirm `claim_mission` RPC returns the granted reward and updates `game_state` server-side (read the existing migration; if it doesn't grant, add a follow-up migration that updates `game_state` inside the RPC and returns `{kind, amount}`).
-- After a successful claim, also call `game.refresh()` (or whatever the existing pattern is in `useGameState`) so coins/rolls/energy update in the HUD immediately.
-- Make the Claim button show a brief loading state and disable while the RPC is in flight.
-- Confirmation toast already exists via `sonner`; keep it but include the new server-issued amount in the description.
+Add `docs/QA-friend-search.md` with:
+- Idle: with no rolling/reveal, a 🔍 + friend silhouette appears every 8–14 s, lasts ~1.6 s, then hides.
+- Pause on roll: while dice ticking (`isRolling=true`), no new bubble appears; any visible bubble clears.
+- Pause on hop: while monster hopping (between roll end and `showResult=true`) the bubble stays cleared (covered by `paused = !!lastResult && !showResult`).
+- Pause on CardReveal: when a card opens, GameBoard receives `frozen=true` → bubble cleared and no new schedule.
+- Resume: after reveal closes, schedule restarts within ≤14 s.
+- Toggle off: SettingsDialog → "Friend search" → off; reload page; bubble never appears.
+- Toggle on: re-enable; reload; bubble returns.
+- Monster swap: switch active monster; new silhouettes exclude the new active one.
 
-### 3. Monster searches for a friend monster
+Code tightening in `FriendSearch.tsx`:
+- Re-read `getFriendSearchEnabled()` inside the schedule tick rather than only at effect mount, so toggling without remount takes effect immediately. Also expose a `friend-search:changed` window event dispatched by `setFriendSearchEnabled` and listen for it to force a reschedule.
+- When `paused` flips true, ensure any pending `setTimeout` (the 1600ms hide) is cleared (currently only the outer `timer` is cleared).
 
-Light ambient behavior on the board, idle only (does not affect gameplay):
+## 3. Dice3D timing — match server roll result
 
-- In `IsometricBoard` / `MonsterDisplay` (whichever renders the active monster on the board), add an idle "searching" loop:
-  - Every 8–14 s while not rolling, the monster turns its head left/right (rotateY tween), emits a small `🔍` thought bubble, and a tiny silhouette of a random unlocked-or-locked friend monster fades in nearby for ~1.5 s, then fades out.
-  - Pull candidate friends from `src/data/monsters.ts` excluding the active monster.
-  - Pause this loop while `isRolling` or while a `CardReveal` modal is open.
-- New tiny component `FriendSearch.tsx` rendered inside the board container.
-- Settings toggle `friend_search_enabled` (default on) in `SettingsDialog.tsx`, persisted to localStorage, mirroring the existing `celebrations_enabled` pattern.
+Current chain (in `GameBoard.tsx` `performRoll`):
+- Tick interval = 80 ms, count > 12 → finish (~12 × 80 = 960 ms ticking).
+- After `finish()` fires `onRollDice()`, parent updates `lastResult`; an effect waits `min(steps,12) × 110 + 250` ms before showing banner / calling `onLanded`.
+- Dice3D is given the new `value` (last random tick value) — but the *true* server result is in `lastResult.steps`, not the random tick.
 
-### 4. CrazyGames Setup help panel
+Fix:
+- Pass `lastResult?.steps` to `<Dice3D value=…/>` once the roll finishes, instead of the random `diceValue`. While `isRolling` is true keep showing the random `diceValue` for tumble flavor; when ticking ends and `lastResult` is set, swap to `lastResult.steps` so the face that lands is always the authoritative server number.
+- Set `Dice3D` `settleMs` to match the visible interval: use `settleMs={reducedMotion ? 0 : 700}` so the cube finishes settling before the hop begins (hop start delay ≈ 250 ms after `lastResult` arrives via the landing timer; the cube needs to land in the same window to feel synced).
+- Reduced-motion mode already returns the flat number tile — make sure it renders `lastResult?.steps ?? diceValue ?? 1` so the displayed number equals the server roll without any tween.
 
-- New component `src/components/CrazyGamesSetupDialog.tsx` — a Dialog with a step-by-step checklist:
-  1. Build the production bundle (`npm run build`) → produces `dist/`.
-  2. Zip the `dist/` folder (instructions for mac/Win).
-  3. Log in at developers.crazygames.com → Games → New Game → upload zip.
-  4. Fill metadata (orientation, controls, age rating, thumbnail 1280×720, logo).
-  5. Monetization tab → enable Rewarded Ads.
-  6. Submit for review (24–72 h).
-  7. Validation: open the published portal URL with `?crazygames=1` (already supported in `lib/ads.ts`), open devtools, confirm `[ads] CrazyGames SDK initialized` log, click a "Watch ad" button, confirm a real ad plays (not the 3 s demo).
-  8. Note: real revenue only flows from games hosted on crazygames.com, not monsterpetcol.com.
-- Each step has a checkbox; state persists to localStorage so the user can resume.
-- Add an entry-point: button in `SettingsDialog.tsx` ("CrazyGames setup") and in `AdminPackAnalytics.tsx` admin page.
+QA checklist (`docs/QA-dice3d.md`):
+- Roll 20×; for each, after tumble the visible top face equals the steps moved (compare to result banner number).
+- Reduced motion ON (Settings or OS): flat tile shows server number immediately on roll end; no canvas mounted (verify no `THREE.WebGLRenderer: Context Lost` in console).
+- Background tab: switch tabs mid-roll; on return the watchdog finishes the roll and the dice still shows the server number, not a random tick.
+- Tier visuals: switch dice tier basic→silver→gold; colors update; settle timing unchanged.
+- Performance: no >50 ms long task on roll end on a mid-tier laptop.
 
-### 5. Lottery wheel above monster's head + pause until card collected
+## Files touched
 
-The current bug: when a tile awards a card, `CardReveal` opens but the result banner / `pendingCardFlips` triggers a loop (re-fires the reveal effect every tick).
+- New: `docs/QA-daily-missions.md`, `docs/QA-friend-search.md`, `docs/QA-dice3d.md`
+- Edit: `src/hooks/useDailyMissions.ts` (try/finally, refresh hook), `src/components/DailyMissions.tsx` (test ids)
+- Edit: `src/components/FriendSearch.tsx` (live toggle, clear hide timer on pause)
+- Edit: `src/components/GameBoard.tsx` (feed `Dice3D` the server `lastResult.steps` after tumble, tune `settleMs`)
 
-- New component `LotteryRoulette.tsx`: a small horizontal strip that mounts above the monster's head from the moment the dice is rolled. It shows reward icons (coins, energy, card, star, bonus) sliding/rotating, and after the monster lands it snaps to the actual reward type from `lastResult.tile.type`. Driven by Framer Motion.
-- Sequence: dice roll → wheel appears above monster, spins → monster does N hops → monster lands → wheel snaps to result icon → 300 ms pulse → wheel disappears → result banner shows briefly → if `pendingCardFlips > 0` the monster freezes (no idle bob, no friend-search) and `CardReveal` opens → on `onComplete`, monster resumes idle.
-- Add a `frozen` prop / boolean to `IsometricBoard`/`MonsterDisplay` that disables idle animations while a card reveal is active.
+## Out of scope
 
-### 6. Banner-loop fix (card never appears with a monster type)
-
-In `src/pages/Index.tsx` lines ~531–549 the effect that opens `CardReveal` depends on `[game.pendingCardFlips, drawnCard, tab]`. The result banner re-render appears to trip the gate. Fix:
-
-- Move banner rendering out of the same vertical stack as the card reveal so they don't compete for the same z-layer (banner sits at `z-30`, `CardReveal` should sit at `z-50` and be a true overlay over the board).
-- Only open `CardReveal` after `showResult` from `GameBoard` has fired AND `pendingCardFlips > 0` AND no reveal is already open. Add a `revealOpenRef` guard so the effect cannot re-enter while a reveal is queued.
-- When a monster-type tile (food/star) lands and also yields a card, draw the card AFTER the monster's hop completes (already gated by `onLanded`); ensure `drawnCard` only sets once per `pendingCardFlips` decrement.
-- Hide the result banner while `CardReveal` is mounted to remove the visual overlap (`{!drawnCard && <Banner/>}`).
-
----
-
-## Technical details
-
-- Files added: `src/components/LotteryRoulette.tsx`, `src/components/FriendSearch.tsx`, `src/components/CrazyGamesSetupDialog.tsx`.
-- Files edited: `src/components/GameBoard.tsx`, `src/components/Dice3D.tsx`, `src/components/IsometricBoard.tsx` (or `MonsterDisplay.tsx`), `src/components/DailyMissions.tsx`, `src/hooks/useDailyMissions.ts`, `src/components/SettingsDialog.tsx`, `src/pages/Index.tsx`, `src/pages/AdminPackAnalytics.tsx`.
-- Possible new migration: ensure `claim_mission` RPC actually credits `game_state` and returns the granted amount.
-- No new dependencies (three / framer-motion already installed).
-- Out of scope: redesigning the dice tier shop, replacing IsometricBoard, native AdMob production IDs, leaderboard changes.
+- New automated Vitest/Playwright suites (docs only for now).
+- Changes to the `claim_mission` SQL RPC.
+- Visual redesign of the mission modal or dice.
