@@ -1,79 +1,67 @@
 # Plan
 
-## 1. Energy UI matches betMultiplier energy cost
+## 1. Admin-only `pack_analytics` dashboard
 
-`useGameState.rollDice` charges `Math.max(1, betMultiplier)` energy per roll. The HUD pill in `BetSelector.tsx` only shows `energy/cap` and the multiplier badge in `TopHud.tsx` shows `×N`. There is no display of the actual per-roll cost.
+- New route `/admin/pack-analytics` (protected + admin-gated, mirroring `/admin/rewards`).
+- New page `src/pages/AdminPackAnalytics.tsx`:
+  - Use `useUserRole()` → if not `isAdmin`, render an "Access denied" card.
+  - Fetch from `pack_analytics` (RLS already allows admins to SELECT all).
+  - Filters (client-side state, server-side query):
+    - **User**: text input that matches `user_id` (UUID) — exact match.
+    - **Pack**: `<Select>` populated from distinct `pack_id` values (loaded once).
+    - **Date range**: two `<Calendar>` popovers (from / to). Use shadcn DatePicker pattern.
+    - **Event**: optional select (`pack_fulfilled` / `purchase_initiated` / all).
+  - Pagination: 50 rows per page, "Load more" button.
+  - Table columns: created_at, event, pack_id, price_id, user_id (truncated, copy button), cards_granted, rolls_granted, coins_granted, stars_granted, dice_tier, monsters_granted, environment, paddle_transaction_id.
+  - Summary strip at top: total rows in current filter, sum of cards/rolls/coins granted.
+- Add a link to the page from `AdminRewards.tsx` header (admin-only).
+- Register the route in `App.tsx` inside `<ProtectedRoute>`.
 
-- Export a tiny helper `energyCostForBet(mult)` from `useGameState.ts` so UI and roll logic share one source of truth.
-- In `BetSelector.tsx`, append "−N⚡/roll" inside the energy pill, using `energyCostForBet(currentBet)`. When `energy < cost`, color it with a `text-destructive` tone.
-- In `TopHud.tsx`, add a small "−N⚡" sublabel under the flame `×N` badge.
+## 2. Bet selector refresh on energy regen + after rolls
 
-## 2. Insufficient-energy toast
+The selector already re-renders when `energy` changes via props, but the bet *list* in `useGameState.setBetMultiplier` and the realtime energy updates may be stale. Fixes:
 
-`rollDice` returns `null` silently when `energy < energyCost`. The dice button caller (in `GameBoard.tsx` / `Index.tsx`) doesn't surface anything.
+- In `useGameState.ts`, ensure the realtime `game_state` subscription updates `state.energy` and `state.energy_updated_at` — verify the channel exists; if missing, add one filtered by `user_id`.
+- Add a 1-second `setInterval` ticker in `BetSelector` (already present for countdown) that also recomputes `available` via `getAvailableBets(coins, predictedEnergy)` where `predictedEnergy` factors elapsed regen since `energyUpdatedAt`. This way ×2000+ pills appear the moment the player crosses 1000 energy without waiting for a server round-trip.
+- After `rollDice` resolves, the existing optimistic `setState` already drops `energy` — confirm `BetSelector` receives the latest `energy` prop from `Index.tsx` (it does via `game.energy`). No change needed beyond the predictive ticker.
+- If current bet becomes unavailable (e.g. energy fell below threshold), auto-clamp `betMultiplier` down to the highest available tier in `useGameState` after each roll.
 
-- In the roll handler, when `rollDice()` returns `null` AND `energy < cost`, fire `toast.error("Not enough energy", { description: \`Bet ×${bet} costs ${cost}⚡. You have ${energy}⚡.\` })` from `sonner`.
+## 3. Season Hub tutorial box off-screen
 
-## 3. Persist Special Pack analytics to a database table
+The coachmark targeting `[data-rail='season']` (or season-related step) renders its popover off-screen on the current 828×724 viewport.
 
-Currently only `console.log({ event: "pack_fulfilled", ... })` in `payments-webhook/index.ts`.
+- In `TutorialCoachmark.tsx`, audit the popover positioning logic (around line 157, the "never falls below the visible area" comment). Add horizontal clamping: ensure `left` is clamped to `[8, viewportWidth - popoverWidth - 8]` and `top` to `[8, viewportHeight - popoverHeight - 8]`.
+- Add a small responsive max-width to the popover (`max-w-[min(360px,calc(100vw-32px))]`) so it never exceeds viewport width on narrow screens.
+- Verify by walking the tutorial on the current viewport.
 
-New table `pack_analytics`:
+## 4. Buy Lucky Roulette spins with cash from the Shop
 
-| field | type |
-|---|---|
-| user_id | uuid |
-| pack_id | text |
-| price_id | text |
-| paddle_transaction_id | text |
-| event | text  (`purchase_initiated` / `pack_fulfilled`) |
-| rolls_granted | int |
-| coins_granted | int |
-| stars_granted | int |
-| cards_granted | int |
-| dice_tier | text null |
-| monsters_granted | text[] |
-| environment | text |
-| created_at | timestamptz default now() |
+- New Paddle product/price: `roulette_spins_5` ($1.99) and `roulette_spins_25` ($7.99) — created via `payments--batch_create_product`.
+- Add server-side fulfillment in `supabase/functions/payments-webhook/index.ts`:
+  - Recognize `roulette_spins_5` / `roulette_spins_25` price IDs.
+  - Grant N paid spins by inserting N rows into a new `purchased_roulette_spins` counter, OR (simpler) add a `paid_spin_credits` integer column to `roulette_state` and increment it. Recommend the column approach.
+- Migration: `ALTER TABLE roulette_state ADD COLUMN paid_spin_credits int NOT NULL DEFAULT 0;`
+- Update `useLuckyRouletteCooldown` to expose `paidSpinCredits` and a `consumePaidSpin()` RPC.
+- New RPC `consume_paid_roulette_spin()` (SECURITY DEFINER) — decrements `paid_spin_credits` by 1 if > 0.
+- Update `LuckyRouletteModal`: when `freeAvailable` is false but `paidSpinCredits > 0`, allow spinning by calling `consumePaidSpin()` instead of charging coins.
+- Add a "Roulette Spins" section to `DiceShop.tsx` with two cards (5-pack, 25-pack), each with a Paddle "Buy" button. Mirror existing pack card styling.
+- Log purchase to `pack_analytics` (event `pack_fulfilled`, `pack_id = roulette_spins_5/25`, store count in `rolls_granted` for now or add a dedicated field — keep using `rolls_granted` to avoid schema churn).
 
-RLS:
-- Service role: ALL.
-- Users: `SELECT` own rows (`auth.uid() = user_id`).
-- No client INSERT — only the edge function (service role) writes.
+## Files touched
 
-Edge function changes (`payments-webhook/index.ts`):
-- After the existing `console.log("pack_fulfilled", …)`, insert one row with the clamped card count.
-- Add a second insert from `purchases-checkout`/initiation flow if applicable; otherwise rely on a new `purchase_initiated` event written from the client via a small new edge function `log-pack-event` (service-role insert) so RLS stays clean. (Simpler: only log `pack_fulfilled` server-side for now — this is the trustworthy event. The "initiated" client log stays in console.)
+- New: `src/pages/AdminPackAnalytics.tsx`
+- New migration: `paid_spin_credits` column + `consume_paid_roulette_spin` RPC
+- `src/App.tsx` — register admin route
+- `src/pages/AdminRewards.tsx` — link to new page
+- `src/components/BetSelector.tsx` — predictive ticker recompute
+- `src/hooks/useGameState.ts` — clamp bet after rolls; ensure realtime updates
+- `src/components/TutorialCoachmark.tsx` — viewport clamping
+- `src/components/DiceShop.tsx` — roulette spin packs section
+- `src/components/LuckyRouletteModal.tsx` — paid spin credit flow
+- `src/hooks/useLuckyRouletteCooldown.ts` — expose paid credits
+- `supabase/functions/payments-webhook/index.ts` — fulfill roulette spin packs
+- Paddle: 2 new products via `payments--batch_create_product`
 
-Decision for v1: write only the server-side `pack_fulfilled` event to the table. Initiated events stay as console analytics (untrusted client signal).
+## Open question
 
-## 4. Expand bet multipliers when energy ≥ 1000
-
-`getAvailableBets(coins)` in `src/data/levels.ts` is the gate. It's currently coin-based only.
-
-- Extend `BET_MULTIPLIERS` with extra tiers: 5000, 10000, 100000 entries (the requested ladder is `1, 5, 10, 50, 100, 250, 500, 1000, 2000, 5000, 10000, 100000` — most exist; add `2000`, `5000`, `10000`, `100000` with appropriate `minCoins`).
-- Change `getAvailableBets` signature to `getAvailableBets(coins, energy = 0)`. Tiers above ×1000 are only returned when `energy >= 1000` (in addition to coin gate).
-- Update callers (`BetSelector` consumers in `Index.tsx` / `GameBoard.tsx` / `TopHud`) to pass `energy`.
-- The `clamp_game_state_ranges` trigger already caps `bet_multiplier` at 1000 — bump cap to 100000 via a small migration (`ALTER FUNCTION` re-create).
-
-## 5. Confirmation toast after Special Pack purchase
-
-The webhook fulfills the pack server-side; the client learns about it via the realtime `game_state` UPDATE subscription in `useGameState.ts`. We need a separate channel for "a pack just fulfilled, here's the card count".
-
-- Subscribe in `useGameState.ts` (or a new `usePackPurchaseToasts` hook mounted in `Index.tsx`) to realtime INSERTs on the new `pack_analytics` table filtered by `user_id=eq.<uid>` and `event=eq.pack_fulfilled`.
-- On insert, fire `toast.success("Pack purchased!", { description: \`+${cards_granted} card${cards_granted===1?'':'s'} added — open the card reveal to flip them.\` })`.
-- Enable realtime publication on the new table.
-
-## Technical details
-
-Files touched:
-
-- `supabase/migrations/<new>.sql` — create `pack_analytics` table + RLS + add to `supabase_realtime` publication; recreate `clamp_game_state_ranges` raising bet cap to 100000.
-- `supabase/functions/payments-webhook/index.ts` — insert into `pack_analytics` inside `grantPerks` after the existing structured log.
-- `src/hooks/useGameState.ts` — export `energyCostForBet`; expose `energy` to bet helpers; subscribe to `pack_analytics` realtime and emit a `sonner` toast.
-- `src/data/levels.ts` — extend `BET_MULTIPLIERS`; update `getAvailableBets(coins, energy)` to gate ×2000+ behind energy ≥ 1000.
-- `src/components/BetSelector.tsx` — show "−N⚡/roll" in the energy pill; pass `energy` through; destructive tint when underfunded.
-- `src/components/TopHud.tsx` — small "−N⚡" sublabel under the flame.
-- Roll caller (`src/pages/Index.tsx` or `src/components/GameBoard.tsx`) — toast on `rollDice() === null` due to energy.
-
-No client writes to `pack_analytics` — only the service-role webhook inserts, so RLS stays tight.
+Roulette spin pack pricing — happy with **5 spins / $1.99** and **25 spins / $7.99**, or different tiers/prices?
