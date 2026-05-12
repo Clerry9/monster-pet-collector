@@ -57,8 +57,7 @@ export function useDailyStreak() {
     if (!user) return null;
     setLoading(true);
     try {
-      // @ts-expect-error - rpc name not yet in generated types
-      const { data, error } = await supabase.rpc("claim_daily_streak");
+      const { data, error } = await (supabase as any).rpc("claim_daily_streak");
       if (error) throw error;
       const result = (Array.isArray(data) ? data[0] : data) as ClaimResult;
       setLastClaim(result);
