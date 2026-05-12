@@ -519,6 +519,7 @@ const Index = () => {
     game.grantCard(card.id);
     setDrawnCard(card);
     toast.success("🌟 Free Card Flip!", { description: "From your collected island stars" });
+    void missions.bump("pack_1", 1);
     // Released by onComplete handler when the reveal closes.
   }, [game.pendingCardFlips, drawnCard, tab]);
 
