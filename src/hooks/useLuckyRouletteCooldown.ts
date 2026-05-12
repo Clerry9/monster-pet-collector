@@ -25,6 +25,7 @@ export function useLuckyRouletteCooldown() {
   const { user } = useAuth();
   const [lastFree, setLastFree] = useState<number>(() => readLastFreeSpin());
   const [now, setNow] = useState<number>(() => Date.now());
+  const [paidCredits, setPaidCredits] = useState<number>(0);
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -45,15 +46,21 @@ export function useLuckyRouletteCooldown() {
     let cancelled = false;
     supabase
       .from("roulette_state")
-      .select("last_free_spin_at")
+      .select("last_free_spin_at, paid_spin_credits")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (cancelled || !data?.last_free_spin_at) return;
-        const ts = Date.parse(data.last_free_spin_at);
-        if (!Number.isFinite(ts)) return;
-        setLastFree((prev) => Math.max(prev, ts));
-        writeLastFreeSpin(Math.max(readLastFreeSpin(), ts));
+        if (cancelled || !data) return;
+        if (data.last_free_spin_at) {
+          const ts = Date.parse(data.last_free_spin_at);
+          if (Number.isFinite(ts)) {
+            setLastFree((prev) => Math.max(prev, ts));
+            writeLastFreeSpin(Math.max(readLastFreeSpin(), ts));
+          }
+        }
+        if (typeof data.paid_spin_credits === "number") {
+          setPaidCredits(data.paid_spin_credits);
+        }
       });
     const channel = supabase
       .channel(`roulette_state:${user.id}:${Math.random().toString(36).slice(2)}`)
@@ -61,11 +68,14 @@ export function useLuckyRouletteCooldown() {
         "postgres_changes",
         { event: "*", schema: "public", table: "roulette_state", filter: `user_id=eq.${user.id}` },
         (payload) => {
-          const row = payload.new as { last_free_spin_at?: string | null } | null;
+          const row = payload.new as { last_free_spin_at?: string | null; paid_spin_credits?: number | null } | null;
           const ts = row?.last_free_spin_at ? Date.parse(row.last_free_spin_at) : 0;
           if (Number.isFinite(ts) && ts > 0) {
             setLastFree((prev) => Math.max(prev, ts));
             writeLastFreeSpin(Math.max(readLastFreeSpin(), ts));
+          }
+          if (typeof row?.paid_spin_credits === "number") {
+            setPaidCredits(row.paid_spin_credits);
           }
         },
       )
@@ -91,7 +101,20 @@ export function useLuckyRouletteCooldown() {
     }
   };
 
-  return { freeAvailable, remainingMs, consumeFreeSpin };
+  /** Decrement a paid spin credit on the server. Returns true on success. */
+  const consumePaidSpin = async (): Promise<boolean> => {
+    if (!user || paidCredits <= 0) return false;
+    setPaidCredits((c) => Math.max(0, c - 1)); // optimistic
+    const { error } = await supabase.rpc("consume_paid_roulette_spin");
+    if (error) {
+      // Rollback optimistic decrement on failure.
+      setPaidCredits((c) => c + 1);
+      return false;
+    }
+    return true;
+  };
+
+  return { freeAvailable, remainingMs, consumeFreeSpin, paidCredits, consumePaidSpin };
 }
 
 export function formatCountdown(ms: number): string {
