@@ -258,6 +258,7 @@ const Index = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [adRewardsOpen, setAdRewardsOpen] = useState(false);
+  const navigate = useNavigate();
   const [coachOpen, setCoachOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   // After the tutorial finishes, run a short onboarding chain:
