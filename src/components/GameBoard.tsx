@@ -490,13 +490,17 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
                   <span className="text-[9px] opacity-80 leading-none mt-0.5">/ {activeDiceMax * 5}</span>
                 </>
               )}
-              {diceValue && isRolling && (
+              {(isRolling || (lastResult && !showResult)) && (diceValue || lastResult) && (
                 <div className="absolute -top-5 -right-5" aria-hidden="true">
                   <Dice3D
-                    value={diceValue}
+                    // While ticking, tumble through random faces; once the server
+                    // result is in (lastResult set, isRolling cleared), snap to
+                    // the authoritative steps value so the landed face matches
+                    // the result banner.
+                    value={!isRolling && lastResult ? lastResult.steps : (diceValue ?? 1)}
                     tier={diceTier}
                     size={44}
-                    settleMs={120}
+                    settleMs={reducedMotion ? 0 : 700}
                     reducedMotion={reducedMotion}
                   />
                 </div>
