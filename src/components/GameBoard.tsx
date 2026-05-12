@@ -5,7 +5,6 @@ import { Monster } from "@/data/monsters";
 import { sfxDiceTick, sfxHop, sfxLand, sfxCoinGain, sfxSkull } from "@/lib/sfx";
 import { IsometricBoard } from "@/components/IsometricBoard";
 import { Zap } from "lucide-react";
-import { Dice3D } from "@/components/Dice3D";
 import { LotteryRoulette } from "@/components/LotteryRoulette";
 import { FriendSearch } from "@/components/FriendSearch";
 import { getCameraSettings, subscribeCameraSettings } from "@/lib/cameraSettings";
