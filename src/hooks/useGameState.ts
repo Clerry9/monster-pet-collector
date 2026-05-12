@@ -426,7 +426,7 @@ export function useGameState() {
         saveToDb(next);
         return next;
       });
-    }, 60_000);
+    }, 5_000);
     return () => window.clearInterval(id);
   }, [saveToDb]);
 
