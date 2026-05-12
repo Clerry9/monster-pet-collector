@@ -626,6 +626,16 @@ const Index = () => {
       <LevelUpCelebration level={levelUpData} onComplete={() => setLevelUpData(null)} rolls={game.energy} />
       <PrestigeCelebration tier={prestigeTier} onComplete={() => setPrestigeTier(null)} />
       <PaymentTestModeBanner />
+      <EnergyRefillModal
+        open={refillOpen}
+        onClose={() => setRefillOpen(false)}
+        energy={game.energy}
+        energyCap={game.energyCap}
+        playerLevel={game.level}
+        customerEmail={user?.email ?? undefined}
+        onAdRewardEnergy={(amt) => game.addEnergy(amt)}
+      />
+      <FriendSearchDebug pausedReason={friendPauseReason} />
       <DailyReward
         open={daily.showModal}
         streak={daily.streak}
