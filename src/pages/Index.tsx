@@ -59,6 +59,8 @@ import { useDailyMissions } from "@/hooks/useDailyMissions";
 import { RewardCelebration, type CelebrationKind } from "@/components/RewardCelebration";
 import { gameplayStart, gameplayStop, adBreakHappytime } from "@/lib/ads";
 import { useNavigate } from "react-router-dom";
+import { FriendSearchDebug, type FriendSearchPauseReason } from "@/components/FriendSearchDebug";
+import { EnergyRefillModal } from "@/components/EnergyRefillModal";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season" | "account";
 
@@ -267,6 +269,8 @@ const Index = () => {
   const [adRewardsOpen, setAdRewardsOpen] = useState(false);
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [celebration, setCelebration] = useState<CelebrationKind>(null);
+  const [refillOpen, setRefillOpen] = useState(false);
+  const autoRefillFiredRef = useRef(false);
   const missions = useDailyMissions();
   const navigate = useNavigate();
   const [coachOpen, setCoachOpen] = useState(false);
