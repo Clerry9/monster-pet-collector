@@ -1182,6 +1182,13 @@ const Index = () => {
         }}
       />
       {!isBoardTab && <Footer />}
+      <AnimatedBackdrop />
+      <AdRewardMenu
+        open={adRewardsOpen}
+        onClose={() => setAdRewardsOpen(false)}
+        onChanged={() => { void game.refresh?.(); }}
+      />
+      <DailyStreakModal />
     </div>
   );
 };
