@@ -176,7 +176,7 @@ function EventBanner({
             <SparklesIcon size={14} aria-hidden="true" />
             2× COIN WEEKEND
           </span>
-          <span className="font-display text-[11px] tabular-nums text-wood-dark/80">
+          <span className="font-display text-[11px] tabular-nums text-wood-dark">
             ends in {formatCountdown(weekendMs)}
           </span>
         </div>
@@ -190,7 +190,7 @@ function EventBanner({
             <SparklesIcon size={14} aria-hidden="true" />
             2× weekend
           </span>
-          <span className="font-display text-[11px] tabular-nums text-wood-dark/70">
+          <span className="font-display text-[11px] tabular-nums text-wood-dark">
             in {formatCountdown(weekendMs)}
           </span>
         </div>
@@ -214,7 +214,7 @@ function EventBanner({
           <Gift size={14} aria-hidden="true" />
           🔥 {streak}d streak
         </span>
-        <span className="font-display text-[11px] tabular-nums text-wood-dark/80">
+        <span className="font-display text-[11px] tabular-nums text-wood-dark">
           {alreadyClaimedDaily ? `next in ${formatCountdown(dailyMs)}` : "Claim now!"}
         </span>
       </button>
