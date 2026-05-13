@@ -1,65 +1,37 @@
-## 1. Lower monster below the energy bar
+# Plan
 
-The ⚡ energy pill is rendered as an absolute overlay at the top of the board (`Index.tsx`, `CenterEnergyPill`). The monster sprite inside `IsometricBoard` currently renders high enough to sit behind/under it on the 828px viewport.
+## 1. FAQPage JSON-LD on homepage
+Inject a FAQPage schema mirroring the How to Play content (HelpDialog) — questions like "How do I win?", "What do tile rewards mean?", "How does the seasonal mini-game work?", "What are the card rarity odds?". Render via `<Helmet>` inside `src/pages/Index.tsx` so it ships only on `/`.
 
-- Add a top offset to the `IsometricBoard` content (or the monster's vertical anchor) so the monster's sprite starts below the energy pill area (~`top: 96px` on the board, or push the monster sprite down via its existing transform).
-- Verify on the 828×724 viewport and a small phone size (375×667) that the monster never overlaps the pill, and the lottery bubble (currently `top-[32%]`) still sits correctly above the monster.
-- No behavior changes — purely vertical positioning.
+## 2. Fix lottery reel "stuck on energy"
+File: `src/components/LotteryRoulette.tsx`
+- Bug: when a lucky-energy bonus rolls, `landedIcon` stays `⚡` because `luckyEnergy` state never clears, and the reel never auto-hides after landing — it lingers until the next spin.
+- Fix:
+  - Auto-hide the reel ~2s after a non-spinning result lands (clear internal `visible` state and call `onLuckyEnergy` once).
+  - Reset `luckyEnergy` to `null` on the same auto-hide so it doesn't bleed into the next spin's display.
+  - Also clear `luckyEnergy` on the rising edge regardless (already done) and guard against re-firing the callback.
 
-## 2. Harden cosmetic RPCs against anon callers
+## 3. Homepage LCP + contrast
+LCP (`index.html`):
+- Move the AdSense `<script async>` to load after `DOMContentLoaded` (or add `defer` and drop `async`) so it doesn't block the main thread during initial paint. Same treatment for the CrazyGames SDK (load on first user gesture if possible, otherwise defer).
+- Add `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>` and `<link rel="preconnect" href="https://fonts.googleapis.com">` so the display font (`Luckiest Guy`) lands faster — currently the LCP candidate is the big display heading.
+- Add `<link rel="dns-prefetch">` for ad domains.
 
-Currently `buy_cosmetic`, `equip_cosmetic`, and `unequip_cosmetic` are `SECURITY DEFINER` and callable by `anon`. They check `auth.uid() IS NULL` inside, but the linter still flags them and the surface area should not be exposed.
+Contrast (low-contrast tokens):
+- `src/components/Footer.tsx` — `text-muted-foreground/70` → `text-muted-foreground` (still meets AA on cream bg).
+- `src/pages/Index.tsx` line 1079 — `text-cream/70` on dark wood is fine, but the `EventBanner` uses `text-wood-dark/70` and `/80` on cream — bump countdown text to `text-wood-dark` for AA.
+- `CenterEnergyPill` countdown uses `text-cream-light/90` on pink — keep, already AA.
 
-Migration:
-- `REVOKE EXECUTE ... FROM anon, public` on the three functions.
-- `GRANT EXECUTE ... TO authenticated` only.
-- Keep the in-function `auth.uid() IS NULL` guard as defense in depth.
+## 4. Search Console + sitemap submission
+- Use `standard_connectors--connect` with `connector_id: google_search_console`.
+- Run the META verification flow against `https://monsterpetcol.com/`: request token → inject `<meta name="google-site-verification" …>` into `index.html` → republish → call verify → `PUT` site → submit `sitemap.xml` via the gateway.
+- Note: the verify step needs the site republished first, so this is a two-pass: (a) inject meta tag and ask user to republish, (b) finish verification + sitemap submit.
 
-## 3. Cosmetic preview modal
+## 5. Republish
+After code changes land, the user clicks Update in the publish dialog so Lighthouse re-scores against the new build. I'll prompt with the publish action at the end.
 
-Before buying or equipping, tapping a tile opens a modal with a larger preview, name, rarity, description, and price.
-
-- New `src/components/CosmeticPreviewModal.tsx` using shadcn `Dialog`.
-- Big swatch (96×96) using `preview_color`; for `dice_skin` show a styled dice face, for `monster_glow` show a glow ring around a monster emoji, for `island_theme` show a tinted island tile.
-- Buttons in the modal:
-  - Not owned → **Buy for 🪙 {price}** (disabled if insufficient coins).
-  - Owned, not equipped → **Equip**.
-  - Equipped → **Unequip**.
-- `CosmeticStore` tile click opens the modal instead of buying directly. Existing inline buy/equip buttons removed in favor of the modal CTA.
-
-## 4. Shop filters: All / Owned / Equipped
-
-Add a small filter pill row at the top of `CosmeticStore`:
-
-- Three buttons: **All**, **Owned**, **Equipped**.
-- Filter applied to each `kind` group; empty groups are hidden when filtered.
-- Filter state is local to the component, defaults to All.
-- Show a small count next to each pill (e.g. `Owned · 4`).
-
-## 5. Admin page for cosmetics
-
-A protected `/admin/cosmetics` route gated by `has_role(auth.uid(), 'admin')` that lets admins manage the catalog without touching migrations.
-
-Routing & guard:
-- Add route in `src/App.tsx`. Page checks role via `supabase.rpc('has_role', { _user_id, _role: 'admin' })` and redirects non-admins to `/`.
-
-Page features (`src/pages/AdminCosmetics.tsx`):
-- Table listing all cosmetics (including disabled), grouped by kind.
-- "Add cosmetic" form: id, kind, name, description, price_coins, rarity, preview_color, asset_key, sort_order.
-- Inline edit per row: price, rarity, preview_color, asset_key, sort_order, name, description.
-- Toggle button to enable/disable.
-- Optional delete (with confirm) — only when `user_cosmetics` has zero references.
-
-Data access:
-- `cosmetics_def` already has `admins manage cosmetics` ALL policy — admins can insert/update/delete directly via the JS client; no new RPCs needed.
-- A small read-only "owners" count column queries `user_cosmetics` grouped by `cosmetic_id` for safety before delete.
-
-## Out of scope
-- New cosmetic kinds beyond the existing three.
-- Image-asset uploads (admin form takes an `asset_key` text only).
-- Audit logging of admin edits.
-
-## Files touched
-- New: `src/components/CosmeticPreviewModal.tsx`, `src/pages/AdminCosmetics.tsx`.
-- Edited: `src/components/CosmeticStore.tsx`, `src/components/IsometricBoard.tsx` (or `GameBoard.tsx` wrapper), `src/App.tsx`.
-- One migration: revoke/grant execute on the three cosmetic RPCs.
+## Order of operations
+1. Code edits: FAQ JSON-LD, LotteryRoulette fix, contrast tweaks, index.html perf hints.
+2. Insert verification meta tag placeholder (after Search Console connect returns the token).
+3. Ask user to republish.
+4. Finish Search Console verification + sitemap submission.
