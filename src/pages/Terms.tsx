@@ -1,7 +1,13 @@
 import { Link } from "react-router-dom";
+import { SEO } from "@/components/SEO";
 
 const Terms = () => (
   <main className="min-h-screen bg-background text-foreground px-4 py-10">
+    <SEO
+      title="Terms of Service — Monster Pet Collection"
+      description="The terms governing your use of Monster Pet Collection, including accounts, virtual items, purchases via Paddle, and account termination."
+      path="/terms"
+    />
     <article className="mx-auto max-w-3xl space-y-6">
       <Link to="/" className="text-sm text-primary underline">← Back to game</Link>
       <h1 className="font-display text-4xl text-primary">Terms of Service</h1>
