@@ -623,6 +623,11 @@ const Index = () => {
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-3 py-4 overflow-hidden">
+      <SEO
+        title="Monster Pet Collection — Collect and level up 3D monsters"
+        description="Play Monster Pet Collection in your browser. Collect, train and battle 3D monsters across themed islands, earn coins, unlock cards, and complete daily missions."
+        path="/"
+      />
       <LinkAccount open={showLink} onClose={() => setShowLink(false)} />
       <LevelUpCelebration level={levelUpData} onComplete={() => setLevelUpData(null)} rolls={game.energy} />
       <PrestigeCelebration tier={prestigeTier} onComplete={() => setPrestigeTier(null)} />
