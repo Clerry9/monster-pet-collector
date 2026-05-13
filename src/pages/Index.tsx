@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SEO } from "@/components/SEO";
+import { Helmet } from "react-helmet-async";
 import { Gift, Volume2, VolumeX, HelpCircle, Menu, X as XIcon, Settings as SettingsIcon } from "lucide-react";
 import { GraduationCap } from "lucide-react";
 import { TutorialCoachmark, CoachStep } from "@/components/TutorialCoachmark";
@@ -176,7 +177,7 @@ function EventBanner({
             <SparklesIcon size={14} aria-hidden="true" />
             2× COIN WEEKEND
           </span>
-          <span className="font-display text-[11px] tabular-nums text-wood-dark/80">
+          <span className="font-display text-[11px] tabular-nums text-wood-dark">
             ends in {formatCountdown(weekendMs)}
           </span>
         </div>
@@ -190,7 +191,7 @@ function EventBanner({
             <SparklesIcon size={14} aria-hidden="true" />
             2× weekend
           </span>
-          <span className="font-display text-[11px] tabular-nums text-wood-dark/70">
+          <span className="font-display text-[11px] tabular-nums text-wood-dark">
             in {formatCountdown(weekendMs)}
           </span>
         </div>
@@ -214,7 +215,7 @@ function EventBanner({
           <Gift size={14} aria-hidden="true" />
           🔥 {streak}d streak
         </span>
-        <span className="font-display text-[11px] tabular-nums text-wood-dark/80">
+        <span className="font-display text-[11px] tabular-nums text-wood-dark">
           {alreadyClaimedDaily ? `next in ${formatCountdown(dailyMs)}` : "Claim now!"}
         </span>
       </button>
@@ -629,6 +630,62 @@ const Index = () => {
         description="Play Monster Pet Collection in your browser. Collect, train and battle 3D monsters across themed islands, earn coins, unlock cards, and complete daily missions."
         path="/"
       />
+      <Helmet>
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: [
+            {
+              "@type": "Question",
+              name: "What is the goal of Monster Pet Collection?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Collect cards and evolve monsters to climb the levels. Each level unlocks new tile bonuses and bigger payouts, all the way to the Celestial Plane where every reward is doubled.",
+              },
+            },
+            {
+              "@type": "Question",
+              name: "How do I draw new monster cards?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Land on chest 📦 or star ⭐ tiles to draw a card. Together they appear on about 20% of rolls. Complete a card set to unlock a new monster and a permanent bonus.",
+              },
+            },
+            {
+              "@type": "Question",
+              name: "What do the board tiles do?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "🪙 coin tiles pay 5–30 coins, 💰 bonus tiles multiply by 2–5×, 🍖 food feeds your pet for XP, 📦 chests and ⭐ stars draw cards, and 💀 skull tiles cost a few coins.",
+              },
+            },
+            {
+              "@type": "Question",
+              name: "What are the card rarity odds?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "When a card is drawn, the odds are: Common 50%, Rare 30%, Epic 15%, Legendary 5%. Drawing a Legendary on any single roll works out to roughly 1%.",
+              },
+            },
+            {
+              "@type": "Question",
+              name: "How does the seasonal mini-game work?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Every 2.5 days a new season starts. Play the match-3 mini-game (one play per roll) to earn special symbols and unlock seasonal rare and ultra-rare cards from the battle pass.",
+              },
+            },
+            {
+              "@type": "Question",
+              name: "Is Monster Pet Collection free to play?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Yes — the game is free to play in your browser. Optional purchases include dice bundles, special packs, and the Season Pass for faster progression and exclusive cosmetics.",
+              },
+            },
+          ],
+        })}</script>
+      </Helmet>
       <LinkAccount open={showLink} onClose={() => setShowLink(false)} />
       <LevelUpCelebration level={levelUpData} onComplete={() => setLevelUpData(null)} rolls={game.energy} />
       <PrestigeCelebration tier={prestigeTier} onComplete={() => setPrestigeTier(null)} />

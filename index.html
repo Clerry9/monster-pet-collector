@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
+    <link rel="dns-prefetch" href="https://sdk.crazygames.com" />
     <title>Monster Pet Collection — Collect and level up 3D monsters</title>
     <meta name="description" content="Collect, train and battle 3D monsters across themed islands. Earn coins, unlock cards, and build the ultimate creature collection — free to play in your browser." />
     <meta name="author" content="JAC Consulting" />
@@ -15,11 +19,11 @@
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/34815475-1625-4873-9dc0-4e3b59e8cd64/id-preview-7dd6a61f--e925fb75-03fc-4263-80d5-abbe0769e5dd.lovable.app-1777301963260.png">
 
-    <!-- CrazyGames Rewarded Ads SDK (web) -->
-    <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+    <!-- CrazyGames Rewarded Ads SDK (web) — defer so it doesn't block first paint / LCP -->
+    <script defer src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
 
-    <!-- Google AdSense — TODO: replace ca-pub-XXXXXXXXXXXXXXXX with your publisher ID -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+    <!-- Google AdSense — TODO: replace ca-pub-XXXXXXXXXXXXXXXX with your publisher ID. Defer to protect LCP. -->
+    <script defer src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
     <meta property="og:title" content="Monster Pet Collection — 3D Monster Game" />
     <meta name="twitter:title" content="Monster Pet Collection — 3D Monster Game" />
     <meta property="og:description" content="Collect, train and battle 3D monsters across themed islands. Free to play in your browser." />

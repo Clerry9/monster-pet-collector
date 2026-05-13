@@ -14,7 +14,7 @@ export const Footer = forwardRef<HTMLElement>((_props, ref) => (
       <span aria-hidden>·</span>
       <Link to="/pricing" className="hover:text-primary hover:underline">Pricing</Link>
     </nav>
-    <p className="mt-2 text-center text-[10px] text-muted-foreground/70">
+    <p className="mt-2 text-center text-[10px] text-muted-foreground">
       © {new Date().getFullYear()} · All rights reserved
     </p>
   </footer>

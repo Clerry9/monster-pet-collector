@@ -38,6 +38,10 @@ export function LotteryRoulette({ spinning, result, className = "", onLuckyEnerg
   // Roll a lucky-energy bonus once per spin cycle (the 0→1 spinning edge).
   // When set, we override the landed icon to ⚡ and fire the callback on stop.
   const [luckyEnergy, setLuckyEnergy] = useState<number | null>(null);
+  // Auto-hide the reel a short while after a result lands so it doesn't
+  // linger over the board (and visually "stick" on ⚡ when the lucky bonus
+  // fires). Reset on every new spin.
+  const [hidden, setHidden] = useState(false);
   const wasSpinningRef = useRef(false);
   const firedRef = useRef(false);
 
@@ -45,6 +49,7 @@ export function LotteryRoulette({ spinning, result, className = "", onLuckyEnerg
     if (spinning && !wasSpinningRef.current) {
       // Rising edge — roll a fresh lucky bonus (~8% chance: 5 / 10 / 15⚡).
       firedRef.current = false;
+      setHidden(false);
       const r = Math.random();
       if (r < 0.08) {
         const amt = r < 0.015 ? 15 : r < 0.04 ? 10 : 5;
@@ -70,7 +75,17 @@ export function LotteryRoulette({ spinning, result, className = "", onLuckyEnerg
     }
   }, [spinning, result, luckyEnergy, onLuckyEnergy]);
 
-  if (!spinning && !result) return null;
+  // Auto-hide ~1.8s after the reel lands on a result.
+  useEffect(() => {
+    if (spinning || !result) return;
+    const id = window.setTimeout(() => {
+      setHidden(true);
+      setLuckyEnergy(null);
+    }, 1800);
+    return () => window.clearTimeout(id);
+  }, [spinning, result]);
+
+  if ((!spinning && !result) || hidden) return null;
 
   const landedIcon = luckyEnergy ? "⚡" : result ? ICONS[result] : "🎁";
   const showIcon = spinning ? REEL[tick % REEL.length] : landedIcon;
