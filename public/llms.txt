@@ -1,0 +1,12 @@
+# Monster Pet Collection
+
+> A free-to-play browser game where you collect, train and battle 3D monsters across themed islands. Earn coins, unlock cards, and build the ultimate creature collection.
+
+## Pages
+
+- [Home](/): Play the game — collect monsters, roll dice, explore islands, and complete daily missions.
+- [Pricing](/pricing): Coin packs, dice tier upgrades, season passes, and bundles.
+- [Privacy](/privacy): How we collect and handle player data.
+- [Terms](/terms): Terms of service for using the game.
+- [Refunds](/refund): 30-day money-back guarantee handled by Paddle.
+- [Acceptable Use](/acceptable-use): Rules for fair play and account conduct.
