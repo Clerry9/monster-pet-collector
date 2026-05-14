@@ -121,7 +121,9 @@ export function energyCapForLevel(level: number): number {
 /** Energy cost charged per roll for a given bet multiplier.
  *  Single source of truth shared by rollDice and the UI. */
 export function energyCostForBet(mult: number): number {
-  return Math.max(1, Math.floor(mult || 1));
+  // Energy cost scales linearly with bet multiplier:
+  //   1× bet → 10⚡, 3× bet → 30⚡, 30× bet → 300⚡, etc.
+  return Math.max(1, Math.floor((mult || 1) * 10));
 }
 
 /** Pure: advance regen ticks since `state.energyUpdatedAt`.
