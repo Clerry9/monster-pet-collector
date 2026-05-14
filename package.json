@@ -17,7 +17,7 @@
     "@capacitor-community/admob": "^6.0.0",
     "@capacitor/android": "^8.3.1",
     "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "^8.3.1",
+    "@capacitor/cli": "^8.3.4",
     "@capacitor/core": "^8.3.1",
     "@capacitor/ios": "^8.3.1",
     "@capacitor/splash-screen": "^8.0.1",
@@ -102,5 +102,11 @@
     "typescript-eslint": "^8.38.0",
     "vite": "^5.4.19",
     "vitest": "^3.2.4"
+  },
+  "overrides": {
+    "tar": "^7.5.15"
+  },
+  "resolutions": {
+    "tar": "^7.5.15"
   }
 }
