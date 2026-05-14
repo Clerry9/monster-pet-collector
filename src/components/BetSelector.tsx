@@ -115,7 +115,7 @@ export function BetSelector({
             className={`px-2.5 py-1 text-[11px] font-display leading-none rounded-full border-2 transition-all ${
               currentBet === mult
                 ? "pill-gold border-wood-dark scale-105"
-                : "bg-cream-light/60 border-wood-dark/60 text-wood-dark/70 hover:text-wood-dark"
+                : "bg-cream-light/60 border-wood-dark text-wood-dark hover:text-wood-dark"
             }`}
           >
             BET ×{mult}
