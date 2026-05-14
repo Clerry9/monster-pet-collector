@@ -1,37 +1,47 @@
 # Plan
 
-## 1. FAQPage JSON-LD on homepage
-Inject a FAQPage schema mirroring the How to Play content (HelpDialog) — questions like "How do I win?", "What do tile rewards mean?", "How does the seasonal mini-game work?", "What are the card rarity odds?". Render via `<Helmet>` inside `src/pages/Index.tsx` so it ships only on `/`.
+## 1. Republish + Google Search Console verification
+- User clicks Publish (frontend changes need manual republish).
+- After republish, re-run the META verification call against `https://monsterpetcol.com/` via the `google_search_console` connector.
+- On 200, PUT the site to add it to their property list, then submit `sitemap.xml`.
+- If verify returns `failedToFindMetaTag`, confirm the tag is in the served HTML and retry.
 
-## 2. Fix lottery reel "stuck on energy"
-File: `src/components/LotteryRoulette.tsx`
-- Bug: when a lucky-energy bonus rolls, `landedIcon` stays `⚡` because `luckyEnergy` state never clears, and the reel never auto-hides after landing — it lingers until the next spin.
-- Fix:
-  - Auto-hide the reel ~2s after a non-spinning result lands (clear internal `visible` state and call `onLuckyEnergy` once).
-  - Reset `luckyEnergy` to `null` on the same auto-hide so it doesn't bleed into the next spin's display.
-  - Also clear `luckyEnergy` on the rising edge regardless (already done) and guard against re-firing the callback.
+## 2. Re-run Lighthouse + fix remaining issues
+- After republish, call `seo_chat--list_findings` to pull the latest scan.
+- Address any still-failing **performance** items (likely candidates: hero image not preloaded, render-blocking CSS, oversized images) and **contrast** items (sweep for any remaining `/70` `/80` `/90` opacity utilities on text — `BetSelector` still has `text-wood-dark/70`, plus check `CosmeticStore`, `TopHud`, `GameTabs`).
+- Mark fixed findings via `seo_chat--update_findings`.
 
-## 3. Homepage LCP + contrast
-LCP (`index.html`):
-- Move the AdSense `<script async>` to load after `DOMContentLoaded` (or add `defer` and drop `async`) so it doesn't block the main thread during initial paint. Same treatment for the CrazyGames SDK (load on first user gesture if possible, otherwise defer).
-- Add `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>` and `<link rel="preconnect" href="https://fonts.googleapis.com">` so the display font (`Luckiest Guy`) lands faster — currently the LCP candidate is the big display heading.
-- Add `<link rel="dns-prefetch">` for ad domains.
+## 3. Lottery roulette: stop on 1 item, stay hidden until next energy spend
+Edit `src/components/LotteryRoulette.tsx`:
+- Remove the auto-hide timeout. Instead, hide the reel only when a **new spin starts** (rising edge of `spinning`).
+- Land cleanly on exactly one icon (the server `result`, or ⚡ when lucky bonus fires) — no further animation cycling.
+- Keep the reel visible after landing until the next roll consumes energy; clear `luckyEnergy` on the next rising edge.
 
-Contrast (low-contrast tokens):
-- `src/components/Footer.tsx` — `text-muted-foreground/70` → `text-muted-foreground` (still meets AA on cream bg).
-- `src/pages/Index.tsx` line 1079 — `text-cream/70` on dark wood is fine, but the `EventBanner` uses `text-wood-dark/70` and `/80` on cream — bump countdown text to `text-wood-dark` for AA.
-- `CenterEnergyPill` countdown uses `text-cream-light/90` on pink — keep, already AA.
+## 4. Energy cost = bet multiplier × base
+Edit `src/hooks/useGameState.ts` → `energyCostForBet`:
+- Current: likely flat or low. Change to `cost = bet * BASE` where `BASE = 10` so:
+  - 1× bet → 10⚡
+  - 3× bet → 30⚡
+  - 30× bet → 300⚡
+- Verify the existing `useGameState.energy.test.ts` still represents desired behavior; update test expectations.
+- `BetSelector` already displays `−{cost}⚡/roll` so it auto-reflects the new value. Confirm `getAvailableBets` gating still makes sense (locks high bets when energy < cost).
 
-## 4. Search Console + sitemap submission
-- Use `standard_connectors--connect` with `connector_id: google_search_console`.
-- Run the META verification flow against `https://monsterpetcol.com/`: request token → inject `<meta name="google-site-verification" …>` into `index.html` → republish → call verify → `PUT` site → submit `sitemap.xml` via the gateway.
-- Note: the verify step needs the site republished first, so this is a two-pass: (a) inject meta tag and ask user to republish, (b) finish verification + sitemap submit.
+## 5. All monsters in 3D
+- Audit usages of the 2D monster `<img>` and `MonsterDisplay` across: `MonsterCollection`, `IsometricBoard`, `CosmeticStore`, `CosmeticPreviewModal`, `GameBoard`, `TopHud`, `Index`.
+- Replace remaining 2D renders with `<Monster3D>` (already supports `compact` for thumbnails and auto 2D fallback on low-power devices, so perf is safe).
+- Keep the existing low-power session fallback — do not force WebGL on phones that already opted out.
 
-## 5. Republish
-After code changes land, the user clicks Update in the publish dialog so Lighthouse re-scores against the new build. I'll prompt with the publish action at the end.
+## 6. More 3D-like animation polish
+- Add subtle 3D tilt/parallax on hover for primary cards (cosmetic store cards, season hub tiles) using `framer-motion` `rotateX/rotateY` driven by pointer position — pure CSS transforms, no perf cost.
+- Add a gentle floating "breath" loop to the hero monster row on `Index`.
+- Add depth shadows (`shadow-chunky` already exists) + perspective container on the board wrapper so isometric tiles read more dimensional.
+- Keep all motion gated by the existing `reducedMotion` setting.
 
-## Order of operations
-1. Code edits: FAQ JSON-LD, LotteryRoulette fix, contrast tweaks, index.html perf hints.
-2. Insert verification meta tag placeholder (after Search Console connect returns the token).
-3. Ask user to republish.
-4. Finish Search Console verification + sitemap submission.
+## Technical notes
+- No DB migrations; energy cost is client-derived.
+- Files touched: `LotteryRoulette.tsx`, `useGameState.ts`, `useGameState.energy.test.ts`, `MonsterCollection.tsx`, `IsometricBoard.tsx`, `CosmeticStore.tsx`, `CosmeticPreviewModal.tsx`, `GameBoard.tsx`, `TopHud.tsx`, `Index.tsx`, `BetSelector.tsx` (contrast), plus 1–2 components for tilt polish.
+- After user republishes, run GSC verify + sitemap submit and re-pull SEO findings in one batch.
+
+## What I need from you
+1. Click **Publish → Update** so the verification meta tag goes live.
+2. Reply "republished" — then I'll run verification, submit the sitemap, re-pull Lighthouse findings, and ship the lottery/energy/3D changes.
