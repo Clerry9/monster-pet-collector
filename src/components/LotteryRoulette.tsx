@@ -47,15 +47,16 @@ export function LotteryRoulette({ spinning, result, className = "", onLuckyEnerg
 
   useEffect(() => {
     if (spinning && !wasSpinningRef.current) {
-      // Rising edge — roll a fresh lucky bonus (~8% chance: 5 / 10 / 15⚡).
+      // Rising edge — hide previous result, roll a fresh lucky bonus
+      // (~8% chance: 5 / 10 / 15⚡). The reel will only re-show for this
+      // spin and stay on its landed icon until the next energy spend.
       firedRef.current = false;
       setHidden(false);
+      setLuckyEnergy(null);
       const r = Math.random();
       if (r < 0.08) {
         const amt = r < 0.015 ? 15 : r < 0.04 ? 10 : 5;
         setLuckyEnergy(amt);
-      } else {
-        setLuckyEnergy(null);
       }
     }
     wasSpinningRef.current = spinning;
@@ -74,16 +75,6 @@ export function LotteryRoulette({ spinning, result, className = "", onLuckyEnerg
       onLuckyEnergy?.(luckyEnergy);
     }
   }, [spinning, result, luckyEnergy, onLuckyEnergy]);
-
-  // Auto-hide ~1.8s after the reel lands on a result.
-  useEffect(() => {
-    if (spinning || !result) return;
-    const id = window.setTimeout(() => {
-      setHidden(true);
-      setLuckyEnergy(null);
-    }, 1800);
-    return () => window.clearTimeout(id);
-  }, [spinning, result]);
 
   if ((!spinning && !result) || hidden) return null;
 
