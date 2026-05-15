@@ -268,6 +268,31 @@ function stateToDb(state: GameState, userId: string) {
   };
 }
 
+// Patch payload for the validated `update_game_state` RPC.
+// Intentionally omits user_id (server uses auth.uid()).
+function stateToPatch(state: GameState): Record<string, unknown> {
+  return {
+    coins: state.coins,
+    rolls: state.rolls,
+    position: state.position,
+    unlocked_monsters: state.unlockedMonsters,
+    active_monster: state.activeMonster,
+    active_dice_tier: state.activeDiceTier,
+    total_steps: state.totalSteps,
+    cards_collected: state.cardsCollected,
+    collected_cards: state.collectedCards,
+    monster_taps: state.monsterTaps,
+    level: state.level,
+    xp: state.xp,
+    bet_multiplier: state.betMultiplier,
+    island_stars: state.islandStars,
+    pending_card_flips: state.pendingCardFlips,
+    last_spin_at: state.lastSpinAt,
+    energy: state.energy,
+    energy_updated_at: state.energyUpdatedAt,
+  };
+}
+
 export function useGameState() {
   const { user } = useAuth();
   const [state, setState] = useState<GameState>(() => applyRegen(loadLocalState(), Date.now()));
