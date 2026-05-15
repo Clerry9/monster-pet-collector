@@ -952,6 +952,42 @@ export type Database = {
         }
         Returns: boolean
       }
+      record_roulette_spin: {
+        Args: {
+          p_landed_slot: number
+          p_paid: boolean
+          p_picked_emoji: string
+          p_picked_label: string
+          p_picked_slot: number
+          p_reward_amount: number
+          p_reward_emoji: string
+          p_reward_kind: string
+          p_reward_label: string
+          p_won: boolean
+        }
+        Returns: {
+          claimed_at: string | null
+          created_at: string
+          id: string
+          landed_slot: number
+          paid: boolean
+          picked_emoji: string
+          picked_label: string
+          picked_slot: number
+          reward_amount: number
+          reward_emoji: string
+          reward_kind: string
+          reward_label: string
+          user_id: string
+          won: boolean
+        }
+        SetofOptions: {
+          from: "*"
+          to: "roulette_spins"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       spend_coins_rolls: {
         Args: { p_coins: number; p_rolls: number }
         Returns: {
