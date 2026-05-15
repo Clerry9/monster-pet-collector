@@ -702,6 +702,117 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_island_stars: {
+        Args: { p_amount: number }
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      apply_dice_roll: {
+        Args: {
+          p_coin_delta: number
+          p_energy_cost: number
+          p_position: number
+          p_steps: number
+          p_xp_delta: number
+        }
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      bootstrap_game_state: {
+        Args: never
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       bump_mission_progress: {
         Args: { p_code: string; p_delta?: number }
         Returns: {
@@ -830,6 +941,41 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      consume_card_flip: {
+        Args: never
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       consume_paid_roulette_spin: {
         Args: never
         Returns: {
@@ -925,6 +1071,41 @@ export type Database = {
           user_id: string
         }[]
       }
+      grant_card: {
+        Args: { p_card_id: string }
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       grant_paid_roulette_spins: {
         Args: { p_amount: number; p_user_id: string }
         Returns: {
@@ -951,6 +1132,41 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      record_monster_tap: {
+        Args: { p_amount: number; p_monster_id: string }
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       record_roulette_spin: {
         Args: {
@@ -988,8 +1204,183 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      record_spin_cooldown: {
+        Args: never
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_active_dice_tier: {
+        Args: { p_tier_id: string }
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_active_monster: {
+        Args: { p_monster_id: string }
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_bet_multiplier: {
+        Args: { p_mult: number }
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       spend_coins_rolls: {
         Args: { p_coins: number; p_rolls: number }
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      trade_card: {
+        Args: { p_card_id: string; p_value: number }
         Returns: {
           active_dice_tier: string
           active_monster: string
@@ -1060,6 +1451,76 @@ export type Database = {
       }
       unlock_dice_tier: {
         Args: { p_tier_id: string }
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      unlock_monster: {
+        Args: { p_monster_id: string }
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_game_state: {
+        Args: { p_patch: Json }
         Returns: {
           active_dice_tier: string
           active_monster: string
