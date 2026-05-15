@@ -1,72 +1,74 @@
 import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
-const STORAGE_KEY = "monster-mash-daily";
-// Grows each consecutive day, big jump on day 7. Resets if a day is missed.
+/**
+ * Server-validated daily reward. Wraps the `claim_daily_streak` RPC so that
+ * all streak/cooldown enforcement happens on the database (no localStorage
+ * gating that the client could bypass).
+ */
 const DAILY_REWARDS = [25, 50, 100, 175, 275, 400, 750];
 
-interface DailyState {
-  lastClaim: string | null; // ISO date string (date only)
-  streak: number;
+function todayUtc(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
-function getToday(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
-function getYesterday(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().split("T")[0];
-}
-
-function loadDaily(): DailyState {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return { lastClaim: null, streak: 0 };
-}
-
-function saveDaily(state: DailyState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-export function useDailyReward(addCoins: (n: number) => void, opts?: { autoOpen?: boolean }) {
+export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen?: boolean }) {
   const autoOpen = opts?.autoOpen ?? true;
-  const [daily, setDaily] = useState<DailyState>(loadDaily);
+  const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  const [streak, setStreak] = useState(1);
+  const [lastClaimDate, setLastClaimDate] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
-  const today = getToday();
-  const alreadyClaimed = daily.lastClaim === today;
+  const today = todayUtc();
+  const alreadyClaimed = lastClaimDate === today;
+  const reward = DAILY_REWARDS[(((alreadyClaimed ? streak : streak) - 1 + 7) % 7)];
 
-  // Compute current streak considering today
-  const currentStreak = (() => {
-    if (daily.lastClaim === today) return daily.streak;
-    if (daily.lastClaim === getYesterday()) return daily.streak + 1;
-    return 1; // streak reset
-  })();
-
-  const reward = DAILY_REWARDS[((currentStreak - 1) % 7)];
-
-  // Show modal on mount if not claimed today
+  // Load server-side streak state
   useEffect(() => {
-    if (autoOpen && !alreadyClaimed) {
-      const t = setTimeout(() => setShowModal(true), 800);
-      return () => clearTimeout(t);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("daily_streaks")
+        .select("current_streak,last_claim_date")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      const s = data?.current_streak ?? 0;
+      const last = data?.last_claim_date ?? null;
+      // If last claim wasn't yesterday or today, the next claim resets to 1
+      const nextStreak =
+        last === today ? s : last && new Date(last).getTime() >= Date.now() - 36 * 3600 * 1000 ? s + 1 : 1;
+      setStreak(Math.max(1, nextStreak));
+      setLastClaimDate(last);
+      setLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [user, today]);
 
-  const claim = useCallback(() => {
-    if (alreadyClaimed) return;
-    const newState: DailyState = { lastClaim: today, streak: currentStreak };
-    setDaily(newState);
-    saveDaily(newState);
-    addCoins(reward);
+  // Auto-show after load if not yet claimed today
+  useEffect(() => {
+    if (!loaded || !autoOpen || alreadyClaimed) return;
+    const t = setTimeout(() => setShowModal(true), 800);
+    return () => clearTimeout(t);
+  }, [loaded, autoOpen, alreadyClaimed]);
+
+  const claim = useCallback(async () => {
+    if (!user || alreadyClaimed) return;
+    const { data, error } = await (supabase as any).rpc("claim_daily_streak");
+    if (error) return;
+    const result = Array.isArray(data) ? data[0] : data;
+    if (result && !result.already_claimed) {
+      setStreak(result.current_streak);
+      setLastClaimDate(today);
+    }
     setShowModal(false);
-  }, [alreadyClaimed, today, currentStreak, reward, addCoins]);
+  }, [user, alreadyClaimed, today]);
 
   const dismiss = useCallback(() => setShowModal(false), []);
   const openModal = useCallback(() => setShowModal(true), []);
 
-  return { showModal, streak: currentStreak, reward, alreadyClaimed, claim, dismiss, openModal };
+  return { showModal, streak, reward, alreadyClaimed, claim, dismiss, openModal };
 }
