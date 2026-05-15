@@ -1,47 +1,81 @@
-# Plan
+## Goal
 
-## 1. Republish + Google Search Console verification
-- User clicks Publish (frontend changes need manual republish).
-- After republish, re-run the META verification call against `https://monsterpetcol.com/` via the `google_search_console` connector.
-- On 200, PUT the site to add it to their property list, then submit `sitemap.xml`.
-- If verify returns `failedToFindMetaTag`, confirm the tag is in the served HTML and retry.
+Migrate every gameplay write that currently goes through `supabase.from("game_state").upsert(...)` into named SECURITY DEFINER RPCs, so the strict RLS we added last turn no longer blocks legitimate gameplay. Tighten ancillary RLS, audit RPC EXECUTE grants, and add a regression checklist.
 
-## 2. Re-run Lighthouse + fix remaining issues
-- After republish, call `seo_chat--list_findings` to pull the latest scan.
-- Address any still-failing **performance** items (likely candidates: hero image not preloaded, render-blocking CSS, oversized images) and **contrast** items (sweep for any remaining `/70` `/80` `/90` opacity utilities on text — `BetSelector` still has `text-wood-dark/70`, plus check `CosmeticStore`, `TopHud`, `GameTabs`).
-- Mark fixed findings via `seo_chat--update_findings`.
+## Migration: new RPCs
 
-## 3. Lottery roulette: stop on 1 item, stay hidden until next energy spend
-Edit `src/components/LotteryRoulette.tsx`:
-- Remove the auto-hide timeout. Instead, hide the reel only when a **new spin starts** (rising edge of `spinning`).
-- Land cleanly on exactly one icon (the server `result`, or ⚡ when lucky bonus fires) — no further animation cycling.
-- Keep the reel visible after landing until the next roll consumes energy; clear `luckyEnergy` on the next rising edge.
+All `SECURITY DEFINER`, `SET search_path = public`, EXECUTE revoked from `anon, public` and granted only to `authenticated`. Each validates `auth.uid()` and clamps via the existing `clamp_game_state_ranges` trigger.
 
-## 4. Energy cost = bet multiplier × base
-Edit `src/hooks/useGameState.ts` → `energyCostForBet`:
-- Current: likely flat or low. Change to `cost = bet * BASE` where `BASE = 10` so:
-  - 1× bet → 10⚡
-  - 3× bet → 30⚡
-  - 30× bet → 300⚡
-- Verify the existing `useGameState.energy.test.ts` still represents desired behavior; update test expectations.
-- `BetSelector` already displays `−{cost}⚡/roll` so it auto-reflects the new value. Confirm `getAvailableBets` gating still makes sense (locks high bets when energy < cost).
+1. `apply_dice_roll(p_steps int, p_energy_cost int, p_coin_delta int, p_xp_delta int, p_position int, p_bet_multiplier int)` → `game_state`.
+   Verifies `energy >= p_energy_cost` and `bet_multiplier <= unlocked cap`, deducts energy, adds coins/xp, sets new position, increments `total_steps`, sets `last_spin_at = now()`. Bounded ranges on every delta.
 
-## 5. All monsters in 3D
-- Audit usages of the 2D monster `<img>` and `MonsterDisplay` across: `MonsterCollection`, `IsometricBoard`, `CosmeticStore`, `CosmeticPreviewModal`, `GameBoard`, `TopHud`, `Index`.
-- Replace remaining 2D renders with `<Monster3D>` (already supports `compact` for thumbnails and auto 2D fallback on low-power devices, so perf is safe).
-- Keep the existing low-power session fallback — do not force WebGL on phones that already opted out.
+2. `consume_card_flip()` → `game_state`. Decrements `pending_card_flips` (must be > 0). Used when the reveal animation completes.
 
-## 6. More 3D-like animation polish
-- Add subtle 3D tilt/parallax on hover for primary cards (cosmetic store cards, season hub tiles) using `framer-motion` `rotateX/rotateY` driven by pointer position — pure CSS transforms, no perf cost.
-- Add a gentle floating "breath" loop to the hero monster row on `Index`.
-- Add depth shadows (`shadow-chunky` already exists) + perspective container on the board wrapper so isometric tiles read more dimensional.
-- Keep all motion gated by the existing `reducedMotion` setting.
+3. `grant_card(p_card_id text)` → `game_state`. Appends to `collected_cards` if not already present, increments `cards_collected`. Validates `p_card_id` against a server-side allowlist (use a small `cards_def` lookup or hard-coded array — we'll embed the catalog in the function to avoid a new table).
 
-## Technical notes
-- No DB migrations; energy cost is client-derived.
-- Files touched: `LotteryRoulette.tsx`, `useGameState.ts`, `useGameState.energy.test.ts`, `MonsterCollection.tsx`, `IsometricBoard.tsx`, `CosmeticStore.tsx`, `CosmeticPreviewModal.tsx`, `GameBoard.tsx`, `TopHud.tsx`, `Index.tsx`, `BetSelector.tsx` (contrast), plus 1–2 components for tilt polish.
-- After user republishes, run GSC verify + sitemap submit and re-pull SEO findings in one batch.
+4. `unlock_monster(p_monster_id text)` → `game_state`. Appends to `unlocked_monsters` if not present. Validated against a hard-coded server catalog matching `src/data/monsters.ts`.
 
-## What I need from you
-1. Click **Publish → Update** so the verification meta tag goes live.
-2. Reply "republished" — then I'll run verification, submit the sitemap, re-pull Lighthouse findings, and ship the lottery/energy/3D changes.
+5. `set_active_monster(p_monster_id text)` / `set_active_dice_tier(p_tier_id text)` / `set_bet_multiplier(p_mult int)` / `tap_monster(p_monster_id text)` — small mutators that operate only on free-form/cosmetic fields but still go through definer functions for consistency. (`bet_multiplier` is rate-limited only by gameplay, so we just clamp 1..MAX.)
+
+6. `add_island_star()` → game_state. Increments `island_stars` by 1 and grants `pending_card_flips += 1` when star count crosses thresholds (mirrors current client logic).
+
+7. `add_pending_card_flips(p_amount int)` is *not* exposed — only the above grant paths can add flips.
+
+8. `sync_game_state_metadata(p_state jsonb)` → `game_state`. Whitelist-only updater for non-economic fields the client owns (e.g. `equipped_cosmetics`, `monster_taps` map, `energy_updated_at`). Rejects any economic key.
+
+## Client rewire (`src/hooks/useGameState.ts`)
+
+- `saveToDb` now only calls `sync_game_state_metadata` for whitelisted fields. It no longer pushes coins/rolls/xp/level/energy/etc.
+- The optimistic `update(...)` helper still updates local React state immediately so UI stays snappy. After the RPC resolves, we replace local state with the row returned by the RPC (server is source of truth).
+- Each economic action wires to its RPC:
+  - `roll()` → `apply_dice_roll`
+  - `addCoins/addRolls/addEnergy/addXp/setPosition` (any caller that increases) is removed; gameplay flows must use RPC paths.
+  - `collectCard` → `grant_card`
+  - `consumePendingCardFlip` → `consume_card_flip`
+  - `unlockMonster` → `unlock_monster`
+  - `setActiveMonster` → `set_active_monster`
+  - `setActiveDiceTier` → `set_active_dice_tier`
+  - `setBetMultiplier` → `set_bet_multiplier`
+  - Existing `buy_dice_pack` / `unlock_dice_tier` / `spend_coins_rolls` already RPC — keep.
+- First-login bootstrap: instead of upserting local state, call a new `bootstrap_game_state()` RPC that inserts a baseline row idempotently.
+
+## RLS tightening
+
+- `achievements_def`, `cosmetics_def`, `missions_def`, `reward_pool_overrides`: change `anyone reads` policy from `{public}` to `{authenticated}` so unauthenticated/guest sessions can't read game catalogs. Admin-management policies scoped to `{authenticated}`.
+- `daily_missions`: already INSERT/UPDATE/DELETE-locked. Add an explicit `SELECT TO authenticated` and drop the `{public}` role.
+- `daily_streaks`, `ad_reward_claims`, `purchases`, `subscriptions`, `pack_analytics`, `user_cosmetics`, `roulette_spins`, `season_progress`, `game_state`, `profiles`: re-scope all `SELECT` policies from `{public}` to `{authenticated}` so anonymous JWTs cannot probe them.
+
+## RPC EXECUTE audit
+
+Apply the same revoke pattern to every `SECURITY DEFINER` function in `public`:
+
+```sql
+REVOKE EXECUTE ON FUNCTION public.<name>(...) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.<name>(...) TO authenticated;
+```
+
+Special cases:
+- `grant_paid_roulette_spins` — revoke from `authenticated` too (service-role only).
+- `clamp_game_state_ranges` / `update_updated_at_column` / `handle_new_user` — trigger functions; revoke EXECUTE from `public, anon, authenticated`.
+
+## Regression test checklist
+
+Add `docs/QA-rls-lockdown.md` with explicit gameplay paths to verify:
+
+1. New user signs in → `bootstrap_game_state` runs, baseline row exists.
+2. Roll dice (each bet multiplier) → energy deducts, coins/xp credit, position advances, no RLS error.
+3. Land on a card tile → `grant_card` succeeds, card appears in collection.
+4. Card reveal animation completes → `consume_card_flip` decrements counter.
+5. Unlock new monster (level threshold or pack) → `unlock_monster` succeeds.
+6. Switch active monster / dice tier / bet multiplier → mutator RPCs succeed.
+7. Buy dice pack / unlock dice tier / spend coins-rolls → existing RPCs succeed.
+8. Claim daily streak (Daily Reward modal) → coins/rolls/energy server-credited.
+9. Claim mission / achievement → rewards credited.
+10. Roulette: free spin, paid spin, claim → all succeed.
+11. DevTools: try `supabase.from('game_state').update({coins: 9_999_999})` → rejected by RLS.
+12. DevTools: try `supabase.rpc('apply_dice_roll', {p_energy_cost: -1000, ...})` → rejected by parameter validation.
+
+## Out of scope
+
+- Building a new `cards_def`/`monsters_def` table. The first iteration hard-codes the catalogs inside the RPC; we can normalize later.
+- Reworking the offline-energy-regen anchor. We continue letting the client compute display energy locally between server reads; the server still owns the canonical `energy` value.

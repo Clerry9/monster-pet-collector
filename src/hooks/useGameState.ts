@@ -268,6 +268,31 @@ function stateToDb(state: GameState, userId: string) {
   };
 }
 
+// Patch payload for the validated `update_game_state` RPC.
+// Intentionally omits user_id (server uses auth.uid()).
+function stateToPatch(state: GameState): Record<string, unknown> {
+  return {
+    coins: state.coins,
+    rolls: state.rolls,
+    position: state.position,
+    unlocked_monsters: state.unlockedMonsters,
+    active_monster: state.activeMonster,
+    active_dice_tier: state.activeDiceTier,
+    total_steps: state.totalSteps,
+    cards_collected: state.cardsCollected,
+    collected_cards: state.collectedCards,
+    monster_taps: state.monsterTaps,
+    level: state.level,
+    xp: state.xp,
+    bet_multiplier: state.betMultiplier,
+    island_stars: state.islandStars,
+    pending_card_flips: state.pendingCardFlips,
+    last_spin_at: state.lastSpinAt,
+    energy: state.energy,
+    energy_updated_at: state.energyUpdatedAt,
+  };
+}
+
 export function useGameState() {
   const { user } = useAuth();
   const [state, setState] = useState<GameState>(() => applyRegen(loadLocalState(), Date.now()));
@@ -290,14 +315,18 @@ export function useGameState() {
     }
 
     const loadFromDb = async () => {
-      // Flush any pending save first
+      // Flush any pending save first via the validated RPC
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
         saveTimerRef.current = null;
         const currentState = loadLocalState();
-        await supabase.from("game_state").upsert(stateToDb(currentState, userId), { onConflict: "user_id" });
+        await (supabase as any).rpc("update_game_state", {
+          p_patch: stateToPatch(currentState),
+        });
       }
 
+      // Ensure a baseline row exists, then load it.
+      await (supabase as any).rpc("bootstrap_game_state");
       const { data } = await supabase
         .from("game_state")
         .select("*")
@@ -305,17 +334,9 @@ export function useGameState() {
         .single();
 
       if (data) {
-        // Server is source of truth for energy_updated_at — apply regen using
-        // the DB anchor so offline regen counts but we never overwrite a newer
-        // (higher) DB energy value with a stale local one.
         const dbState = applyRegen(dbToState(data), Date.now());
         setState(dbState);
         saveLocalState(dbState);
-      } else {
-        // First login — save current local state to DB
-        const local = loadLocalState();
-        await supabase.from("game_state").upsert(stateToDb(local, userId), { onConflict: "user_id" });
-        setState(local);
       }
       setDbLoaded(true);
     };
@@ -388,15 +409,17 @@ export function useGameState() {
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
-  // Debounced save to DB
+  // Debounced save via the validated server RPC.
+  // RLS now blocks direct table writes — every save goes through
+  // public.update_game_state which clamps per-call deltas server-side.
   const saveToDb = useCallback(
     (newState: GameState) => {
       if (!user) return;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(async () => {
-        await supabase
-          .from("game_state")
-          .upsert(stateToDb(newState, user.id), { onConflict: "user_id" });
+        await (supabase as any).rpc("update_game_state", {
+          p_patch: stateToPatch(newState),
+        });
         // Mirror level onto profiles so leaderboards can display prestige ribbons.
         await supabase
           .from("profiles")
