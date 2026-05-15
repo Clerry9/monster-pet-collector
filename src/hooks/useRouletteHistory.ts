@@ -101,31 +101,28 @@ export function useRouletteHistory() {
       return next;
     });
     if (user) {
-      supabase
-        .from("roulette_spins")
-        .insert({
-          user_id: user.id,
-          picked_slot: entry.pickedSlot,
-          landed_slot: entry.landedSlot,
-          reward_label: entry.rewardLabel,
-          reward_emoji: entry.rewardEmoji,
-          reward_kind: entry.rewardKind ?? "unknown",
-          reward_amount: entry.rewardAmount ?? 0,
-          picked_label: entry.pickedLabel,
-          picked_emoji: entry.pickedEmoji,
-          won: entry.won,
-          paid: entry.paid,
+      (supabase as any)
+        .rpc("record_roulette_spin", {
+          p_picked_slot: entry.pickedSlot,
+          p_landed_slot: entry.landedSlot,
+          p_reward_kind: entry.rewardKind ?? "unknown",
+          p_reward_label: entry.rewardLabel,
+          p_reward_emoji: entry.rewardEmoji,
+          p_reward_amount: entry.rewardAmount ?? 0,
+          p_picked_label: entry.pickedLabel,
+          p_picked_emoji: entry.pickedEmoji,
+          p_won: entry.won,
+          p_paid: entry.paid,
         })
-        .select("id")
-        .single()
-        .then(({ data }) => {
-          if (!data?.id) return;
+        .then(({ data }: { data: any }) => {
+          const newId = data?.id;
+          if (!newId) return;
           setEntries((cur) => {
             // Attach the server id to the most-recent matching entry.
             const idx = cur.findIndex((e) => e.at === entry.at && !e.id);
             if (idx < 0) return cur;
             const next = [...cur];
-            next[idx] = { ...next[idx], id: data.id };
+            next[idx] = { ...next[idx], id: newId };
             writeEntries(next);
             return next;
           });
