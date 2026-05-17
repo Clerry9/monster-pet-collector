@@ -1,22 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { render, act } from "@testing-library/react";
 import { LotteryRoulette } from "./LotteryRoulette";
 import type { TileType } from "@/hooks/useGameState";
-
-// Minimal framer-motion shim so we can render synchronously without animation.
-vi.mock("framer-motion", () => {
-  const passthrough = (tag: string) =>
-    ({ children, ...rest }: any) => {
-      const T: any = tag;
-      // strip motion-only props
-      const { initial, animate, exit, transition, whileHover, whileTap, layout, ...safe } = rest;
-      return <T {...safe}>{children}</T>;
-    };
-  return {
-    motion: new Proxy({}, { get: (_t, k: string) => passthrough(k) }),
-    AnimatePresence: ({ children }: any) => <>{children}</>,
-  };
-});
 
 const ICONS: Record<TileType | "card", string> = {
   coins: "🪙",
