@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ParticleBurst } from "@/components/effects/Particles";
 
 export type CelebrationKind = "energy" | "coins" | "card" | "crit" | "star" | null;
@@ -32,18 +32,29 @@ interface Props {
 export function RewardCelebration({ kind, onDone }: Props) {
   const [shown, setShown] = useState<CelebrationKind>(null);
   const [burst, setBurst] = useState(0);
+  // Keep the latest onDone in a ref so the effect's dependency list can stay
+  // narrow ([kind] only). Otherwise a new parent-render reference for onDone
+  // re-fires the effect, the 1.4s timer restarts, and the banner appears to
+  // loop forever ("COIN HAUL!" stuck on screen).
+  const onDoneRef = useRef(onDone);
+  useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
+  // Track which kind value we've already handled so the same trigger can't
+  // re-arm the timer on incidental re-renders.
+  const handledRef = useRef<CelebrationKind>(null);
 
   useEffect(() => {
-    if (!kind) return;
-    if (!getCelebrationsEnabled()) { onDone?.(); return; }
+    if (!kind) { handledRef.current = null; return; }
+    if (handledRef.current === kind) return;
+    handledRef.current = kind;
+    if (!getCelebrationsEnabled()) { onDoneRef.current?.(); return; }
     setShown(kind);
     setBurst((b) => b + 1);
     const t = window.setTimeout(() => {
       setShown(null);
-      onDone?.();
+      onDoneRef.current?.();
     }, 1400);
     return () => window.clearTimeout(t);
-  }, [kind, onDone]);
+  }, [kind]);
 
   return (
     <AnimatePresence>

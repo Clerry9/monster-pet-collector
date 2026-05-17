@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { isLotteryDebugEnabled, lotteryDebugLog } from "@/lib/lotteryDebug";
 
 interface Props {
   tileType: string | null;
@@ -18,17 +19,12 @@ export function LotteryDebugOverlay({ tileType, steps, isRolling, showResult, ab
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
-    try {
-      const qs = new URLSearchParams(window.location.search);
-      if (qs.get("lotteryDebug") === "1") localStorage.setItem("lov_lottery_debug", "1");
-      setEnabled(localStorage.getItem("lov_lottery_debug") === "1");
-    } catch { /* ignore */ }
+    setEnabled(isLotteryDebugEnabled());
   }, []);
 
   useEffect(() => {
     if (!enabled) return;
-    // eslint-disable-next-line no-console
-    console.debug("[lottery]", { tileType, steps, isRolling, showResult, absoluteStep, spinningProp });
+    lotteryDebugLog({ tileType, steps, isRolling, showResult, absoluteStep, spinningProp });
   }, [enabled, tileType, steps, isRolling, showResult, absoluteStep, spinningProp]);
 
   if (!enabled) return null;

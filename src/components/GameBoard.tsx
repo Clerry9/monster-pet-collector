@@ -8,6 +8,7 @@ import { Zap } from "lucide-react";
 import { LotteryRoulette } from "@/components/LotteryRoulette";
 import { FriendSearch } from "@/components/FriendSearch";
 import { LotteryDebugOverlay } from "@/components/LotteryDebugOverlay";
+import { useLotteryHistory } from "@/hooks/useLotteryHistory";
 import { getCameraSettings, subscribeCameraSettings } from "@/lib/cameraSettings";
 
 interface GameBoardProps {
@@ -82,6 +83,9 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
   const [holdProgress, setHoldProgress] = useState(0);
   const [seasonBurstKey, setSeasonBurstKey] = useState(0);
   const [showResult, setShowResult] = useState(false);
+  // Session-scoped lottery history (landed tile + lucky-energy bonus).
+  const lotteryHistory = useLotteryHistory();
+  const historyPushedRef = useRef<number | null>(null);
   const [reducedMotion, setReducedMotion] = useState<boolean>(() => getCameraSettings().reducedMotion);
   useEffect(() => subscribeCameraSettings(() => setReducedMotion(getCameraSettings().reducedMotion)), []);
   const rollCounterRef = useRef(0);
@@ -204,6 +208,18 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
         triggerSkullEffect();
       } else if (lastResult.tile.value > 0) {
         sfxCoinGain();
+      }
+      // Record this landing once per result instance.
+      if (historyPushedRef.current !== (absoluteStep ?? position)) {
+        historyPushedRef.current = absoluteStep ?? position;
+        lotteryHistory.append({
+          at: Date.now(),
+          monsterId: monster.id,
+          tileType: lastResult.tile.type,
+          tileLabel: TILE_LABELS[lastResult.tile.type],
+          emoji: TILE_EMOJIS[lastResult.tile.type],
+          value: lastResult.tile.value,
+        });
       }
       // Season particle burst every 3 rolls
       rollCounterRef.current += 1;
@@ -387,7 +403,10 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
                 ? (lastResult.tile.type as "coins" | "bonus" | "chest" | "food" | "skull" | "star")
                 : null
             }
-            onLuckyEnergy={onLuckyEnergy}
+            onLuckyEnergy={(amt) => {
+              lotteryHistory.attachLuckyEnergy(monster.id, amt);
+              onLuckyEnergy?.(amt);
+            }}
           />
         </div>
         {/* Friend-search bubble stays centered above the monster. */}
