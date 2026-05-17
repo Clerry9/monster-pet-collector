@@ -19,6 +19,11 @@ interface LotteryRouletteProps {
   spinning: boolean;
   /** Final reward icon to land on; null = hidden */
   result: TileType | "card" | null;
+  /**
+   * Bumps every new roll/landing. Used to hard-reset internal state so the
+   * wheel never gets stuck mid-spin from a previous cycle.
+   */
+  landedKey: string | number;
   className?: string;
   /**
    * Fired once per spin when the lucky-energy bonus triggers (~8% chance).
@@ -33,7 +38,7 @@ interface LotteryRouletteProps {
  * a roll is in flight, then snaps to the actual reward icon when the
  * monster lands.
  */
-export function LotteryRoulette({ spinning, result, className = "", onLuckyEnergy }: LotteryRouletteProps) {
+export function LotteryRoulette({ spinning, result, landedKey, className = "", onLuckyEnergy }: LotteryRouletteProps) {
   const [tick, setTick] = useState(0);
   // Roll a lucky-energy bonus once per spin cycle (the 0→1 spinning edge).
   // When set, we override the landed icon to ⚡ and fire the callback on stop.
@@ -44,6 +49,20 @@ export function LotteryRoulette({ spinning, result, className = "", onLuckyEnerg
   const [hidden, setHidden] = useState(false);
   const wasSpinningRef = useRef(false);
   const firedRef = useRef(false);
+
+  // Hard reset on every new roll. Runs before the spinning edge effect so
+  // stale state from a previous cycle can't bleed through.
+  useEffect(() => {
+    firedRef.current = false;
+    wasSpinningRef.current = false;
+    setTick(0);
+    setLuckyEnergy(null);
+    setHidden(false);
+    if (typeof window !== "undefined" && localStorage.getItem("lov_lottery_debug") === "1") {
+      // eslint-disable-next-line no-console
+      console.debug("[lottery] reset landedKey=", landedKey);
+    }
+  }, [landedKey]);
 
   useEffect(() => {
     if (spinning && !wasSpinningRef.current) {
@@ -79,7 +98,9 @@ export function LotteryRoulette({ spinning, result, className = "", onLuckyEnerg
   if ((!spinning && !result) || hidden) return null;
 
   const landedIcon = luckyEnergy ? "⚡" : result ? ICONS[result] : "🎁";
-  const showIcon = spinning ? REEL[tick % REEL.length] : landedIcon;
+  // When not spinning and we have a result, ALWAYS show the exact landed icon
+  // — never the reel tick — so the wheel locks onto the real tile every time.
+  const showIcon = !spinning && result ? landedIcon : spinning ? REEL[tick % REEL.length] : landedIcon;
 
   return (
     <AnimatePresence>
