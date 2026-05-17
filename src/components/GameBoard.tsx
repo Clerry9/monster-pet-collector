@@ -379,6 +379,7 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
         <div className="pointer-events-none absolute left-2 top-[32%] z-20">
           <LotteryRoulette
             key={`lottery-${absoluteStep}`}
+            landedKey={absoluteStep ?? position}
             spinning={isRolling || (!!lastResult && !showResult)}
             result={
               showResult && lastResult
@@ -401,10 +402,18 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
             <SeasonBurst key={seasonBurstKey} symbol={seasonSymbol} />
           )}
         </AnimatePresence>
+        <LotteryDebugOverlay
+          tileType={lastResult?.tile.type ?? null}
+          steps={lastResult?.steps ?? null}
+          isRolling={isRolling}
+          showResult={showResult}
+          absoluteStep={absoluteStep ?? position}
+          spinningProp={isRolling || (!!lastResult && !showResult)}
+        />
       </div>
 
       {/* Result display — only after monster lands */}
-      <div className={fullscreen ? "absolute left-1/2 -translate-x-1/2 bottom-[12.5rem] z-30 flex flex-col items-center gap-2 pointer-events-none" : "contents"}>
+      <div className={fullscreen ? "absolute right-2 top-[40%] z-30 flex flex-col items-end gap-2 pointer-events-none" : "contents"}>
       <AnimatePresence>
         {lastResult && showResult && !frozen && (
           <motion.div
