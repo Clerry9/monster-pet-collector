@@ -272,6 +272,7 @@ const Index = () => {
   const [adRewardsOpen, setAdRewardsOpen] = useState(false);
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [celebration, setCelebration] = useState<CelebrationKind>(null);
+  const handleCelebrationDone = useCallback(() => setCelebration(null), []);
   const [refillOpen, setRefillOpen] = useState(false);
   const autoRefillFiredRef = useRef(false);
   const missions = useDailyMissions();
