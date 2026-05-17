@@ -374,20 +374,22 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
           seasonGlow={seasonGlow}
           fullscreen={fullscreen}
         />
-        {/* Lottery wheel + friend-search bubble float above the monster.
-            Positioned roughly over the board center; purely decorative. */}
-        {/* Pushed down to ~32% so the bubble area sits below the top energy pill
-            and is fully visible above the monster's head. */}
-        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[32%] flex flex-col items-center gap-1 z-20">
+        {/* Lottery wheel — pinned to the left, restarts every roll and
+            locks onto the landed tile every time the monster stops. */}
+        <div className="pointer-events-none absolute left-2 top-[32%] z-20">
           <LotteryRoulette
-            spinning={isRolling || (!!lastResult && !showResult)}
+            key={`lottery-${absoluteStep}-${isRolling ? "spin" : "stop"}`}
+            spinning={isRolling}
             result={
-              showResult && lastResult
+              !isRolling && showResult && lastResult
                 ? (lastResult.tile.type as "coins" | "bonus" | "chest" | "food" | "skull" | "star")
                 : null
             }
             onLuckyEnergy={onLuckyEnergy}
           />
+        </div>
+        {/* Friend-search bubble stays centered above the monster. */}
+        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[32%] flex flex-col items-center gap-1 z-20">
           <FriendSearch
             activeMonsterId={monster.id}
             paused={isRolling || frozen || (!!lastResult && !showResult)}
