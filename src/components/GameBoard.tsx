@@ -378,10 +378,10 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
             locks onto the landed tile every time the monster stops. */}
         <div className="pointer-events-none absolute left-2 top-[32%] z-20">
           <LotteryRoulette
-            key={`lottery-${absoluteStep}-${isRolling ? "spin" : "stop"}`}
-            spinning={isRolling}
+            key={`lottery-${absoluteStep}`}
+            spinning={isRolling || (!!lastResult && !showResult)}
             result={
-              !isRolling && showResult && lastResult
+              showResult && lastResult
                 ? (lastResult.tile.type as "coins" | "bonus" | "chest" | "food" | "skull" | "star")
                 : null
             }
