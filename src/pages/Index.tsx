@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SEO } from "@/components/SEO";
 import { Helmet } from "react-helmet-async";
@@ -713,6 +713,14 @@ const Index = () => {
       {isBoardTab && (
         <>
           <button
+            onClick={() => { const next = !muted; setMuted(next); setMutedState(next); }}
+            className="fixed top-2 left-2 z-50 icon-tile-gold w-10 h-10 flex items-center justify-center shadow-chunky"
+            aria-label={muted ? "Unmute" : "Mute"}
+            title={muted ? "Unmute" : "Mute"}
+          >
+            {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          </button>
+          <button
             onClick={() => setMenuOpen((o) => !o)}
             className="fixed top-2 right-2 z-50 icon-tile-gold w-10 h-10 flex items-center justify-center shadow-chunky"
             aria-label={menuOpen ? "Close menu" : "Open menu"}
@@ -1342,7 +1350,7 @@ const Index = () => {
       />
       <DailyStreakModal />
       <DailyMissionsModal open={missionsOpen} onClose={() => setMissionsOpen(false)} />
-      <RewardCelebration kind={celebration} onDone={() => setCelebration(null)} />
+      <RewardCelebration kind={celebration} onDone={handleCelebrationDone} />
     </div>
   );
 };
