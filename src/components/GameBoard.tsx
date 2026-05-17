@@ -7,6 +7,7 @@ import { IsometricBoard } from "@/components/IsometricBoard";
 import { Zap } from "lucide-react";
 import { LotteryRoulette } from "@/components/LotteryRoulette";
 import { FriendSearch } from "@/components/FriendSearch";
+import { LotteryDebugOverlay } from "@/components/LotteryDebugOverlay";
 import { getCameraSettings, subscribeCameraSettings } from "@/lib/cameraSettings";
 
 interface GameBoardProps {
