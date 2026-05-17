@@ -50,28 +50,36 @@ export function LotteryRoulette({ spinning, result, landedKey, className = "", o
   const [hidden, setHidden] = useState(false);
   const wasSpinningRef = useRef(false);
   const firedRef = useRef(false);
+  const prevLandedKeyRef = useRef<string | number | undefined>(undefined);
 
   // Hard reset on every new roll. Runs before the spinning edge effect so
   // stale state from a previous cycle can't bleed through.
   useEffect(() => {
+    const isFirst = prevLandedKeyRef.current === undefined;
+    prevLandedKeyRef.current = landedKey;
     firedRef.current = false;
     wasSpinningRef.current = false;
     setTick(0);
     setLuckyEnergy(null);
-    // Hide immediately on a new roll so the previous result snapshot can't
-    // overlap the new spin for a frame; the rising-edge `spinning` effect
-    // below will un-hide as soon as the new roll actually starts.
-    setHidden(true);
+    // Hide between rolls so the previous result snapshot can't overlap the
+    // new spin for a frame. Don't hide on the very first mount — the wheel
+    // should appear immediately if it has a result/spin to show.
+    if (!isFirst) setHidden(true);
     lotteryDebugLog("reset landedKey=", landedKey);
   }, [landedKey]);
 
   useEffect(() => {
+    if (spinning) {
+      // Whenever a spin is active, ensure the reel is visible (covers both
+      // the rising edge and the "new roll started while spinning was already
+      // true" case from rapid auto-rolls).
+      setHidden(false);
+    }
     if (spinning && !wasSpinningRef.current) {
-      // Rising edge — hide previous result, roll a fresh lucky bonus
+      // Rising edge — clear stale lucky bonus and roll a fresh one
       // (~8% chance: 5 / 10 / 15⚡). The reel will only re-show for this
       // spin and stay on its landed icon until the next energy spend.
       firedRef.current = false;
-      setHidden(false);
       setLuckyEnergy(null);
       const r = Math.random();
       if (r < 0.08) {
@@ -80,7 +88,7 @@ export function LotteryRoulette({ spinning, result, landedKey, className = "", o
       }
     }
     wasSpinningRef.current = spinning;
-  }, [spinning]);
+  }, [spinning, landedKey]);
 
   useEffect(() => {
     if (!spinning) return;
