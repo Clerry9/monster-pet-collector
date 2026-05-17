@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import type { TileType } from "@/hooks/useGameState";
+import { lotteryDebugLog } from "@/lib/lotteryDebug";
 
 const ICONS: Record<TileType | "card", string> = {
   coins: "🪙",
@@ -57,11 +58,11 @@ export function LotteryRoulette({ spinning, result, landedKey, className = "", o
     wasSpinningRef.current = false;
     setTick(0);
     setLuckyEnergy(null);
-    setHidden(false);
-    if (typeof window !== "undefined" && localStorage.getItem("lov_lottery_debug") === "1") {
-      // eslint-disable-next-line no-console
-      console.debug("[lottery] reset landedKey=", landedKey);
-    }
+    // Hide immediately on a new roll so the previous result snapshot can't
+    // overlap the new spin for a frame; the rising-edge `spinning` effect
+    // below will un-hide as soon as the new roll actually starts.
+    setHidden(true);
+    lotteryDebugLog("reset landedKey=", landedKey);
   }, [landedKey]);
 
   useEffect(() => {
