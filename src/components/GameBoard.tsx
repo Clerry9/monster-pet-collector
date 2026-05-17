@@ -403,7 +403,10 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
                 ? (lastResult.tile.type as "coins" | "bonus" | "chest" | "food" | "skull" | "star")
                 : null
             }
-            onLuckyEnergy={onLuckyEnergy}
+            onLuckyEnergy={(amt) => {
+              lotteryHistory.attachLuckyEnergy(monster.id, amt);
+              onLuckyEnergy?.(amt);
+            }}
           />
         </div>
         {/* Friend-search bubble stays centered above the monster. */}
