@@ -29,6 +29,7 @@ const ADMOB_REWARDED_IOS = "ca-app-pub-3940256099942544/1712485313";
 
 let initialized = false;
 let activeProvider: AdProvider = "demo";
+let crazyReady = false;
 
 function isNative(): boolean {
   // Capacitor sets window.Capacitor at runtime on native builds
@@ -87,6 +88,7 @@ export async function initAds(): Promise<AdProvider> {
       const sdk = getCrazySdk();
       // Init is sync in v3 but call defensively
       await sdk.init?.();
+      crazyReady = true;
       console.info("[ads] CrazyGames SDK initialized");
     } catch (e) {
       console.warn("[ads] CrazyGames init failed", e);
@@ -155,11 +157,13 @@ export const AD_COOLDOWN_MS = 60_000;
  * Safe to call before init; no-op on other providers.
  */
 export function gameplayStart() {
+  if (!crazyReady) return;
   try { getCrazySdk()?.game?.gameplayStart?.(); } catch { /* ignore */ }
 }
 
 /** Pair to gameplayStart — call when the player pauses or leaves active play. */
 export function gameplayStop() {
+  if (!crazyReady) return;
   try { getCrazySdk()?.game?.gameplayStop?.(); } catch { /* ignore */ }
 }
 
@@ -169,6 +173,7 @@ export function gameplayStop() {
  * only when they click a Watch Ad button.
  */
 export function adBreakHappytime() {
+  if (!crazyReady) return;
   try { getCrazySdk()?.game?.happytime?.(); } catch { /* ignore */ }
 }
 

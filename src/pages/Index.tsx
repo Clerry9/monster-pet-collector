@@ -477,9 +477,9 @@ const Index = () => {
       // rollDice returns null when energy < energyCost. Surface why.
       const cost = Math.max(1, game.betMultiplier);
       if (game.energy < cost) {
-        toast.error("Not enough energy", {
+        toast.error("NOT ENOUGH ENERGY", {
           description: `Bet ×${game.betMultiplier} costs ${cost}⚡. You have ${game.energy}⚡.`,
-          action: { label: "Refill", onClick: () => setRefillOpen(true) },
+          action: { label: "Watch ad", onClick: () => setRefillOpen(true) },
         });
         setRefillOpen(true);
       }

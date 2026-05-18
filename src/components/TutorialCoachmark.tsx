@@ -270,30 +270,30 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
           className="absolute pointer-events-auto"
           style={tooltipStyle}
         >
-          <div ref={cardRef} className="panel-wood p-3 text-cream-light relative shadow-chunky-sm max-h-[80vh] overflow-y-auto">
+          <div ref={cardRef} className="panel-wood p-4 text-cream-light relative shadow-chunky-sm max-h-[80vh] overflow-y-auto">
             <button
               onClick={onClose}
-              className="absolute -top-2 -right-2 icon-tile-gold w-7 h-7 flex items-center justify-center"
+              className="absolute -top-2 -right-2 icon-tile-gold w-8 h-8 flex items-center justify-center"
               aria-label="Skip tutorial"
             >
-              <X size={14} />
+              <X size={16} />
             </button>
-            <div className="flex items-start gap-2">
-              {step.emoji && <div className="text-2xl leading-none">{step.emoji}</div>}
+            <div className="flex items-start gap-3">
+              {step.emoji && <div className="text-3xl leading-none">{step.emoji}</div>}
               <div className="flex-1">
-                <div id="coach-title" className="font-display text-sm tracking-wide text-cream-light">
+                <div id="coach-title" className="font-display text-lg tracking-wide text-cream-light">
                   {step.title}
                 </div>
-                <p id="coach-body" className="font-body text-[12px] text-cream/90 mt-1">{step.body}</p>
+                <p id="coach-body" className="font-body text-base leading-snug text-cream/90 mt-1.5">{step.body}</p>
               </div>
             </div>
             {/* Progress bar with explicit step counter */}
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-[10px] font-mono text-cream/80 mb-1">
+            <div className="mt-4">
+              <div className="flex items-center justify-between text-xs font-mono text-cream/80 mb-1">
                 <span>Step {index + 1} of {steps.length}</span>
                 <span>{Math.round(((index + 1) / steps.length) * 100)}%</span>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-cream/20 overflow-hidden">
+              <div className="h-2 w-full rounded-full bg-cream/20 overflow-hidden">
                 <motion.div
                   className="h-full bg-gold"
                   initial={false}
@@ -302,20 +302,20 @@ export const TutorialCoachmark = forwardRef<HTMLDivElement, TutorialCoachmarkPro
                 />
               </div>
             </div>
-            <div className="flex items-center justify-between mt-3 gap-2">
+            <div className="flex items-center justify-between mt-4 gap-2">
               <button
                 onClick={onClose}
-                className="px-3 py-1.5 rounded-full font-display text-[11px] text-cream/80 hover:text-cream-light underline-offset-2 hover:underline"
+                className="px-3 py-2 rounded-full font-display text-sm text-cream/80 hover:text-cream-light underline-offset-2 hover:underline"
               >
                 Skip tutorial
               </button>
               <button
                 ref={nextBtnRef}
                 onClick={next}
-                className="btn-press px-3 py-1.5 rounded-full font-display text-[11px] flex items-center gap-1"
+                className="btn-press px-4 py-2 rounded-full font-display text-sm flex items-center gap-1.5"
                 aria-label={isLast ? "Finish tutorial" : `Next step (${index + 2} of ${steps.length})`}
               >
-                {isLast ? "GOT IT" : "NEXT"} <ArrowRight size={12} />
+                {isLast ? "GOT IT" : "NEXT"} <ArrowRight size={14} />
               </button>
             </div>
           </div>

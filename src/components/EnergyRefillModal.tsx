@@ -47,13 +47,34 @@ export function EnergyRefillModal({
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md" data-testid="energy-refill-modal">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-yellow-500" /> Out of energy
+          <DialogTitle className="flex items-center gap-2 text-xl font-extrabold tracking-wide">
+            <Zap className="h-6 w-6 text-yellow-500" /> NOT ENOUGH ENERGY
           </DialogTitle>
-          <DialogDescription>
-            You have <b>{energy}/{energyCap}</b>⚡. Top up to keep rolling.
+          <DialogDescription className="text-base">
+            You have <b>{energy}/{energyCap}</b>⚡. Watch a quick ad for free energy, or grab a refill pack.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Free ad refill — featured on top for the "watch an ad" flow */}
+        <div className="rounded-md border-2 border-primary/50 bg-primary/5 p-3 text-sm">
+          <div className="font-bold mb-1 flex items-center gap-2 text-base">
+            <Play className="h-4 w-4 text-primary" /> Free: Watch an ad for +{AD_REFILL_AMOUNT}⚡
+          </div>
+          <div className="text-muted-foreground mb-2">
+            {ad.dailyLeft > 0 ? `${ad.dailyLeft} free top-ups left today.` : "Daily limit reached — try a pack below."}
+          </div>
+          <Button
+            size="default"
+            className="w-full font-bold"
+            disabled={!ad.canWatch}
+            onClick={() => { void ad.watch(); }}
+          >
+            {ad.loading ? "Loading ad…" :
+              ad.cooldownLeft > 0 ? `Wait ${Math.ceil(ad.cooldownLeft/1000)}s` :
+              ad.dailyLeft === 0 ? "Come back tomorrow" :
+              `Watch ad → +${AD_REFILL_AMOUNT}⚡`}
+          </Button>
+        </div>
 
         <div className="space-y-2">
           {ENERGY_PACKS.map((pack) => (
@@ -82,27 +103,6 @@ export function EnergyRefillModal({
               </Button>
             </div>
           ))}
-        </div>
-
-        <div className="rounded-md border border-dashed border-border p-3 text-sm">
-          <div className="font-semibold mb-1 flex items-center gap-2">
-            <Play className="h-4 w-4" /> Free top-up
-          </div>
-          <div className="text-muted-foreground mb-2">
-            Watch a short ad for +{AD_REFILL_AMOUNT}⚡.
-            {ad.dailyLeft > 0 ? ` ${ad.dailyLeft} left today.` : " Daily limit reached."}
-          </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={!ad.canWatch}
-            onClick={() => { void ad.watch(); }}
-          >
-            {ad.loading ? "Loading…" :
-              ad.cooldownLeft > 0 ? `Wait ${Math.ceil(ad.cooldownLeft/1000)}s` :
-              ad.dailyLeft === 0 ? "Come back tomorrow" :
-              `Watch ad (+${AD_REFILL_AMOUNT}⚡)`}
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
