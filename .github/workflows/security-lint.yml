@@ -1,0 +1,26 @@
+name: Supabase Security Lint
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/security-lint.mjs"
+      - ".github/workflows/security-lint.yml"
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * *"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run Supabase security regression check
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/security-lint.mjs
