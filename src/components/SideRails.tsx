@@ -47,6 +47,8 @@ export function SideRails({
     { id: "season", icon: <Star size={18} />, label: "EVENT", countdownMs: msRemaining, onClick: onOpenSeason, hot: newEvent, tip: "Limited-time event with a battle pass and exclusive monsters. Countdown shows when a new season starts." },
     { id: "specials", icon: <Sparkles size={18} />, label: "SHOP", onClick: onOpenSpecials, tip: "Buy dice bundles, special packs, and the Season Pass. Best deals live here." },
     { id: "cards", icon: <Gamepad2 size={18} />, label: "CARDS", onClick: onOpenCards, tip: "Browse every card you've drawn and see how close each set is to completion." },
+  ];
+  const right: RailItem[] = [
     {
       id: "roulette",
       icon: <Dices size={18} />,
@@ -58,8 +60,6 @@ export function SideRails({
         ? "Lucky Roulette! Free spin ready — pick a wedge and win coins, rolls, cards, season XP, or island prizes."
         : "Lucky Roulette. Next free spin in the timer below; or pay 100 🪙 for an extra spin anytime.",
     },
-  ];
-  const right: RailItem[] = [
     { id: "daily", icon: <Gift size={18} />, label: "DAILY", onClick: onOpenDaily, tip: "Claim a free reward every 24 hours. Streaks pay more — don't miss a day!" },
     { id: "spin", icon: <RefreshCw size={18} />, label: "SPIN", onClick: onOpenSpin, tip: "Spin the prize wheel for free dice, coins, and rare cards. Refills on a timer." },
     { id: "collection", icon: <Trophy size={18} />, label: "MONST", onClick: onOpenCollection, tip: "Your monster album — see who you own, who's evolving, and who's still hiding." },
