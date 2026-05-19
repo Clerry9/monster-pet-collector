@@ -145,10 +145,12 @@ function CenterEnergyPill({
 function EventBanner({
   alreadyClaimedDaily,
   streak,
+  nextClaimMs,
   onOpenDaily,
 }: {
   alreadyClaimedDaily: boolean;
   streak: number;
+  nextClaimMs: number;
   onOpenDaily: () => void;
 }) {
   const [now, setNow] = useState(() => Date.now());
@@ -160,10 +162,7 @@ function EventBanner({
   const weekendActive = isWeekend(new Date(now));
   const weekendMs = msUntilWeekendBoundary(new Date(now));
 
-  // Time until next local midnight (next claimable daily reward).
-  const nextMidnight = new Date(now);
-  nextMidnight.setHours(24, 0, 0, 0);
-  const dailyMs = Math.max(0, nextMidnight.getTime() - now);
+  const dailyMs = alreadyClaimedDaily ? nextClaimMs : 0;
 
   return (
     <div className="w-full max-w-md mx-auto mb-3 flex flex-wrap items-stretch justify-center gap-2">
