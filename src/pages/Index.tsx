@@ -86,12 +86,13 @@ function useCheckoutSuccessToast() {
  * always see their stamina at a glance.
  */
 function CenterEnergyPill({
-  energy, energyCap, energyUpdatedAt, energyRegenMs = 180_000,
-}: { energy: number; energyCap: number; energyUpdatedAt?: string; energyRegenMs?: number }) {
+  energy, energyCap, energyUpdatedAt, energyRegenMs = 180_000, requiredEnergy = 0,
+}: { energy: number; energyCap: number; energyUpdatedAt?: string; energyRegenMs?: number; requiredEnergy?: number }) {
   const cur = Math.min(energy, energyCap);
   const overflow = Math.max(0, energy - energyCap);
   const pct = energyCap > 0 ? Math.max(6, Math.min(100, Math.round((cur / energyCap) * 100))) : 0;
   const belowCap = energy < energyCap;
+  const insufficient = requiredEnergy > 0 && energy < requiredEnergy;
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!belowCap || !energyUpdatedAt) return;
@@ -110,15 +111,15 @@ function CenterEnergyPill({
   })();
   return (
     <div
-      className="pill-energy flex items-center gap-2 px-4 py-1.5 min-w-[200px] max-w-[80vw] shadow-chunky-sm"
+      className={`pill-energy flex items-center gap-2 px-4 py-1.5 min-w-[200px] max-w-[80vw] shadow-chunky-sm ${insufficient ? "ring-2 ring-destructive animate-pulse" : ""}`}
       role="status"
-      aria-label={`Energy ${energy} of ${energyCap}${countdown ? `, next in ${countdown}` : ""}`}
+      aria-label={`Energy ${energy} of ${energyCap}${requiredEnergy ? `. Need ${requiredEnergy} for current bet.` : ""}${countdown ? ` Next +1 in ${countdown}.` : ""}`}
       title={`Refills 1 every 3 minutes up to ${energyCap}${countdown ? ` — next +1 in ${countdown}` : ""}`}
     >
       <span aria-hidden="true" className="text-base leading-none">⚡</span>
       <div className="flex-1 h-2 rounded-full bg-wood-dark/40 overflow-hidden">
         <div
-          className="h-full bg-cream-light rounded-full transition-[width] duration-300"
+          className={`h-full rounded-full transition-[width] duration-300 ${insufficient ? "bg-destructive" : "bg-cream-light"}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -126,8 +127,17 @@ function CenterEnergyPill({
         {energy}/{energyCap}
         {overflow > 0 && <span className="ml-1 text-[10px] opacity-90">+{overflow}</span>}
       </span>
+      {insufficient && (
+        <span
+          className="text-[10px] font-display leading-none tabular-nums text-destructive font-bold"
+          role="timer"
+          aria-live="polite"
+        >
+          NEED {requiredEnergy}⚡{countdown ? ` · +1 in ${countdown}` : ""}
+        </span>
+      )}
       {countdown && (
-        <span className="text-[10px] font-display opacity-80 tabular-nums text-cream-light/90">
+        <span className={`text-[10px] font-display tabular-nums text-cream-light/90 ${insufficient ? "hidden" : "opacity-80"}`}>
           +1 in {countdown}
         </span>
       )}
@@ -1057,6 +1067,7 @@ const Index = () => {
                     energyCap={game.energyCap}
                     energyUpdatedAt={game.energyUpdatedAt}
                     energyRegenMs={game.energyRegenMs}
+                    requiredEnergy={energyCostForBet(game.betMultiplier)}
                   />
                 </div>
                 <div className="pointer-events-auto mt-2">
