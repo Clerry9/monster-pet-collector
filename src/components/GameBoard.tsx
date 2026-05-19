@@ -34,6 +34,8 @@ interface GameBoardProps {
   islandStars?: number;
   pendingCardFlips?: number;
   betMultiplier?: number;
+  minRollCost?: number;
+  onInsufficientEnergy?: () => void;
 }
 
 const TILE_EMOJIS: Record<TileType, string> = {
@@ -74,7 +76,7 @@ interface Particle {
 const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
 let particleIdCounter = 0;
 
-export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, onRollDice, onLanded, activeDiceMax, diceTier = "basic", onLuckyEnergy, frozen = false, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1 }: GameBoardProps) {
+export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, onRollDice, onLanded, activeDiceMax, diceTier = "basic", onLuckyEnergy, frozen = false, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1, minRollCost = 1, onInsufficientEnergy }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -239,7 +241,11 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
       isRollingRef.current = false;
       setIsRolling(false);
     }
-    if (isRollingRef.current || rollsRef.current <= 0) return;
+    if (isRollingRef.current) return;
+    if (rollsRef.current < minRollCost) {
+      onInsufficientEnergy?.();
+      return;
+    }
     // Bail if user JUST stopped auto-roll — pointer-up / queued timeouts can race in here.
     if (!isAutoRollingRef.current && Date.now() - lastStopAtRef.current < 350) return;
     // Defensive: clear any orphaned interval before starting a new roll.
@@ -326,7 +332,7 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
   const handlePressStart = () => {
     // If currently auto-rolling, this tap stops it (and skips queueing a new roll)
     if (isAutoRollingRef.current) { stopAutoRoll(); return; }
-    if (rolls <= 0) return;
+    if (rolls < minRollCost) { onInsufficientEnergy?.(); return; }
     justStoppedRef.current = false;
     const start = performance.now();
     const HOLD_MS = 700; // short hold delay (was 2000) — matches reference interaction
@@ -473,12 +479,12 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
             type="button"
             onClick={() => {
               if (isAutoRollingRef.current) { stopAutoRoll(); return; }
-              if (rolls <= 0) return;
+              if (rolls < minRollCost) { onInsufficientEnergy?.(); return; }
               isAutoRollingRef.current = true;
               setIsAutoRolling(true);
               performRoll();
             }}
-            className={`pill-auto px-2.5 py-1.5 text-[11px] leading-tight flex flex-col items-center min-w-[52px] sm:min-w-[60px] ${rolls <= 0 && !isAutoRolling ? "opacity-50" : ""}`}
+            className={`pill-auto px-2.5 py-1.5 text-[11px] leading-tight flex flex-col items-center min-w-[52px] sm:min-w-[60px] ${rolls < minRollCost && !isAutoRolling ? "opacity-50" : ""}`}
             aria-label={isAutoRolling ? "Stop auto-roll" : "Start auto-roll"}
           >
             <span>{isAutoRolling ? "STOP" : "AUTO"}</span>
@@ -494,10 +500,10 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
               onPointerUp={() => handlePressEnd(true)}
               onPointerLeave={() => handlePressEnd(false)}
               onPointerCancel={() => handlePressEnd(false)}
-              disabled={rolls <= 0 && !isAutoRolling}
-              aria-label={rolls <= 0 ? "No rolls remaining" : isAutoRolling ? "Auto-rolling. Tap to stop." : isRolling ? "Rolling dice..." : `Roll. Tap or hold to auto-roll. ${rolls} rolls remaining.`}
+              disabled={rolls < minRollCost && !isAutoRolling}
+              aria-label={rolls < minRollCost ? `Not enough energy. Need ${minRollCost}, have ${rolls}.` : isAutoRolling ? "Auto-rolling. Tap to stop." : isRolling ? "Rolling dice..." : `Roll. Tap or hold to auto-roll. ${rolls} energy remaining.`}
               className={`roll-dial relative w-[76px] h-[76px] sm:w-[96px] sm:h-[96px] rounded-full flex flex-col items-center justify-center font-display select-none touch-none ${
-                rolls <= 0 && !isAutoRolling ? "opacity-60 grayscale cursor-not-allowed" : ""
+                rolls < minRollCost && !isAutoRolling ? "opacity-60 grayscale cursor-not-allowed" : ""
               }`}
             >
               {holdProgress > 0 && holdProgress < 1 && (
@@ -520,7 +526,7 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
                 </motion.span>
               ) : (
                 <>
-                  <Zap size={26} className="text-yellow-200 drop-shadow-[0_2px_0_rgba(0,0,0,0.5)]" fill="currentColor" />
+                  <Zap size={20} className="text-yellow-200 drop-shadow-[0_2px_0_rgba(0,0,0,0.5)]" fill="currentColor" />
                   <span className="text-lg leading-none mt-0.5">{rolls.toLocaleString()}</span>
                   <span className="text-[9px] opacity-80 leading-none mt-0.5">/ {activeDiceMax * 5}</span>
                 </>
