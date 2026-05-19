@@ -396,10 +396,16 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
               if (phase !== "idle") return;
               if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); wedgeFocus(1); }
               else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); wedgeFocus(-1); }
+              else if ((e.key === "Enter" || e.key === " ") && pick !== null) {
+                e.preventDefault();
+                if (freeAvailable) void startSpin("free");
+                else if (paidCredits > 0) void startSpin("credit");
+                else if (canPaid) void startSpin("coins");
+              }
             }}
             tabIndex={phase === "idle" ? 0 : -1}
             role="application"
-            aria-label="Roulette wheel — use arrow keys to select a wedge"
+            aria-label="Roulette wheel — arrow keys select a wedge, Enter or Space spins"
           >
             <div
               className="absolute left-1/2 -translate-x-1/2 -top-2 z-20"
@@ -523,8 +529,10 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
               `Miss. Ball landed on slot ${winningSlot + 1}, ${slots[winningSlot].reward.label}. You picked slot ${pick + 1}.`}
           </div>
 
-          {/* Receipt — replaces the simple result line for win/miss */}
-          {(phase === "win" || phase === "miss") && winningSlot !== null && pick !== null ? (
+          {/* Receipt — shown for the current win/miss AND persisted (from
+              `lastReceipt`) after the player claims, so they can always see
+              what they just won until the next spin starts. */}
+          {((phase === "win" || phase === "miss") && winningSlot !== null && pick !== null) || lastReceipt ? (
             <motion.section
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -532,24 +540,45 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
               role="status"
               aria-label="Spin receipt"
             >
-              <div className="flex items-center justify-between">
-                <span className="font-display text-sm tracking-wide">
-                  {phase === "win" ? "🎉 RECEIPT — WIN" : "🎯 RECEIPT — MISS"}
-                </span>
-                <span className="text-[10px] font-display opacity-70">
-                  {lastSpinWasPaid ? `PAID ${PAID_SPIN_COST}🪙` : "FREE SPIN"}
-                </span>
-              </div>
-              <ul className="mt-1.5 text-[11px] font-display space-y-0.5">
-                <li>Picked: {slots[pick].reward.emoji} {slots[pick].reward.label} (slot {pick + 1})</li>
-                <li>Landed: {slots[winningSlot].reward.emoji} {slots[winningSlot].reward.label} (slot {winningSlot + 1})</li>
-                {phase === "win" && (
-                  <li className="text-base font-display text-candy-red-deep">
-                    Reward: +{slots[winningSlot].reward.amount} {slots[winningSlot].reward.emoji} {slots[winningSlot].reward.label}
-                  </li>
-                )}
-                {claimed && <li className="text-emerald-700 text-[10px]">✓ Claimed</li>}
-              </ul>
+              {(() => {
+                const live = (phase === "win" || phase === "miss") && winningSlot !== null && pick !== null;
+                const r = live
+                  ? {
+                      won: phase === "win",
+                      paid: lastSpinWasPaid,
+                      pickedIndex: pick!,
+                      pickedEmoji: slots[pick!].reward.emoji,
+                      pickedLabel: slots[pick!].reward.label,
+                      landedIndex: winningSlot!,
+                      landedEmoji: slots[winningSlot!].reward.emoji,
+                      landedLabel: slots[winningSlot!].reward.label,
+                      rewardAmount: slots[winningSlot!].reward.amount,
+                      claimed,
+                    }
+                  : lastReceipt!;
+                return (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="font-display text-sm tracking-wide">
+                        {r.won ? "🎉 LAST WIN" : "🎯 LAST SPIN — MISS"}
+                      </span>
+                      <span className="text-[10px] font-display opacity-70">
+                        {r.paid ? `PAID ${PAID_SPIN_COST}🪙` : "FREE SPIN"}
+                      </span>
+                    </div>
+                    <ul className="mt-1.5 text-[11px] font-display space-y-0.5">
+                      <li>Picked: {r.pickedEmoji} {r.pickedLabel} (slot {r.pickedIndex + 1})</li>
+                      <li>Landed: {r.landedEmoji} {r.landedLabel} (slot {r.landedIndex + 1})</li>
+                      {r.won && (
+                        <li className="text-base font-display text-candy-red-deep">
+                          Reward: +{r.rewardAmount} {r.landedEmoji} {r.landedLabel}
+                        </li>
+                      )}
+                      {r.claimed && <li className="text-emerald-700 text-[10px]">✓ Claimed — visible until your next spin</li>}
+                    </ul>
+                  </>
+                );
+              })()}
             </motion.section>
           ) : (
             <div className="mt-3 min-h-[1.5rem] text-cream-light font-display text-[12px]">
