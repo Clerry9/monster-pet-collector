@@ -500,7 +500,7 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
               onPointerUp={() => handlePressEnd(true)}
               onPointerLeave={() => handlePressEnd(false)}
               onPointerCancel={() => handlePressEnd(false)}
-              disabled={rolls < minRollCost && !isAutoRolling}
+              aria-disabled={rolls < minRollCost && !isAutoRolling}
               aria-label={rolls < minRollCost ? `Not enough energy. Need ${minRollCost}, have ${rolls}.` : isAutoRolling ? "Auto-rolling. Tap to stop." : isRolling ? "Rolling dice..." : `Roll. Tap or hold to auto-roll. ${rolls} energy remaining.`}
               className={`roll-dial relative w-[76px] h-[76px] sm:w-[96px] sm:h-[96px] rounded-full flex flex-col items-center justify-center font-display select-none touch-none ${
                 rolls < minRollCost && !isAutoRolling ? "opacity-60 grayscale cursor-not-allowed" : ""
