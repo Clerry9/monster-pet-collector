@@ -54,6 +54,7 @@ import { SeasonRotationModal } from "@/components/SeasonRotationModal";
 import { Footer } from "@/components/Footer";
 import { AuthStatusBadge } from "@/components/AuthStatusBadge";
 import { AdRewardMenu, AdRewardLauncher } from "@/components/AdRewardMenu";
+import { DailyStreakModal } from "@/components/DailyStreakModal";
 import { AnimatedBackdrop } from "@/components/effects/AnimatedBackdrop";
 import { Trophy, Target } from "lucide-react";
 import { DailyMissionsModal } from "@/components/DailyMissions";
@@ -839,6 +840,7 @@ const Index = () => {
         <EventBanner
           alreadyClaimedDaily={daily.alreadyClaimed}
           streak={daily.streak}
+          nextClaimMs={daily.nextClaimMs}
           onOpenDaily={daily.openModal}
         />
 
