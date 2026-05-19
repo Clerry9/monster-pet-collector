@@ -34,7 +34,7 @@ import { PrestigeCelebration } from "@/components/PrestigeCelebration";
 import { CardReveal } from "@/components/CardReveal";
 import { IslandRewardRoulette, IslandReward } from "@/components/IslandRewardRoulette";
 import { LuckyRouletteModal, LuckyRouletteReward } from "@/components/LuckyRouletteModal";
-import { useGameState, BoardTile } from "@/hooks/useGameState";
+import { useGameState, BoardTile, energyCostForBet } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
 import { LinkAccount } from "@/components/LinkAccount";
@@ -1077,7 +1077,16 @@ const Index = () => {
                   <BetSelector
                     coins={game.coins}
                     currentBet={game.betMultiplier}
-                    onSetBet={game.setBetMultiplier}
+                    onSetBet={(mult) => {
+                      game.setBetMultiplier(mult);
+                      if (energyCostForBet(mult) > game.energy) {
+                        toast.error("NOT ENOUGH ENERGY", {
+                          description: "This bet costs more energy than you have. Watch a quick ad for +5⚡.",
+                          action: { label: "Watch ad", onClick: () => setRefillOpen(true) },
+                        });
+                        setRefillOpen(true);
+                      }
+                    }}
                     energy={game.energy}
                     energyCap={game.energyCap}
                     energyUpdatedAt={game.energyUpdatedAt}

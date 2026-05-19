@@ -264,12 +264,12 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
 
   if (!open) return null;
 
-  // Geometry
-  const SIZE = 240;
+  // Geometry — larger wheel so the emoji icons read clearly
+  const SIZE = 300;
   const R = SIZE / 2 - 4;
   const CX = SIZE / 2;
   const CY = SIZE / 2;
-  const BALL_R = R - 16;
+  const BALL_R = R - 18;
   const ballX = CX;
   const ballY = CY - BALL_R;
 
@@ -328,7 +328,35 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
                                 "Locked in. Spin to test your luck!"}
           </p>
 
-          {/* Wheel + pointer + ball */}
+          {/* Felt roulette table bowl wraps the wheel */}
+          <div
+            className="relative mx-auto rounded-full flex items-center justify-center"
+            style={{
+              width: SIZE + 56,
+              height: SIZE + 56,
+              background:
+                "radial-gradient(circle at center, hsl(140 45% 22%) 0%, hsl(140 55% 12%) 70%, hsl(var(--wood-dark)) 100%)",
+              boxShadow:
+                "inset 0 0 0 6px hsl(var(--gold)), inset 0 0 0 10px hsl(var(--wood-dark)), inset 0 8px 24px rgba(0,0,0,0.55), 0 8px 0 hsl(var(--wood-dark)), 0 14px 30px rgba(0,0,0,0.5)",
+            }}
+            aria-hidden={false}
+          >
+            {/* Brass diamond deflectors on the rim */}
+            {Array.from({ length: 8 }).map((_, i) => {
+              const ang = (i * 360) / 8;
+              return (
+                <span
+                  key={i}
+                  aria-hidden
+                  className="absolute left-1/2 top-1/2 text-gold text-[14px] drop-shadow-[0_1px_0_hsl(var(--wood-dark))] pointer-events-none"
+                  style={{
+                    transform: `translate(-50%, -50%) rotate(${ang}deg) translateY(-${(SIZE + 56) / 2 - 14}px)`,
+                  }}
+                >
+                  ◆
+                </span>
+              );
+            })}
           <div
             className="relative mx-auto"
             style={{ width: SIZE, height: SIZE }}
@@ -401,14 +429,14 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
                       tabIndex={interactive ? 0 : -1}
                     />
                     <g pointerEvents="none" transform={`rotate(${mid}, ${lx}, ${ly})`}>
-                      <text x={lx} y={ly - 6} textAnchor="middle" dominantBaseline="middle" fontSize="20">
+                      <text x={lx} y={ly - 10} textAnchor="middle" dominantBaseline="middle" fontSize="34">
                         {s.reward.emoji}
                       </text>
                       <text
-                        x={lx} y={ly + 12}
+                        x={lx} y={ly + 16}
                         textAnchor="middle" dominantBaseline="middle"
-                        fontSize="9" fontWeight="700" fill="hsl(var(--cream-light))"
-                        style={{ paintOrder: "stroke", stroke: "hsl(var(--wood-dark))", strokeWidth: 2 }}
+                        fontSize="13" fontWeight="700" fill="hsl(var(--cream-light))"
+                        style={{ paintOrder: "stroke", stroke: "hsl(var(--wood-dark))", strokeWidth: 2.5 }}
                       >
                         {s.reward.kind === "coins_jackpot" ? "JP" : s.reward.amount}
                       </text>
@@ -416,7 +444,7 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
                   </g>
                 );
               })}
-              <circle cx={CX} cy={CY} r={18} fill="hsl(var(--gold))" stroke="hsl(var(--wood-dark))" strokeWidth={3} />
+              <circle cx={CX} cy={CY} r={22} fill="hsl(var(--gold))" stroke="hsl(var(--wood-dark))" strokeWidth={3} />
             </motion.svg>
 
             <motion.svg
@@ -454,6 +482,7 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
           </div>
 
           {/* Live region */}
