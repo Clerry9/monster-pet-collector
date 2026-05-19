@@ -1019,6 +1019,8 @@ const Index = () => {
                     game.addEnergy(amt);
                     toast.success(`Lucky spin! +${amt} ⚡`, { duration: 2000 });
                   }}
+                  minRollCost={energyCostForBet(game.betMultiplier)}
+                  onInsufficientEnergy={() => showInsufficientEnergy(game.betMultiplier)}
                   frozen={!!drawnCard}
                   levelId={getLevelForXp(game.xp).id}
                   seasonAccent={`hsl(${season.season.palette.accent})`}
