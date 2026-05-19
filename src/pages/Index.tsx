@@ -719,6 +719,7 @@ const Index = () => {
         onDismiss={daily.dismiss}
         alreadyClaimed={daily.alreadyClaimed}
           currentDay={daily.currentDay}
+          nextClaimMs={daily.nextClaimMs}
       />
 
       {/* Floating hamburger — only on the fullscreen board */}
