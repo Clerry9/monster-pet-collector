@@ -22,7 +22,6 @@ export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [streak, setStreak] = useState(1);
-  const [lastClaimDate, setLastClaimDate] = useState<string | null>(null);
   const [lastClaimedAt, setLastClaimedAt] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -53,7 +52,6 @@ export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen
       // If last claim wasn't yesterday or today, the next claim resets to 1
       const nextStreak = claimedAt && Date.parse(claimedAt) > Date.now() - 48 * 3600 * 1000 ? s + (msUntilNextClaim(claimedAt) > 0 ? 0 : 1) : 1;
       setStreak(Math.max(1, nextStreak));
-      setLastClaimDate(last);
       setLastClaimedAt(claimedAt);
       setLoaded(true);
     })();
@@ -74,7 +72,6 @@ export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen
     const result = Array.isArray(data) ? data[0] : data;
     if (result && !result.already_claimed) {
       setStreak(result.current_streak);
-      setLastClaimDate(new Date().toISOString().slice(0, 10));
       setLastClaimedAt(new Date().toISOString());
     }
     setShowModal(false);
