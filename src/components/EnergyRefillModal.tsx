@@ -65,9 +65,11 @@ export function EnergyRefillModal({
           </div>
           <Button
             size="default"
-            className="w-full font-bold"
+            autoFocus
+            className="w-full font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary focus-visible:ring-2 focus-visible:ring-primary"
             disabled={!ad.canWatch}
             onClick={() => { void ad.watch(); }}
+            aria-label={ad.dailyLeft > 0 ? `Watch a short ad for ${AD_REFILL_AMOUNT} energy` : "Daily ad limit reached"}
           >
             {ad.loading ? "Loading ad…" :
               ad.cooldownLeft > 0 ? `Wait ${Math.ceil(ad.cooldownLeft/1000)}s` :

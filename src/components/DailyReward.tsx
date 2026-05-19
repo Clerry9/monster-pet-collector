@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Gift, Flame, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,31 @@ interface DailyRewardProps {
   onDismiss: () => void;
   alreadyClaimed: boolean;
   currentDay?: number;
+  /** Milliseconds until the next claim is available (0 when claimable now). */
+  nextClaimMs?: number;
 }
 
 const DAILY_REWARDS = [25, 50, 100, 175, 275, 400, 750];
 
+function fmt(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
+
 export const DailyReward = forwardRef<HTMLDivElement, DailyRewardProps>(function DailyReward(
-  { open, streak, reward, onClaim, onDismiss, alreadyClaimed, currentDay },
+  { open, streak, reward, onClaim, onDismiss, alreadyClaimed, currentDay, nextClaimMs = 0 },
   _ref,
 ) {
+  // Tick once a second so the countdown reads live.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!open || !alreadyClaimed) return;
+    const id = window.setInterval(() => setTick((t) => t + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [open, alreadyClaimed]);
   if (!open) return null;
 
   return (
@@ -97,9 +114,19 @@ export const DailyReward = forwardRef<HTMLDivElement, DailyRewardProps>(function
             </div>
 
             {alreadyClaimed ? (
-              <p className="text-sm text-muted-foreground font-body">
-                Already claimed today! Come back tomorrow 🎉
-              </p>
+              <div className="flex flex-col items-center gap-1">
+                <p className="text-sm text-muted-foreground font-body">
+                  Already claimed! Next reward in
+                </p>
+                <p
+                  className="font-display text-2xl tabular-nums text-accent"
+                  role="timer"
+                  aria-live="polite"
+                  aria-label={`Next daily reward in ${fmt(nextClaimMs)}`}
+                >
+                  {fmt(nextClaimMs)}
+                </p>
+              </div>
             ) : (
               <>
                 <p className="text-lg font-body">
