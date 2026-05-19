@@ -54,7 +54,6 @@ import { SeasonRotationModal } from "@/components/SeasonRotationModal";
 import { Footer } from "@/components/Footer";
 import { AuthStatusBadge } from "@/components/AuthStatusBadge";
 import { AdRewardMenu, AdRewardLauncher } from "@/components/AdRewardMenu";
-import { DailyStreakModal } from "@/components/DailyStreakModal";
 import { AnimatedBackdrop } from "@/components/effects/AnimatedBackdrop";
 import { Trophy, Target } from "lucide-react";
 import { DailyMissionsModal } from "@/components/DailyMissions";
@@ -709,6 +708,7 @@ const Index = () => {
         onClaim={daily.claim}
         onDismiss={daily.dismiss}
         alreadyClaimed={daily.alreadyClaimed}
+          currentDay={daily.currentDay}
       />
 
       {/* Floating hamburger — only on the fullscreen board */}
@@ -1079,16 +1079,8 @@ const Index = () => {
                   <BetSelector
                     coins={game.coins}
                     currentBet={game.betMultiplier}
-                    onSetBet={(mult) => {
-                      game.setBetMultiplier(mult);
-                      if (energyCostForBet(mult) > game.energy) {
-                        toast.error("NOT ENOUGH ENERGY", {
-                          description: "This bet costs more energy than you have. Watch a quick ad for +5⚡.",
-                          action: { label: "Watch ad", onClick: () => setRefillOpen(true) },
-                        });
-                        setRefillOpen(true);
-                      }
-                    }}
+                    onSetBet={game.setBetMultiplier}
+                    onInsufficientEnergy={showInsufficientEnergy}
                     energy={game.energy}
                     energyCap={game.energyCap}
                     energyUpdatedAt={game.energyUpdatedAt}
@@ -1360,7 +1352,6 @@ const Index = () => {
         open={adRewardsOpen}
         onClose={() => setAdRewardsOpen(false)}
       />
-      <DailyStreakModal />
       <DailyMissionsModal open={missionsOpen} onClose={() => setMissionsOpen(false)} />
       <RewardCelebration kind={celebration} onDone={handleCelebrationDone} />
     </div>
