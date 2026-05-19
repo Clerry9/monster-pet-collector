@@ -463,6 +463,14 @@ const Index = () => {
     prevLevelRef.current = game.level;
   }, [game.level, game.xp, lastResult]);
 
+  const showInsufficientEnergy = useCallback((mult: number, cost = energyCostForBet(mult)) => {
+    toast.error("NOT ENOUGH ENERGY", {
+      description: `Bet ×${mult} costs ${cost}⚡. You have ${game.energy}⚡. Watch a quick ad for +5⚡.`,
+      action: { label: "Watch ad", onClick: () => setRefillOpen(true) },
+    });
+    setRefillOpen(true);
+  }, [game.energy]);
+
   const handleRollDice = () => {
     const result = game.rollDice();
     if (result) {
@@ -474,14 +482,8 @@ const Index = () => {
       // so they only fire AFTER the monster has finished hopping.
     } else {
       // rollDice returns null when energy < energyCost. Surface why.
-      const cost = Math.max(1, game.betMultiplier);
-      if (game.energy < cost) {
-        toast.error("NOT ENOUGH ENERGY", {
-          description: `Bet ×${game.betMultiplier} costs ${cost}⚡. You have ${game.energy}⚡.`,
-          action: { label: "Watch ad", onClick: () => setRefillOpen(true) },
-        });
-        setRefillOpen(true);
-      }
+      const cost = energyCostForBet(game.betMultiplier);
+      if (game.energy < cost) showInsufficientEnergy(game.betMultiplier, cost);
     }
   };
 
