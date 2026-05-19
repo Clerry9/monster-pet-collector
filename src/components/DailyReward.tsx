@@ -29,18 +29,14 @@ export const DailyReward = forwardRef<HTMLDivElement, DailyRewardProps>(function
   { open, streak, reward, onClaim, onDismiss, alreadyClaimed, currentDay, nextClaimMs = 0 },
   _ref,
 ) {
-  if (!open) return null;
-  // Tick the local clock so the countdown reads live without re-fetching state.
-  // (Hook order is stable because we early-return before this only when !open,
-  // which is consistent for the lifetime of this mount.)
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+  // Tick once a second so the countdown reads live.
   const [, setTick] = useState(0);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
-    if (!alreadyClaimed) return;
+    if (!open || !alreadyClaimed) return;
     const id = window.setInterval(() => setTick((t) => t + 1), 1000);
     return () => window.clearInterval(id);
-  }, [alreadyClaimed]);
+  }, [open, alreadyClaimed]);
+  if (!open) return null;
 
   return (
     <AnimatePresence>
