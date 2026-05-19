@@ -34,7 +34,7 @@ import { PrestigeCelebration } from "@/components/PrestigeCelebration";
 import { CardReveal } from "@/components/CardReveal";
 import { IslandRewardRoulette, IslandReward } from "@/components/IslandRewardRoulette";
 import { LuckyRouletteModal, LuckyRouletteReward } from "@/components/LuckyRouletteModal";
-import { useGameState, BoardTile } from "@/hooks/useGameState";
+import { useGameState, BoardTile, energyCostForBet } from "@/hooks/useGameState";
 import { useDailyReward } from "@/hooks/useDailyReward";
 import { useAuth } from "@/hooks/useAuth";
 import { LinkAccount } from "@/components/LinkAccount";
