@@ -328,7 +328,35 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
                                 "Locked in. Spin to test your luck!"}
           </p>
 
-          {/* Wheel + pointer + ball */}
+          {/* Felt roulette table bowl wraps the wheel */}
+          <div
+            className="relative mx-auto rounded-full flex items-center justify-center"
+            style={{
+              width: SIZE + 56,
+              height: SIZE + 56,
+              background:
+                "radial-gradient(circle at center, hsl(140 45% 22%) 0%, hsl(140 55% 12%) 70%, hsl(var(--wood-dark)) 100%)",
+              boxShadow:
+                "inset 0 0 0 6px hsl(var(--gold)), inset 0 0 0 10px hsl(var(--wood-dark)), inset 0 8px 24px rgba(0,0,0,0.55), 0 8px 0 hsl(var(--wood-dark)), 0 14px 30px rgba(0,0,0,0.5)",
+            }}
+            aria-hidden={false}
+          >
+            {/* Brass diamond deflectors on the rim */}
+            {Array.from({ length: 8 }).map((_, i) => {
+              const ang = (i * 360) / 8;
+              return (
+                <span
+                  key={i}
+                  aria-hidden
+                  className="absolute left-1/2 top-1/2 text-gold text-[14px] drop-shadow-[0_1px_0_hsl(var(--wood-dark))] pointer-events-none"
+                  style={{
+                    transform: `translate(-50%, -50%) rotate(${ang}deg) translateY(-${(SIZE + 56) / 2 - 14}px)`,
+                  }}
+                >
+                  ◆
+                </span>
+              );
+            })}
           <div
             className="relative mx-auto"
             style={{ width: SIZE, height: SIZE }}
@@ -454,6 +482,7 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
           </div>
 
           {/* Live region */}
