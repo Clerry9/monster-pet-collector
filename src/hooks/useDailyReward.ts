@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -25,9 +25,12 @@ export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen
   const [lastClaimedAt, setLastClaimedAt] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  // Session-scoped guard so we only auto-open the modal once per page load.
+  const autoOpenedOnceRef = useRef(false);
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 60_000);
+    // Tick every second so the 24h countdown ticks down live in the UI.
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -35,7 +38,9 @@ export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen
   const alreadyClaimed = nextClaimMs > 0;
   const reward = DAILY_REWARDS[(((alreadyClaimed ? streak : streak) - 1 + 7) % 7)];
 
-  // Load server-side streak state
+  // Load server-side streak state. We deliberately do NOT depend on `now`
+  // here — re-fetching every second would also cause the auto-open effect
+  // below to re-fire and randomly reopen the modal.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -56,11 +61,13 @@ export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen
       setLoaded(true);
     })();
     return () => { cancelled = true; };
-  }, [user, now]);
+  }, [user]);
 
-  // Auto-show after load if not yet claimed today
+  // Auto-show after load if not yet claimed today — at most ONCE per session.
   useEffect(() => {
     if (!loaded || !autoOpen || alreadyClaimed) return;
+    if (autoOpenedOnceRef.current) return;
+    autoOpenedOnceRef.current = true;
     const t = setTimeout(() => setShowModal(true), 800);
     return () => clearTimeout(t);
   }, [loaded, autoOpen, alreadyClaimed]);
