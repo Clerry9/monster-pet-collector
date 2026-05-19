@@ -46,6 +46,20 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
   const [phase, setPhase] = useState<Phase>("idle");
   const [pick, setPick] = useState<number | null>(null);
   const [winningSlot, setWinningSlot] = useState<number | null>(null);
+  // Last resolved spin — kept visible after CLAIM so the user can always see
+  // what they won until they start the next spin.
+  const [lastReceipt, setLastReceipt] = useState<{
+    won: boolean;
+    paid: boolean;
+    pickedIndex: number;
+    pickedEmoji: string;
+    pickedLabel: string;
+    landedIndex: number;
+    landedEmoji: string;
+    landedLabel: string;
+    rewardAmount: number;
+    claimed: boolean;
+  } | null>(null);
   const [rotation, setRotation] = useState(0);
   const [ballAngle, setBallAngle] = useState(0);
   const [lastSpinWasPaid, setLastSpinWasPaid] = useState(false);
@@ -79,6 +93,8 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
     setActiveSpinId(null);
     setClaiming(false);
     setClaimed(false);
+    // Note: we intentionally do NOT clear `lastReceipt` here so the user
+    // still sees their previous win when they reopen the modal.
   }, [open]);
 
   // Focus trap + restore focus on close.
@@ -151,6 +167,8 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
 
   const startSpin = async (mode: "free" | "coins" | "credit") => {
     if (phase === "spin" || pick === null) return;
+    // Clear the persisted receipt as soon as the next spin begins.
+    setLastReceipt(null);
     if (mode === "coins") {
       if (!onSpendCoins(PAID_SPIN_COST)) return;
     } else if (mode === "credit") {
@@ -218,6 +236,18 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
         if (navigator.vibrate) navigator.vibrate(40);
         setPhase("miss");
       }
+      setLastReceipt({
+        won,
+        paid,
+        pickedIndex: pick,
+        pickedEmoji: pickSlot.reward.emoji,
+        pickedLabel: pickSlot.reward.label,
+        landedIndex: winner,
+        landedEmoji: winSlot.reward.emoji,
+        landedLabel: winSlot.reward.label,
+        rewardAmount: winSlot.reward.amount,
+        claimed: false,
+      });
     }, 3600);
   };
 
@@ -248,6 +278,7 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
     }
     if (granted) onClaim(slots[winningSlot].reward, lastSpinWasPaid);
     setClaimed(true);
+    setLastReceipt((r) => (r ? { ...r, claimed: true } : r));
     setClaiming(false);
     // Reset for next round.
     setPhase("idle");
