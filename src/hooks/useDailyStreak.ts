@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -33,6 +33,15 @@ export function useDailyStreak() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [lastClaim, setLastClaim] = useState<ClaimResult | null>(null);
+  // Session-scoped guard so the modal auto-opens AT MOST once per page load.
+  // Without this, every `refresh()` produced a new `row` reference and
+  // re-triggered the auto-open effect, causing the modal to pop back up.
+  const autoOpenedOnceRef = useRef(false);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTick(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!user) return;
@@ -50,13 +59,15 @@ export function useDailyStreak() {
     void refresh();
   }, [refresh]);
 
-  // Auto-prompt on session start when not yet claimed today
+  // Auto-prompt on session start when not yet claimed today — but only ONCE
+  // per session. The user can still manually re-open via openModal/setOpen.
   useEffect(() => {
     if (!row || !user) return;
-    if (msUntilNextClaim(row.updated_at) === 0) {
-      const t = setTimeout(() => setOpen(true), 1500);
-      return () => clearTimeout(t);
-    }
+    if (autoOpenedOnceRef.current) return;
+    if (msUntilNextClaim(row.updated_at) !== 0) return;
+    autoOpenedOnceRef.current = true;
+    const t = setTimeout(() => setOpen(true), 1500);
+    return () => clearTimeout(t);
   }, [row, user]);
 
   const claim = useCallback(async () => {
@@ -74,7 +85,11 @@ export function useDailyStreak() {
     }
   }, [user, refresh]);
 
+  // Recomputed every tick so the countdown ticks down live and the
+  // highlighted "current day" advances only when the 24h timer expires.
   const nextClaimMs = row ? msUntilNextClaim(row.updated_at) : 0;
+  // Touch nowTick so React re-renders this hook every second.
+  void nowTick;
   const canClaimToday = !!row && nextClaimMs === 0;
   const currentDay = row ? (((row.current_streak + (canClaimToday ? 1 : 0)) - 1) % 7) + 1 : 1;
 
