@@ -1,53 +1,35 @@
-## Goals
+## Plan
 
-1. Stop the **COIN HAUL** (and other reward) celebration from looping.
-2. Move the **mute** button onto the main play page (always visible).
-3. Add a **production-safe debug flag** for the lottery overlay/console logs.
-4. Clean up the **lottery bubble** so it disappears the instant the next roll begins.
-5. Add a **per-session reward history** of lottery landings + ⚡ bonuses.
-6. Add an **end-to-end test** proving the wheel always stops on landing and never spins forever.
+Three focused UI changes — no business logic touched.
 
-## Changes
+### 1. "NOT ENOUGH ENERGY" popup when bet > current energy
+**File:** `src/pages/Index.tsx` (+ small hook into `BetSelector` callback)
 
-### 1. Fix celebration loop — `src/components/RewardCelebration.tsx`
-Root cause: the effect depends on `[kind, onDone]`. `Index.tsx` passes a fresh `() => setCelebration(null)` each render, so every parent re-render re-runs the effect, clears `shown`, then sets it again → endless restart of the 1.4s timer; user sees a stuck banner.
+- Today, picking a bet whose roll cost exceeds current energy just dims a pill and shows a tiny `−N⚡/roll` warning. Nothing tells the player to act.
+- Wire `onSetBet` on the BetSelector instance in `Index.tsx`: still call the existing setter, but if `energyCostForBet(mult) > energy`, also open the existing `EnergyRefillModal` (`setRefillOpen(true)`) and fire the existing `NOT ENOUGH ENERGY` sonner toast with the "Watch ad" action that's already implemented for the roll path.
+- Reuses the already-redesigned `EnergyRefillModal` ("NOT ENOUGH ENERGY" headline + Watch ad → +5⚡ CTA). No new modal component.
 
-- Drop `onDone` from the dependency array (use a `useRef` to always call the latest callback), OR memoize `onDone` in `Index.tsx` with `useCallback`. I'll do both: ref inside the component (defensive) + `useCallback` in `Index.tsx`.
-- Also guard against re-triggering for the same `kind` instance by tracking the last-handled value in a ref.
+### 2. Bigger emoji icons on the lottery wheel
+**File:** `src/components/LuckyRouletteModal.tsx`
 
-### 2. Mute button on main play page — `src/pages/Index.tsx`
-- Move the existing mute button out of the slide-down drawer (`max-h-[80vh]` panel) and render it as a fixed top-left chip on the board tab (mirrors the existing TOUR / menu chips on the right), so it's reachable without opening the menu.
-- Keep the in-drawer toggle removed to avoid duplication.
+- Enlarge the wheel itself: `SIZE` 240 → **300**, `R` recomputed, `BALL_R` adjusted so the ball still rides just inside the rim.
+- Bump the per-wedge emoji from `fontSize="20"` to **`"34"`** and the amount label from `"9"` to **`"13"`** (with thicker 2.5 stroke for readability against the brighter felt).
+- Move the amount label slightly further from the emoji so the larger glyphs don't collide (`ly - 10` / `ly + 16`).
+- Slightly enlarge the center hub circle (r 18 → 22) to stay proportional.
 
-### 3. Production-safe debug flag — `src/components/LotteryDebugOverlay.tsx` + `src/components/LotteryRoulette.tsx`
-- Read `import.meta.env.VITE_LOTTERY_DEBUG` and treat **production builds as off by default** unless that flag is `"1"`.
-- Compute `enabled = import.meta.env.DEV && (env flag !== "0") || (env flag === "1" forces on)`, plus the existing `localStorage`/query-param escape hatches — but only when not explicitly disabled by the env flag.
-- Wrap the `console.debug("[lottery] reset…")` call in `LotteryRoulette.tsx` behind the same helper (extract `isLotteryDebugEnabled()` into a tiny shared util, e.g. `src/lib/lotteryDebug.ts`) so production never logs.
+### 3. Make it look like a real roulette table
+**File:** `src/components/LuckyRouletteModal.tsx` (styling only, same DOM)
 
-### 4. Lottery bubble cleanup on next roll — `src/components/LotteryRoulette.tsx` / `GameBoard.tsx`
-- In the `landedKey` reset effect, set `hidden = true` immediately and only flip back to `false` once `spinning` actually goes true (rising edge). That guarantees no overlap frame between the previous result snapshot and the new spin.
-- In `GameBoard.tsx`, also clear `lastResult`-driven `showResult` UI on the rising edge of `isRolling` so the right-side award popup unmounts at roll-start.
+- Wrap the wheel in a **green felt table** surround: a new oval div behind the SVG with `background: radial-gradient(ellipse at center, hsl(140 45% 22%), hsl(140 55% 12%))`, an inner gold rim ring, and an outer dark wood frame using existing `--wood-dark` token. Adds a subtle inset shadow for felt depth.
+- Add a **brass outer track** ring (CSS `border` + `box-shadow` layers) around the SVG so the spinning wheel sits in a stationary bowl, like a real roulette.
+- Add small **diamond deflectors** (8 absolutely-positioned `◆` glyphs evenly spaced on the brass ring) — pure decoration, `aria-hidden`.
+- Swap the panel background gradient from gold/wood to a darker casino palette (deep green felt → wood edge) so the modal reads as a table, not a generic panel. Keep all existing semantic tokens — no raw hex.
+- The pointer (red triangle), wedges, ball, center hub, history button, and all interaction logic stay exactly as they are.
 
-### 5. Per-session reward history — new `src/hooks/useLotteryHistory.ts` + small UI
-- In-memory ring buffer keyed by the active monster id (resets on tab close; persisted optionally to `sessionStorage` under `lov_lottery_history_v1`).
-- Entry shape: `{ at, monsterId, tileType, tileLabel, emoji, value, luckyEnergy }`.
-- Push from `GameBoard.tsx` inside the landing handler (where `lastResult` becomes the final tile) and from `LotteryRoulette.onLuckyEnergy`.
-- Render a small "Last spins" list inside the existing settings/help area on the board (or a tiny collapsible chip near the wheel — final placement TBD with a screenshot pass, no new tabs).
+### Out of scope
+- No changes to `LotteryRoulette.tsx` (the tiny in-game floating reel — that one is intentionally compact above the monster's head).
+- No changes to spin math, rewards, RLS, history, or sounds.
 
-### 6. E2E test — `src/components/LotteryRoulette.test.tsx`
-Vitest + React Testing Library. Drives the component through a realistic roll cycle and asserts:
-
-```text
-- render with spinning=true, result=null, landedKey=1 → shows REEL icon, ticks
-- transition to spinning=false, result="coins", landedKey=1 → shows 🪙 (ICONS.coins), no interval still running
-- bump landedKey=2 with spinning=true → internal tick resets to 0, hidden=false, fresh spin starts
-- transition to spinning=false, result="star", landedKey=2 → shows ⭐ exactly
-- repeat 10 cycles in a loop, assert displayed icon === ICONS[result] every time
-- assert no setInterval handles leak (use vi.useFakeTimers + getTimerCount)
-```
-Plus a unit test for `useLotteryHistory` (append + cap at N + sessionStorage round-trip).
-
-## Out of scope
-- Backend / RLS / schema changes.
-- Dice physics, hop animation, reward economy tuning.
-- New tabs, routes, or layouts beyond the mute-button relocation.
+### Verification
+- Manual: open Lucky Roulette → confirm felt/brass styling and visibly larger emojis; pick a bet higher than current energy → confirm "NOT ENOUGH ENERGY" modal opens with Watch-ad CTA.
+- Existing `LuckyRouletteModal.test.tsx` should still pass (DOM structure of wedges/labels unchanged, only sizes).
