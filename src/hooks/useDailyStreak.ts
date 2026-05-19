@@ -6,6 +6,7 @@ export interface DailyStreakRow {
   current_streak: number;
   best_streak: number;
   last_claim_date: string | null;
+  updated_at: string | null;
 }
 
 export interface ClaimResult {
@@ -17,8 +18,13 @@ export interface ClaimResult {
   already_claimed: boolean;
 }
 
-function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10);
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function msUntilNextClaim(claimedAt: string | null): number {
+  if (!claimedAt) return 0;
+  const then = Date.parse(claimedAt);
+  if (!Number.isFinite(then)) return 0;
+  return Math.max(0, then + DAY_MS - Date.now());
 }
 
 export function useDailyStreak() {
@@ -32,11 +38,11 @@ export function useDailyStreak() {
     if (!user) return;
     const { data } = await supabase
       .from("daily_streaks")
-      .select("current_streak,best_streak,last_claim_date")
+      .select("current_streak,best_streak,last_claim_date,updated_at")
       .eq("user_id", user.id)
       .maybeSingle();
     setRow(
-      data ?? { current_streak: 0, best_streak: 0, last_claim_date: null },
+      data ?? { current_streak: 0, best_streak: 0, last_claim_date: null, updated_at: null },
     );
   }, [user]);
 
@@ -47,7 +53,7 @@ export function useDailyStreak() {
   // Auto-prompt on session start when not yet claimed today
   useEffect(() => {
     if (!row || !user) return;
-    if (row.last_claim_date !== todayUtc()) {
+    if (msUntilNextClaim(row.updated_at) === 0) {
       const t = setTimeout(() => setOpen(true), 1500);
       return () => clearTimeout(t);
     }
@@ -68,7 +74,9 @@ export function useDailyStreak() {
     }
   }, [user, refresh]);
 
-  const canClaimToday = !!row && row.last_claim_date !== todayUtc();
+  const nextClaimMs = row ? msUntilNextClaim(row.updated_at) : 0;
+  const canClaimToday = !!row && nextClaimMs === 0;
+  const currentDay = row ? (((row.current_streak + (canClaimToday ? 1 : 0)) - 1) % 7) + 1 : 1;
 
-  return { row, loading, open, setOpen, claim, lastClaim, canClaimToday, refresh };
+  return { row, loading, open, setOpen, claim, lastClaim, canClaimToday, nextClaimMs, currentDay, refresh };
 }

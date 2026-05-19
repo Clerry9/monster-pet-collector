@@ -8,9 +8,13 @@ import { useAuth } from "@/hooks/useAuth";
  * gating that the client could bypass).
  */
 const DAILY_REWARDS = [25, 50, 100, 175, 275, 400, 750];
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10);
+function msUntilNextClaim(claimedAt: string | null): number {
+  if (!claimedAt) return 0;
+  const then = Date.parse(claimedAt);
+  if (!Number.isFinite(then)) return 0;
+  return Math.max(0, then + DAY_MS - Date.now());
 }
 
 export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen?: boolean }) {
@@ -18,11 +22,17 @@ export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [streak, setStreak] = useState(1);
-  const [lastClaimDate, setLastClaimDate] = useState<string | null>(null);
+  const [lastClaimedAt, setLastClaimedAt] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
-  const today = todayUtc();
-  const alreadyClaimed = lastClaimDate === today;
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const nextClaimMs = msUntilNextClaim(lastClaimedAt);
+  const alreadyClaimed = nextClaimMs > 0;
   const reward = DAILY_REWARDS[(((alreadyClaimed ? streak : streak) - 1 + 7) % 7)];
 
   // Load server-side streak state
@@ -32,21 +42,21 @@ export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen
     (async () => {
       const { data } = await supabase
         .from("daily_streaks")
-        .select("current_streak,last_claim_date")
+        .select("current_streak,last_claim_date,updated_at")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
       const s = data?.current_streak ?? 0;
       const last = data?.last_claim_date ?? null;
+      const claimedAt = data?.updated_at ?? (last ? `${last}T00:00:00.000Z` : null);
       // If last claim wasn't yesterday or today, the next claim resets to 1
-      const nextStreak =
-        last === today ? s : last && new Date(last).getTime() >= Date.now() - 36 * 3600 * 1000 ? s + 1 : 1;
+      const nextStreak = claimedAt && Date.parse(claimedAt) > Date.now() - 48 * 3600 * 1000 ? s + (msUntilNextClaim(claimedAt) > 0 ? 0 : 1) : 1;
       setStreak(Math.max(1, nextStreak));
-      setLastClaimDate(last);
+      setLastClaimedAt(claimedAt);
       setLoaded(true);
     })();
     return () => { cancelled = true; };
-  }, [user, today]);
+  }, [user, now]);
 
   // Auto-show after load if not yet claimed today
   useEffect(() => {
@@ -62,13 +72,13 @@ export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen
     const result = Array.isArray(data) ? data[0] : data;
     if (result && !result.already_claimed) {
       setStreak(result.current_streak);
-      setLastClaimDate(today);
+      setLastClaimedAt(new Date().toISOString());
     }
     setShowModal(false);
-  }, [user, alreadyClaimed, today]);
+  }, [user, alreadyClaimed]);
 
   const dismiss = useCallback(() => setShowModal(false), []);
   const openModal = useCallback(() => setShowModal(true), []);
 
-  return { showModal, streak, reward, alreadyClaimed, claim, dismiss, openModal };
+  return { showModal, streak, reward, alreadyClaimed, nextClaimMs, currentDay: ((streak - 1) % 7) + 1, claim, dismiss, openModal };
 }

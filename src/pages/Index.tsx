@@ -54,7 +54,6 @@ import { SeasonRotationModal } from "@/components/SeasonRotationModal";
 import { Footer } from "@/components/Footer";
 import { AuthStatusBadge } from "@/components/AuthStatusBadge";
 import { AdRewardMenu, AdRewardLauncher } from "@/components/AdRewardMenu";
-import { DailyStreakModal } from "@/components/DailyStreakModal";
 import { AnimatedBackdrop } from "@/components/effects/AnimatedBackdrop";
 import { Trophy, Target } from "lucide-react";
 import { DailyMissionsModal } from "@/components/DailyMissions";
@@ -145,10 +144,12 @@ function CenterEnergyPill({
 function EventBanner({
   alreadyClaimedDaily,
   streak,
+  nextClaimMs,
   onOpenDaily,
 }: {
   alreadyClaimedDaily: boolean;
   streak: number;
+  nextClaimMs: number;
   onOpenDaily: () => void;
 }) {
   const [now, setNow] = useState(() => Date.now());
@@ -160,10 +161,7 @@ function EventBanner({
   const weekendActive = isWeekend(new Date(now));
   const weekendMs = msUntilWeekendBoundary(new Date(now));
 
-  // Time until next local midnight (next claimable daily reward).
-  const nextMidnight = new Date(now);
-  nextMidnight.setHours(24, 0, 0, 0);
-  const dailyMs = Math.max(0, nextMidnight.getTime() - now);
+  const dailyMs = alreadyClaimedDaily ? nextClaimMs : 0;
 
   return (
     <div className="w-full max-w-md mx-auto mb-3 flex flex-wrap items-stretch justify-center gap-2">
@@ -464,6 +462,14 @@ const Index = () => {
     prevLevelRef.current = game.level;
   }, [game.level, game.xp, lastResult]);
 
+  const showInsufficientEnergy = useCallback((mult: number, cost = energyCostForBet(mult)) => {
+    toast.error("NOT ENOUGH ENERGY", {
+      description: `Bet ×${mult} costs ${cost}⚡. You have ${game.energy}⚡. Watch a quick ad for +5⚡.`,
+      action: { label: "Watch ad", onClick: () => setRefillOpen(true) },
+    });
+    setRefillOpen(true);
+  }, [game.energy]);
+
   const handleRollDice = () => {
     const result = game.rollDice();
     if (result) {
@@ -475,14 +481,8 @@ const Index = () => {
       // so they only fire AFTER the monster has finished hopping.
     } else {
       // rollDice returns null when energy < energyCost. Surface why.
-      const cost = Math.max(1, game.betMultiplier);
-      if (game.energy < cost) {
-        toast.error("NOT ENOUGH ENERGY", {
-          description: `Bet ×${game.betMultiplier} costs ${cost}⚡. You have ${game.energy}⚡.`,
-          action: { label: "Watch ad", onClick: () => setRefillOpen(true) },
-        });
-        setRefillOpen(true);
-      }
+      const cost = energyCostForBet(game.betMultiplier);
+      if (game.energy < cost) showInsufficientEnergy(game.betMultiplier, cost);
     }
   };
 
@@ -708,6 +708,7 @@ const Index = () => {
         onClaim={daily.claim}
         onDismiss={daily.dismiss}
         alreadyClaimed={daily.alreadyClaimed}
+          currentDay={daily.currentDay}
       />
 
       {/* Floating hamburger — only on the fullscreen board */}
@@ -841,6 +842,7 @@ const Index = () => {
         <EventBanner
           alreadyClaimedDaily={daily.alreadyClaimed}
           streak={daily.streak}
+          nextClaimMs={daily.nextClaimMs}
           onOpenDaily={daily.openModal}
         />
 
@@ -1017,6 +1019,8 @@ const Index = () => {
                     game.addEnergy(amt);
                     toast.success(`Lucky spin! +${amt} ⚡`, { duration: 2000 });
                   }}
+                  minRollCost={energyCostForBet(game.betMultiplier)}
+                  onInsufficientEnergy={() => showInsufficientEnergy(game.betMultiplier)}
                   frozen={!!drawnCard}
                   levelId={getLevelForXp(game.xp).id}
                   seasonAccent={`hsl(${season.season.palette.accent})`}
@@ -1077,16 +1081,8 @@ const Index = () => {
                   <BetSelector
                     coins={game.coins}
                     currentBet={game.betMultiplier}
-                    onSetBet={(mult) => {
-                      game.setBetMultiplier(mult);
-                      if (energyCostForBet(mult) > game.energy) {
-                        toast.error("NOT ENOUGH ENERGY", {
-                          description: "This bet costs more energy than you have. Watch a quick ad for +5⚡.",
-                          action: { label: "Watch ad", onClick: () => setRefillOpen(true) },
-                        });
-                        setRefillOpen(true);
-                      }
-                    }}
+                    onSetBet={game.setBetMultiplier}
+                    onInsufficientEnergy={showInsufficientEnergy}
                     energy={game.energy}
                     energyCap={game.energyCap}
                     energyUpdatedAt={game.energyUpdatedAt}
@@ -1358,7 +1354,6 @@ const Index = () => {
         open={adRewardsOpen}
         onClose={() => setAdRewardsOpen(false)}
       />
-      <DailyStreakModal />
       <DailyMissionsModal open={missionsOpen} onClose={() => setMissionsOpen(false)} />
       <RewardCelebration kind={celebration} onDone={handleCelebrationDone} />
     </div>
