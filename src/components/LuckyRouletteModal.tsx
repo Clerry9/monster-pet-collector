@@ -401,14 +401,14 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
                       tabIndex={interactive ? 0 : -1}
                     />
                     <g pointerEvents="none" transform={`rotate(${mid}, ${lx}, ${ly})`}>
-                      <text x={lx} y={ly - 6} textAnchor="middle" dominantBaseline="middle" fontSize="20">
+                      <text x={lx} y={ly - 10} textAnchor="middle" dominantBaseline="middle" fontSize="34">
                         {s.reward.emoji}
                       </text>
                       <text
-                        x={lx} y={ly + 12}
+                        x={lx} y={ly + 16}
                         textAnchor="middle" dominantBaseline="middle"
-                        fontSize="9" fontWeight="700" fill="hsl(var(--cream-light))"
-                        style={{ paintOrder: "stroke", stroke: "hsl(var(--wood-dark))", strokeWidth: 2 }}
+                        fontSize="13" fontWeight="700" fill="hsl(var(--cream-light))"
+                        style={{ paintOrder: "stroke", stroke: "hsl(var(--wood-dark))", strokeWidth: 2.5 }}
                       >
                         {s.reward.kind === "coins_jackpot" ? "JP" : s.reward.amount}
                       </text>
@@ -416,7 +416,7 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
                   </g>
                 );
               })}
-              <circle cx={CX} cy={CY} r={18} fill="hsl(var(--gold))" stroke="hsl(var(--wood-dark))" strokeWidth={3} />
+              <circle cx={CX} cy={CY} r={22} fill="hsl(var(--gold))" stroke="hsl(var(--wood-dark))" strokeWidth={3} />
             </motion.svg>
 
             <motion.svg
