@@ -18,10 +18,6 @@ export interface ClaimResult {
   already_claimed: boolean;
 }
 
-function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function msUntilNextClaim(claimedAt: string | null): number {
