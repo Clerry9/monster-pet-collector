@@ -10,12 +10,13 @@ interface DailyRewardProps {
   onClaim: () => void;
   onDismiss: () => void;
   alreadyClaimed: boolean;
+  currentDay?: number;
 }
 
 const DAILY_REWARDS = [25, 50, 100, 175, 275, 400, 750];
 
 export const DailyReward = forwardRef<HTMLDivElement, DailyRewardProps>(function DailyReward(
-  { open, streak, reward, onClaim, onDismiss, alreadyClaimed },
+  { open, streak, reward, onClaim, onDismiss, alreadyClaimed, currentDay },
   _ref,
 ) {
   if (!open) return null;
@@ -69,7 +70,7 @@ export const DailyReward = forwardRef<HTMLDivElement, DailyRewardProps>(function
             <div className="grid w-full grid-cols-7 gap-1" role="list" aria-label="7-day reward track">
               {DAILY_REWARDS.map((amount, i) => {
                 const dayNum = i + 1;
-                const isCurrent = (streak % 7 || 7) === dayNum;
+                const isCurrent = (currentDay ?? (streak % 7 || 7)) === dayNum;
                 const isPast = !alreadyClaimed
                   ? dayNum < (streak % 7 || 7)
                   : dayNum <= (streak % 7 || 7);
@@ -80,7 +81,7 @@ export const DailyReward = forwardRef<HTMLDivElement, DailyRewardProps>(function
                     role="listitem"
                     aria-label={`Day ${dayNum}: ${amount} coins${isCurrent && !alreadyClaimed ? " (today)" : isPast ? " (claimed)" : ""}`}
                     className={`flex flex-col items-center rounded-lg border px-1 py-2 text-xs transition-all ${
-                      isCurrent && !alreadyClaimed
+                      isCurrent
                         ? "border-primary bg-primary/20 box-glow-green"
                         : isPast
                         ? "border-muted bg-muted/50 opacity-50"
