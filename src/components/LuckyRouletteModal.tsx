@@ -264,12 +264,12 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
 
   if (!open) return null;
 
-  // Geometry
-  const SIZE = 240;
+  // Geometry — larger wheel so the emoji icons read clearly
+  const SIZE = 300;
   const R = SIZE / 2 - 4;
   const CX = SIZE / 2;
   const CY = SIZE / 2;
-  const BALL_R = R - 16;
+  const BALL_R = R - 18;
   const ballX = CX;
   const ballY = CY - BALL_R;
 
