@@ -170,6 +170,11 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
 
   const startSpin = async (mode: "free" | "coins" | "credit") => {
     if (phase === "spin" || pick === null) return;
+    // Hard-clear any leftovers from a previous cycle so the wheel can never
+    // get stuck mid-spin from stale state.
+    setWinningSlot(null);
+    setClaimed(false);
+    setClaiming(false);
     // Clear the persisted receipt as soon as the next spin begins.
     setLastReceipt(null);
     if (mode === "coins") {
@@ -280,10 +285,11 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
       markClaimed(activeSpinId);
     }
     if (granted) onClaim(slots[winningSlot].reward, lastSpinWasPaid);
-    setClaimed(true);
-    setLastReceipt((r) => (r ? { ...r, claimed: true } : r));
+    // Per user request: clear receipt immediately once claimed so the
+    // reward summary disappears and the wheel resets cleanly.
+    setLastReceipt(null);
+    setClaimed(false);
     setClaiming(false);
-    // Reset for next round.
     setPhase("idle");
     setPick(null);
     setWinningSlot(null);
@@ -361,6 +367,30 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
              pick === null    ? "Pick a wedge, then spin to match it." :
                                 "Locked in. Spin to test your luck!"}
           </p>
+
+          {/* Live odds + reward preview — updates as the user clicks or
+              keyboard-focuses a wedge so they always see exactly what's at
+              stake before confirming. */}
+          {phase === "idle" && (() => {
+            const idx = pick ?? focusedSlot;
+            if (idx === null) return null;
+            const s = slots[idx];
+            return (
+              <div
+                className="mb-3 rounded-lg border-2 border-gold bg-wood-dark/60 px-3 py-1.5 text-left text-cream-light"
+                role="status"
+                aria-live="polite"
+              >
+                <div className="flex items-center justify-between gap-2 font-display text-[11px]">
+                  <span>SLOT {idx + 1}: {s.reward.emoji} {s.reward.label}</span>
+                  <span className="tabular-nums text-gold">{oddsPerSlot}%</span>
+                </div>
+                <div className="text-[10px] font-display text-cream/85 whitespace-normal break-words">
+                  Win: +{s.reward.amount} {s.reward.emoji} {s.reward.label} · Miss: 0 (try again or spend {PAID_SPIN_COST}🪙)
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Felt roulette table bowl wraps the wheel */}
           <div

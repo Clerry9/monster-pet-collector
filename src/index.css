@@ -107,6 +107,21 @@ html[data-reduced-motion="true"] *::after {
   scroll-behavior: auto !important;
 }
 
+/* High-contrast mode toggle — strengthens core tokens for better legibility. */
+html[data-contrast="high"] {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 5%;
+  --muted-foreground: 0 0% 20%;
+  --border: 0 0% 10%;
+  --ring: 210 100% 35%;
+  --primary: 210 100% 32%;
+  --primary-foreground: 0 0% 100%;
+}
+html[data-contrast="high"] *:focus-visible {
+  outline: 3px solid hsl(var(--ring)) !important;
+  outline-offset: 2px !important;
+}
+
 @layer utilities {
   .font-display {
     font-family: var(--font-display);

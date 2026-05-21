@@ -63,6 +63,7 @@ import { gameplayStart, gameplayStop, adBreakHappytime } from "@/lib/ads";
 import { useNavigate } from "react-router-dom";
 import { FriendSearchDebug, type FriendSearchPauseReason } from "@/components/FriendSearchDebug";
 import { EnergyRefillModal } from "@/components/EnergyRefillModal";
+import { scheduleAt, cancelScheduled } from "@/lib/notifications";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season" | "account";
 
@@ -479,6 +480,20 @@ const Index = () => {
     });
     setRefillOpen(true);
   }, [game.energy]);
+
+  // Schedule an "energy refilled" reminder whenever we're below cap.
+  // No-op unless the user has enabled notifications in the Accessibility panel.
+  useEffect(() => {
+    if (game.energy >= game.energyCap) { cancelScheduled("energy-ready"); return; }
+    const last = Date.parse(game.energyUpdatedAt || "");
+    if (!Number.isFinite(last)) return;
+    const ticksToFull = game.energyCap - game.energy;
+    const regen = game.energyRegenMs ?? 180_000;
+    const elapsed = Date.now() - last;
+    const untilNextTick = regen - (elapsed % regen);
+    const fullAt = Date.now() + untilNextTick + (ticksToFull - 1) * regen;
+    scheduleAt("energy-ready", fullAt, "Energy refilled ⚡", "You're back to full — time to roll!");
+  }, [game.energy, game.energyCap, game.energyUpdatedAt, game.energyRegenMs]);
 
   const handleRollDice = () => {
     const result = game.rollDice();
@@ -1332,11 +1347,12 @@ const Index = () => {
         steps={tutorialSteps}
         onStepChange={(_i, step) => {
           // Pre-open the lucky roulette modal so its wedges/pointer exist in
-          // the DOM when roulette-specific steps try to highlight them — but
-          // close it again as soon as the tutorial moves to a non-roulette
-          // step so the modal never blocks subsequent coachmarks.
+          // the DOM when roulette-specific steps try to highlight them. Only
+          // OPEN on entering a roulette step — never auto-close it here, so
+          // a user who manually dismissed the modal mid-tutorial stays
+          // dismissed instead of having it pop back up on each rerender.
           const isRouletteStep = step.selector?.startsWith("[data-tutorial='roulette-");
-          setLuckyOpen(!!isRouletteStep);
+          if (isRouletteStep) setLuckyOpen(true);
         }}
         onClose={() => {
           setCoachOpen(false);
