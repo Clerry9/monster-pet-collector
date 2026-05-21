@@ -4,8 +4,10 @@ import App from "./App.tsx";
 import "./index.css";
 import "./lib/hmrGuard";
 import { applyA11yPrefs } from "./lib/a11yPrefs";
+import { registerServiceWorker } from "./lib/swRegister";
 
 applyA11yPrefs();
+registerServiceWorker();
 
 createRoot(document.getElementById("root")!).render(
   <HelmetProvider>
