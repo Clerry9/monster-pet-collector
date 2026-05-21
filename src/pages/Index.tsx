@@ -481,6 +481,20 @@ const Index = () => {
     setRefillOpen(true);
   }, [game.energy]);
 
+  // Schedule an "energy refilled" reminder whenever we're below cap.
+  // No-op unless the user has enabled notifications in the Accessibility panel.
+  useEffect(() => {
+    if (game.energy >= game.energyCap) { cancelScheduled("energy-ready"); return; }
+    const last = Date.parse(game.energyUpdatedAt || "");
+    if (!Number.isFinite(last)) return;
+    const ticksToFull = game.energyCap - game.energy;
+    const regen = game.energyRegenMs ?? 180_000;
+    const elapsed = Date.now() - last;
+    const untilNextTick = regen - (elapsed % regen);
+    const fullAt = Date.now() + untilNextTick + (ticksToFull - 1) * regen;
+    scheduleAt("energy-ready", fullAt, "Energy refilled ⚡", "You're back to full — time to roll!");
+  }, [game.energy, game.energyCap, game.energyUpdatedAt, game.energyRegenMs]);
+
   const handleRollDice = () => {
     const result = game.rollDice();
     if (result) {
