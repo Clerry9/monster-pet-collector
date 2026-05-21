@@ -3,11 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GameCard, CardRarity } from "@/data/cards";
 import { Sparkles, X as XIcon } from "lucide-react";
 
-const RARITY_COLORS: Record<CardRarity, { bg: string; border: string; glow: string; text: string; nameText: string; subText: string }> = {
-  common:    { bg: "bg-muted",         border: "border-muted-foreground/30", glow: "shadow-muted/20",        text: "text-muted-foreground", nameText: "text-foreground",   subText: "text-muted-foreground" },
-  rare:      { bg: "bg-blue-900/70",   border: "border-blue-400",            glow: "shadow-blue-400/40",     text: "text-blue-200",         nameText: "text-white",        subText: "text-blue-100/90" },
-  epic:      { bg: "bg-purple-900/80", border: "border-purple-400",          glow: "shadow-purple-400/40",   text: "text-purple-200",       nameText: "text-white",        subText: "text-purple-100/90" },
-  legendary: { bg: "bg-amber-900/70",  border: "border-amber-400",           glow: "shadow-amber-400/50",    text: "text-amber-200",        nameText: "text-white",        subText: "text-amber-100/90" },
+const RARITY_COLORS: Record<CardRarity, { bg: string; border: string; glow: string; text: string; nameText: string; subText: string; artBg: string }> = {
+  common:    { bg: "bg-gradient-to-br from-slate-500 via-slate-400 to-slate-600",       border: "border-slate-200",  glow: "shadow-slate-300/40", text: "text-slate-100",   nameText: "text-white", subText: "text-slate-50/95",  artBg: "bg-gradient-to-br from-white/30 to-white/5" },
+  rare:      { bg: "bg-gradient-to-br from-blue-500 via-sky-400 to-indigo-600",         border: "border-blue-200",   glow: "shadow-blue-400/50",  text: "text-blue-50",     nameText: "text-white", subText: "text-blue-50/95",   artBg: "bg-gradient-to-br from-white/40 to-blue-200/10" },
+  epic:      { bg: "bg-gradient-to-br from-purple-500 via-fuchsia-500 to-purple-700",   border: "border-purple-200", glow: "shadow-purple-400/60",text: "text-purple-50",   nameText: "text-white", subText: "text-purple-50/95", artBg: "bg-gradient-to-br from-white/40 to-fuchsia-200/10" },
+  legendary: { bg: "bg-gradient-to-br from-amber-400 via-yellow-300 to-orange-500",     border: "border-amber-100",  glow: "shadow-amber-300/70", text: "text-amber-950",   nameText: "text-amber-950", subText: "text-amber-900",artBg: "bg-gradient-to-br from-white/60 to-yellow-100/20" },
 };
 
 interface CardRevealProps {
