@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getAvailableBets } from "@/data/levels";
 import { energyCostForBet } from "@/hooks/useGameState";
 
@@ -24,25 +24,7 @@ export function BetSelector({
   // even between server pushes (e.g. when a regen tick crosses the 1000-energy
   // gate that unlocks the high tiers).
   const [now, setNow] = useState(() => Date.now());
-  const [previewBet, setPreviewBet] = useState<number | null>(null);
   const betButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const previewRef = useRef<HTMLDivElement | null>(null);
-  // Object-detection-lite: if the available width is too tight, stack
-  // the preview chip above the bet row instead of letting it overlap.
-  const [stackPreview, setStackPreview] = useState(false);
-  useLayoutEffect(() => {
-    const el = rootRef.current?.parentElement;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const measure = () => {
-      // Reserve ~180px for the action button column; below ~380px we stack.
-      setStackPreview(el.clientWidth < 380);
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
@@ -63,7 +45,7 @@ export function BetSelector({
   })();
 
   const available = getAvailableBets(coins, predictedEnergy);
-  const selectedBet = previewBet ?? currentBet;
+  const selectedBet = currentBet;
   const cost = energyCostForBet(selectedBet);
   const insufficient = typeof energy === "number" && energy < cost;
   // Real energy if provided, otherwise fall back to the legacy bet-relative pill.
@@ -73,7 +55,6 @@ export function BetSelector({
   const overflow = useReal ? Math.max(0, energy! - energyCap!) : 0;
   const energyPct = Math.max(6, Math.min(100, Math.round((cur / max) * 100)));
   const belowCap = useReal && energy! < energyCap!;
-  const hasPreview = previewBet !== null && previewBet !== currentBet;
 
   const countdown = (() => {
     if (!belowCap || !energyUpdatedAt) return null;
@@ -86,23 +67,13 @@ export function BetSelector({
     return `${m}:${s.toString().padStart(2, "0")}`;
   })();
 
-  const previewBetChoice = (mult: number) => {
-    const nextCost = energyCostForBet(mult);
-    setPreviewBet(mult);
-    if (typeof energy === "number" && energy < nextCost) {
-      onInsufficientEnergy?.(mult, nextCost);
-    }
-  };
-
-  const confirmBet = () => {
-    const mult = selectedBet;
+  const chooseBet = (mult: number) => {
     const nextCost = energyCostForBet(mult);
     if (typeof energy === "number" && energy < nextCost) {
       onInsufficientEnergy?.(mult, nextCost);
       return;
     }
     onSetBet(mult);
-    setPreviewBet(null);
   };
 
   const focusBetAt = (index: number) => {
@@ -110,40 +81,24 @@ export function BetSelector({
     betButtonRefs.current[next]?.focus();
   };
 
-  const previewCard = (
-      <div
-        ref={previewRef}
-        className={`max-w-[200px] rounded-lg border-2 border-wood-dark bg-cream-light/95 px-2.5 py-1 text-wood-dark shadow-chunky-sm ${stackPreview ? "self-start" : "self-end ml-auto"}`}
-        role="status"
-        aria-live="polite"
-      >
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-display text-[10px] leading-tight whitespace-normal break-words">
-          <span>PREVIEW ×{selectedBet}</span>
-          <span className={insufficient ? "text-destructive" : "text-wood-dark/80"}>· {cost}⚡/roll</span>
-          <button
-            type="button"
-            onClick={confirmBet}
-            disabled={!hasPreview || insufficient}
-            className="ml-auto rounded-full border border-wood-dark bg-gold px-2 py-0.5 text-[9px] text-wood-dark disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            aria-label={insufficient ? `Cannot confirm bet times ${selectedBet}. It costs ${cost} energy and you have ${energy ?? 0}.` : `Confirm bet times ${selectedBet} for ${cost} energy per roll`}
-          >
-            {hasPreview ? "CONFIRM" : "ACTIVE"}
-          </button>
-        </div>
-        <div className="text-[9px] font-display leading-tight text-wood-dark/70 whitespace-normal break-words">
-          Board rewards pay ×{selectedBet}
-        </div>
-      </div>
+  // Compact inline bet summary — replaces the old floating PREVIEW card so it
+  // never overlaps the spin controls. Just text, wraps naturally.
+  const betSummary = (
+    <span
+      className="font-display text-[10px] leading-tight text-wood-dark/80 whitespace-normal break-words"
+      role="status"
+      aria-live="polite"
+    >
+      ACTIVE ×{selectedBet} · {cost}⚡/roll
+    </span>
   );
 
   return (
-    <div ref={rootRef} className="flex flex-col gap-1.5 items-stretch w-full" aria-label="Bet controls">
-      {stackPreview && previewCard}
+    <div className="flex flex-col gap-1.5 items-stretch w-full" aria-label="Bet controls">
       <div
         className="flex items-center gap-3 flex-wrap"
         role="radiogroup"
         aria-label="Bet multiplier"
-        aria-describedby="bet-preview-help"
         onKeyDown={(e) => {
           const currentIndex = available.indexOf(selectedBet);
           if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); focusBetAt(Math.max(0, currentIndex) + 1); }
@@ -152,7 +107,6 @@ export function BetSelector({
           else if (e.key === "End") { e.preventDefault(); focusBetAt(available.length - 1); }
         }}
       >
-      <span id="bet-preview-help" className="sr-only">Choose a bet to preview its reward multiplier and energy cost, then press confirm.</span>
       {/* Energy pill */}
       <div
         className="pill-energy flex items-center gap-1.5 px-3 py-1.5 min-w-[120px]"
@@ -201,8 +155,8 @@ export function BetSelector({
             whileTap={{ scale: 0.9 }}
             role="radio"
             aria-checked={selectedBet === mult}
-            aria-label={`${mult} times multiplier. Costs ${energyCostForBet(mult)} energy per roll. Preview before confirming.`}
-            onClick={() => previewBetChoice(mult)}
+            aria-label={`${mult} times multiplier. Costs ${energyCostForBet(mult)} energy per roll.`}
+            onClick={() => chooseBet(mult)}
             className={`px-2.5 py-1 text-[11px] font-display leading-none rounded-full border-2 transition-all ${
               selectedBet === mult
                 ? "pill-gold border-wood-dark scale-105"
@@ -213,7 +167,7 @@ export function BetSelector({
           </motion.button>
         ))}
       </div>
-      {!stackPreview && previewCard}
+      {betSummary}
       </div>
     </div>
   );
