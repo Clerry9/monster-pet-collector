@@ -397,6 +397,24 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
         </AnimatePresence>
       </div>
 
+      {/* Left-rail empty state — fills the slot the lottery reel used to
+          occupy so the fullscreen board stays visually balanced. Decorative
+          only; hidden on narrow viewports where it would crowd the dial. */}
+      {fullscreen && (
+        <div
+          className="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none flex-col items-center gap-2 w-28 rounded-2xl border border-white/15 bg-black/30 backdrop-blur-sm px-3 py-4 text-cream-light/85 shadow-lg"
+          aria-hidden="true"
+        >
+          <span className="text-3xl opacity-80">🎰</span>
+          <span className="font-display text-[11px] tracking-wide text-center leading-tight">
+            Lucky Reel Retired
+          </span>
+          <span className="text-[9px] text-cream-light/60 text-center leading-snug">
+            New bonus games coming soon
+          </span>
+        </div>
+      )}
+
       {/* Result display — only after monster lands */}
       <div className={fullscreen ? "absolute right-2 top-[40%] z-30 flex flex-col items-end gap-2 pointer-events-none" : "contents"}>
       <AnimatePresence>
