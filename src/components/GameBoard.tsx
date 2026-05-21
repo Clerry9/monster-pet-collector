@@ -5,10 +5,7 @@ import { Monster } from "@/data/monsters";
 import { sfxDiceTick, sfxHop, sfxLand, sfxCoinGain, sfxSkull } from "@/lib/sfx";
 import { IsometricBoard } from "@/components/IsometricBoard";
 import { Zap } from "lucide-react";
-import { LotteryRoulette } from "@/components/LotteryRoulette";
 import { FriendSearch } from "@/components/FriendSearch";
-import { LotteryDebugOverlay } from "@/components/LotteryDebugOverlay";
-import { useLotteryHistory } from "@/hooks/useLotteryHistory";
 import { getCameraSettings, subscribeCameraSettings } from "@/lib/cameraSettings";
 
 interface GameBoardProps {
@@ -85,8 +82,6 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
   const [holdProgress, setHoldProgress] = useState(0);
   const [seasonBurstKey, setSeasonBurstKey] = useState(0);
   const [showResult, setShowResult] = useState(false);
-  // Session-scoped lottery history (landed tile + lucky-energy bonus).
-  const lotteryHistory = useLotteryHistory();
   const historyPushedRef = useRef<number | null>(null);
   const [reducedMotion, setReducedMotion] = useState<boolean>(() => getCameraSettings().reducedMotion);
   useEffect(() => subscribeCameraSettings(() => setReducedMotion(getCameraSettings().reducedMotion)), []);
@@ -214,14 +209,6 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
       // Record this landing once per result instance.
       if (historyPushedRef.current !== (absoluteStep ?? position)) {
         historyPushedRef.current = absoluteStep ?? position;
-        lotteryHistory.append({
-          at: Date.now(),
-          monsterId: monster.id,
-          tileType: lastResult.tile.type,
-          tileLabel: TILE_LABELS[lastResult.tile.type],
-          emoji: TILE_EMOJIS[lastResult.tile.type],
-          value: lastResult.tile.value,
-        });
       }
       // Season particle burst every 3 rolls
       rollCounterRef.current += 1;
@@ -397,24 +384,6 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
           seasonGlow={seasonGlow}
           fullscreen={fullscreen}
         />
-        {/* Lottery wheel — pinned to the left, restarts every roll and
-            locks onto the landed tile every time the monster stops. */}
-        <div className="pointer-events-none absolute left-2 top-[32%] z-20">
-          <LotteryRoulette
-            key={`lottery-${absoluteStep}`}
-            landedKey={absoluteStep ?? position}
-            spinning={isRolling || (!!lastResult && !showResult)}
-            result={
-              showResult && lastResult
-                ? (lastResult.tile.type as "coins" | "bonus" | "chest" | "food" | "skull" | "star")
-                : null
-            }
-            onLuckyEnergy={(amt) => {
-              lotteryHistory.attachLuckyEnergy(monster.id, amt);
-              onLuckyEnergy?.(amt);
-            }}
-          />
-        </div>
         {/* Friend-search bubble stays centered above the monster. */}
         <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[32%] flex flex-col items-center gap-1 z-20">
           <FriendSearch
@@ -428,14 +397,6 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
             <SeasonBurst key={seasonBurstKey} symbol={seasonSymbol} />
           )}
         </AnimatePresence>
-        <LotteryDebugOverlay
-          tileType={lastResult?.tile.type ?? null}
-          steps={lastResult?.steps ?? null}
-          isRolling={isRolling}
-          showResult={showResult}
-          absoluteStep={absoluteStep ?? position}
-          spinningProp={isRolling || (!!lastResult && !showResult)}
-        />
       </div>
 
       {/* Result display — only after monster lands */}
