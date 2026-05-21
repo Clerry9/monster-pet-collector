@@ -170,6 +170,11 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
 
   const startSpin = async (mode: "free" | "coins" | "credit") => {
     if (phase === "spin" || pick === null) return;
+    // Hard-clear any leftovers from a previous cycle so the wheel can never
+    // get stuck mid-spin from stale state.
+    setWinningSlot(null);
+    setClaimed(false);
+    setClaiming(false);
     // Clear the persisted receipt as soon as the next spin begins.
     setLastReceipt(null);
     if (mode === "coins") {
@@ -280,10 +285,11 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
       markClaimed(activeSpinId);
     }
     if (granted) onClaim(slots[winningSlot].reward, lastSpinWasPaid);
-    setClaimed(true);
-    setLastReceipt((r) => (r ? { ...r, claimed: true } : r));
+    // Per user request: clear receipt immediately once claimed so the
+    // reward summary disappears and the wheel resets cleanly.
+    setLastReceipt(null);
+    setClaimed(false);
     setClaiming(false);
-    // Reset for next round.
     setPhase("idle");
     setPick(null);
     setWinningSlot(null);
