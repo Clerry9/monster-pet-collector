@@ -423,14 +423,22 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
                   {card.rarity}
                 </motion.div>
 
-                {/* Card emoji */}
+                {/* Card art frame — emoji rendered on a bright inner panel so the
+                    subject is clearly readable against any rarity background. */}
                 <motion.div
-                  className="text-7xl"
+                  className={`w-32 h-32 rounded-xl ${colors.artBg} border border-white/40 shadow-inner flex items-center justify-center`}
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: "spring", delay: 0.3, damping: 10 }}
                 >
-                  {card.emoji}
+                  <span
+                    className="text-7xl leading-none"
+                    style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.35))" }}
+                    role="img"
+                    aria-label={card.name}
+                  >
+                    {card.emoji}
+                  </span>
                 </motion.div>
 
                 {/* Card name */}
