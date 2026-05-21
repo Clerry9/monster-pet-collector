@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { scheduleAt, cancelScheduled } from "@/lib/notifications";
 
 /**
  * Server-validated daily reward. Wraps the `claim_daily_streak` RPC so that
@@ -36,6 +37,14 @@ export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen
 
   const nextClaimMs = msUntilNextClaim(lastClaimedAt);
   const alreadyClaimed = nextClaimMs > 0;
+
+  // Whenever the next-claim time is known, schedule a "daily reward ready"
+  // reminder. No-op unless the user has enabled notifications in Settings.
+  useEffect(() => {
+    if (!alreadyClaimed) { cancelScheduled("daily-reward"); return; }
+    scheduleAt("daily-reward", Date.now() + nextClaimMs, "Daily reward ready 🎁", "Open the game to claim your streak bonus!");
+  }, [alreadyClaimed, lastClaimedAt]); // intentionally not nextClaimMs (ticks every second)
+
   const reward = DAILY_REWARDS[(((alreadyClaimed ? streak : streak) - 1 + 7) % 7)];
 
   // Load server-side streak state. We deliberately do NOT depend on `now`
