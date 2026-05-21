@@ -46,6 +46,9 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
   const [phase, setPhase] = useState<Phase>("idle");
   const [pick, setPick] = useState<number | null>(null);
   const [winningSlot, setWinningSlot] = useState<number | null>(null);
+  // Currently focused wedge — announced via an aria-live region so screen
+  // reader users hear the slot's reward before pressing Enter/Space.
+  const [focusedSlot, setFocusedSlot] = useState<number | null>(null);
   // Last resolved spin — kept visible after CLAIM so the user can always see
   // what they won until they start the next spin.
   const [lastReceipt, setLastReceipt] = useState<{
