@@ -19,8 +19,6 @@ interface GameBoardProps {
   activeDiceMax: number;
   /** Visual tier for the 3D dice (basic/silver/gold). */
   diceTier?: "basic" | "silver" | "gold";
-  /** Fired when the floating lottery reel lands on the lucky-energy bonus. */
-  onLuckyEnergy?: (amount: number) => void;
   /** When true, freeze idle ambient (e.g. a card reveal is open). */
   frozen?: boolean;
   levelId?: number;
@@ -73,7 +71,7 @@ interface Particle {
 const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
 let particleIdCounter = 0;
 
-export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, onRollDice, onLanded, activeDiceMax, diceTier = "basic", onLuckyEnergy, frozen = false, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1, minRollCost = 1, onInsufficientEnergy }: GameBoardProps) {
+export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, onRollDice, onLanded, activeDiceMax, diceTier = "basic", frozen = false, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1, minRollCost = 1, onInsufficientEnergy }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
