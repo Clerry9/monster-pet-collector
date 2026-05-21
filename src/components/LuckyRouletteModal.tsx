@@ -46,6 +46,9 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
   const [phase, setPhase] = useState<Phase>("idle");
   const [pick, setPick] = useState<number | null>(null);
   const [winningSlot, setWinningSlot] = useState<number | null>(null);
+  // Currently focused wedge — announced via an aria-live region so screen
+  // reader users hear the slot's reward before pressing Enter/Space.
+  const [focusedSlot, setFocusedSlot] = useState<number | null>(null);
   // Last resolved spin — kept visible after CLAIM so the user can always see
   // what they won until they start the next spin.
   const [lastReceipt, setLastReceipt] = useState<{
@@ -460,6 +463,8 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
                         if (!interactive) return;
                         if (e.key === " " || e.key === "Enter") { e.preventDefault(); setPick(i); }
                       }}
+                      onFocus={() => setFocusedSlot(i)}
+                      onBlur={() => setFocusedSlot((f) => (f === i ? null : f))}
                       role="radio"
                       aria-checked={isPick}
                       aria-label={`Slot ${i + 1}: ${s.reward.label}, ${oddsPerSlot}% chance`}
@@ -527,6 +532,13 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
             {phase === "win" && winningSlot !== null && `You won ${slots[winningSlot].reward.label}`}
             {phase === "miss" && winningSlot !== null && pick !== null &&
               `Miss. Ball landed on slot ${winningSlot + 1}, ${slots[winningSlot].reward.label}. You picked slot ${pick + 1}.`}
+          </div>
+
+          {/* Focus-announce region: tells SR users which wedge currently has
+              keyboard focus before they press Enter or Space to select it. */}
+          <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            {phase === "idle" && focusedSlot !== null && slots[focusedSlot] &&
+              `Focused slot ${focusedSlot + 1}: ${slots[focusedSlot].reward.label}, ${oddsPerSlot}% chance. Press Enter or Space to select.`}
           </div>
 
           {/* Receipt — shown for the current win/miss AND persisted (from

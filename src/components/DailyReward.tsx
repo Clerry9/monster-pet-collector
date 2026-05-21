@@ -32,10 +32,11 @@ export const DailyReward = forwardRef<HTMLDivElement, DailyRewardProps>(function
   // Tick once a second so the countdown reads live.
   const [, setTick] = useState(0);
   useEffect(() => {
-    if (!open || !alreadyClaimed) return;
+    // Only tick while the countdown is actually visible and counting down.
+    if (!open || !alreadyClaimed || nextClaimMs <= 0) return;
     const id = window.setInterval(() => setTick((t) => t + 1), 1000);
     return () => window.clearInterval(id);
-  }, [open, alreadyClaimed]);
+  }, [open, alreadyClaimed, nextClaimMs]);
   if (!open) return null;
 
   return (
@@ -114,19 +115,28 @@ export const DailyReward = forwardRef<HTMLDivElement, DailyRewardProps>(function
             </div>
 
             {alreadyClaimed ? (
-              <div className="flex flex-col items-center gap-1">
-                <p className="text-sm text-muted-foreground font-body">
-                  Already claimed! Next reward in
-                </p>
+              nextClaimMs > 0 ? (
+                <div className="flex flex-col items-center gap-1">
+                  <p className="text-sm text-muted-foreground font-body">
+                    Already claimed! Next reward in
+                  </p>
+                  <p
+                    className="font-display text-2xl tabular-nums text-accent"
+                    role="timer"
+                    aria-live="polite"
+                    aria-label={`Next daily reward in ${fmt(nextClaimMs)}`}
+                  >
+                    {fmt(nextClaimMs)}
+                  </p>
+                </div>
+              ) : (
                 <p
-                  className="font-display text-2xl tabular-nums text-accent"
-                  role="timer"
+                  className="font-display text-lg tabular-nums text-muted-foreground opacity-60"
                   aria-live="polite"
-                  aria-label={`Next daily reward in ${fmt(nextClaimMs)}`}
                 >
-                  {fmt(nextClaimMs)}
+                  Ready to claim — reopen tomorrow
                 </p>
-              </div>
+              )
             ) : (
               <>
                 <p className="text-lg font-body">

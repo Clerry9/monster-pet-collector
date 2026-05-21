@@ -1,48 +1,36 @@
 ## Scope
 
-Six focused UI/UX refinements. No business-logic or schema changes; daily-streak 24h enforcement already lives in the DB function and `useDailyStreak`/`useDailyReward` hooks.
+Two small UI/a11y refinements plus answers to your GitHub/version questions.
 
-## 1. Energy refill countdown next to ⚡
+## 1. Announce focused roulette wedge to screen readers
 
-- In `TopHud.tsx` (where the smaller `Zap` icon lives), read `msUntilNextEnergy` from `useGameState` (or compute from `lastEnergyTick + regenInterval - now`).
-- When `energy < currentBetCost`, render `mm:ss` countdown label beside the icon (`aria-live="polite"`, `role="timer"`). Hidden otherwise.
-- Tick via a single `setInterval(1000)` cleared on unmount.
+In `src/components/LuckyRouletteModal.tsx`:
+- Add a visually-hidden `<div role="status" aria-live="polite" aria-atomic="true">` near the wheel.
+- Track `focusedSlot` state (set on each wedge's `onFocus`).
+- When `focusedSlot` changes, write a sentence like: `"Focused slot 3: 50 coins. 12.5% odds. Press Enter or Space to select."` into the live region.
+- Keep existing `aria-checked` / `aria-label` on each wedge unchanged.
 
-## 2. Bet preview card
+This way, before pressing Enter/Space, screen-reader users hear which wedge currently has focus and what it pays.
 
-- New `BetPreviewCard` rendered inside `BetSelector.tsx` above the confirm button.
-- Shows: energy cost (`energyCostForBet(mult)`), expected roulette reward range (coins / rolls / energy) pulled from the existing reward table in `useRewardPool` / lottery config, and a "you have X⚡" line that turns red when insufficient.
-- Updates live as the user moves through bet options.
+## 2. DailyReward countdown only when not claimable, gray at 0
 
-## 3. Persist roulette winner summary
+In `src/components/DailyReward.tsx`:
+- Render the countdown block only when `alreadyClaimed && nextClaimMs > 0`.
+- When `nextClaimMs === 0`, replace it with a grayed-out `"Ready to claim — reopen tomorrow"` line (using `text-muted-foreground opacity-60`) instead of hiding entirely.
+- The existing claim CTA path (when `!alreadyClaimed`) is unchanged.
+- Tighten the `setInterval` effect to also stop when `nextClaimMs <= 0` so it doesn't keep ticking at zero.
 
-- In `LuckyRouletteModal.tsx`, keep `lastWin` state set when spin resolves; render a "Last win" panel under the wheel.
-- Clear `lastWin` only at the start of the next spin (`onSpinStart`), not on close or on timer.
+## 3. GitHub sync + version number
 
-## 4. Keyboard / a11y polish
-
-- `EnergyRefillModal`: confirm it uses shadcn `Dialog` (Radix already gives Escape + focus trap); add `aria-labelledby`, visible `focus-visible:ring` on action buttons, and `autoFocus` on the primary "Watch ad" button.
-- `BetSelector`: ensure each bet chip is a `<button>` with `focus-visible:outline`, arrow-key roving tabindex already present — add Enter/Space to confirm.
-- `LuckyRouletteModal` wheel: wrap the SVG in a `<button type="button" aria-label="Spin roulette">` so Enter/Space trigger the spin; add `focus-visible:ring-2 ring-primary`.
-
-## 5. Daily streak — real 24h countdown, no random reopen
-
-- `DailyReward.tsx` / `DailyStreakModal.tsx`: drive open state from `nextClaimMs > 0 ? closed : openable`. Remove any `useEffect` that reopens the modal on focus/route change.
-- Always show the highlighted `currentDay` chip (even when claimed) and a `mm:ss:hh` countdown beneath it using `msUntilNextClaim` from `useDailyReward`. Highlight advances only when `msUntilNextClaim` hits 0.
-
-## 6. Paddle.js
-
-Already integrated — `src/lib/paddle.ts` loads `https://cdn.paddle.com/paddle/v2/paddle.js` at runtime and `usePaddleCheckout.ts` wraps the checkout flow. No install needed. Will note this in the response, no code change.
+- **GitHub sync** is automatic when the repo is connected — every change you make in Lovable is pushed in real time. There is no manual "update" step. If your repo looks behind, open the Plus (+) menu → GitHub and confirm the project is still connected; once connected, this current state will already be the latest commit on your default branch.
+- **Version number:** `package.json` currently reports `"version": "0.0.0"` — the project has never had a release version set. If you want a real version (e.g. `1.0.0`) stamped into `package.json` so the GitHub commit reflects it, say the word and I'll bump it as part of the implementation step.
 
 ## Files to edit
 
-- `src/components/TopHud.tsx` — countdown beside ⚡
-- `src/components/BetSelector.tsx` — preview card + keyboard confirm
-- `src/components/LuckyRouletteModal.tsx` — persistent last-win panel + button-wrapped wheel
-- `src/components/EnergyRefillModal.tsx` — a11y polish
-- `src/components/DailyReward.tsx` + `src/components/DailyStreakModal.tsx` — countdown + remove reopen triggers
-- (Read-only verification) `src/hooks/useGameState.ts`, `src/hooks/useDailyReward.ts` for exposed timer values; add `msUntilNextEnergy` getter if not already present.
+- `src/components/LuckyRouletteModal.tsx` — focus-announce live region
+- `src/components/DailyReward.tsx` — conditional countdown + grayed zero state
+- (optional, on request) `package.json` — bump `version`
 
 ## Out of scope
 
-Spin math, reward odds, RLS/migrations, Paddle install, lottery history, sounds.
+Spin math, reward odds, daily-streak DB logic, Paddle, any backend change.
