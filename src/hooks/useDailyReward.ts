@@ -67,6 +67,11 @@ export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen
   useEffect(() => {
     if (!loaded || !autoOpen || alreadyClaimed) return;
     if (autoOpenedOnceRef.current) return;
+    const todayKey = `lov_daily_reward_shown_${new Date().toISOString().slice(0, 10)}`;
+    try {
+      if (window.localStorage.getItem(todayKey)) return;
+      window.localStorage.setItem(todayKey, "1");
+    } catch { /* ignore */ }
     autoOpenedOnceRef.current = true;
     const t = setTimeout(() => setShowModal(true), 800);
     return () => clearTimeout(t);

@@ -65,6 +65,12 @@ export function useDailyStreak() {
     if (!row || !user) return;
     if (autoOpenedOnceRef.current) return;
     if (msUntilNextClaim(row.updated_at) !== 0) return;
+    // Hard guarantee: only auto-open once per local day, even across reloads.
+    const todayKey = `lov_daily_streak_shown_${new Date().toISOString().slice(0, 10)}`;
+    try {
+      if (window.localStorage.getItem(todayKey)) return;
+      window.localStorage.setItem(todayKey, "1");
+    } catch { /* ignore */ }
     autoOpenedOnceRef.current = true;
     const t = setTimeout(() => setOpen(true), 1500);
     return () => clearTimeout(t);

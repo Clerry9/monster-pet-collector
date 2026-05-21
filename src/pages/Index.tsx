@@ -1332,11 +1332,12 @@ const Index = () => {
         steps={tutorialSteps}
         onStepChange={(_i, step) => {
           // Pre-open the lucky roulette modal so its wedges/pointer exist in
-          // the DOM when roulette-specific steps try to highlight them — but
-          // close it again as soon as the tutorial moves to a non-roulette
-          // step so the modal never blocks subsequent coachmarks.
+          // the DOM when roulette-specific steps try to highlight them. Only
+          // OPEN on entering a roulette step — never auto-close it here, so
+          // a user who manually dismissed the modal mid-tutorial stays
+          // dismissed instead of having it pop back up on each rerender.
           const isRouletteStep = step.selector?.startsWith("[data-tutorial='roulette-");
-          setLuckyOpen(!!isRouletteStep);
+          if (isRouletteStep) setLuckyOpen(true);
         }}
         onClose={() => {
           setCoachOpen(false);
