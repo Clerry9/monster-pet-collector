@@ -63,6 +63,7 @@ import { gameplayStart, gameplayStop, adBreakHappytime } from "@/lib/ads";
 import { useNavigate } from "react-router-dom";
 import { FriendSearchDebug, type FriendSearchPauseReason } from "@/components/FriendSearchDebug";
 import { EnergyRefillModal } from "@/components/EnergyRefillModal";
+import { scheduleAt, cancelScheduled } from "@/lib/notifications";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season" | "account";
 
