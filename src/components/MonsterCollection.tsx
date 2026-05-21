@@ -1,7 +1,10 @@
 import { motion } from "framer-motion";
 import { MONSTERS, Monster, getMonsterEvolution, BIOMES } from "@/data/monsters";
-import { Lock, Sparkles } from "lucide-react";
+import { Lock, Sparkles, Check } from "lucide-react";
+import { useState } from "react";
 import { Monster3D } from "./Monster3D";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CoinRewardGallery } from "./CoinRewardGallery";
 
 interface Props {
   unlockedMonsters: string[];
@@ -31,10 +34,23 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
 
   const totalOwned = MONSTERS.filter(isUnlocked).length;
   const overallPct = Math.round((totalOwned / MONSTERS.length) * 100);
+  const [showChecklist, setShowChecklist] = useState(false);
+
+  const RARITIES: Array<Monster["rarity"]> = ["common", "rare", "epic", "legendary"];
+  const rarityCounts = RARITIES.map((r) => {
+    const list = MONSTERS.filter((m) => m.rarity === r);
+    return { rarity: r, owned: list.filter(isUnlocked).length, total: list.length };
+  }).filter((x) => x.total > 0);
 
   return (
-    <div className="w-full" role="region" aria-label="Monster collection">
-      <div className="mb-4 flex items-end justify-between gap-2">
+    <div className="w-full" role="region" aria-label="Collection">
+      <Tabs defaultValue="monsters" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="monsters">Monsters</TabsTrigger>
+          <TabsTrigger value="rewards">Rewards</TabsTrigger>
+        </TabsList>
+        <TabsContent value="monsters">
+      <div className="mb-3 flex items-end justify-between gap-2">
         <h3 className="font-display text-2xl text-foreground text-glow-purple">
           Monster Album
         </h3>
@@ -46,11 +62,34 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
         </div>
       </div>
 
+      <div className="mb-4 rounded-lg border-2 border-border bg-card/50 p-3">
+        <div className="mb-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+          <div className="h-full bg-primary transition-all" style={{ width: `${overallPct}%` }} aria-hidden />
+        </div>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-body text-muted-foreground">
+          {rarityCounts.map((rc) => (
+            <span key={rc.rarity} className="capitalize">
+              <span className={`mr-1 inline-block h-2 w-2 rounded-full ${rarityBadge[rc.rarity].split(" ")[0]}`} aria-hidden />
+              {rc.rarity} {rc.owned}/{rc.total}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={() => setShowChecklist((v) => !v)}
+            className="ml-auto text-[11px] underline text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            aria-expanded={showChecklist}
+          >
+            {showChecklist ? "Hide checklist" : "Show checklist"}
+          </button>
+        </div>
+      </div>
+
       {BIOMES.map((biome) => {
         const inBiome = MONSTERS.filter((m) => m.biome === biome.id);
         if (inBiome.length === 0) return null;
         const owned = inBiome.filter(isUnlocked).length;
         const pct = Math.round((owned / inBiome.length) * 100);
+        const cheapest = Math.min(...inBiome.map((m) => m.cost));
         return (
           <section key={biome.id} className="mb-5" aria-label={`${biome.name} biome`}>
             <header className="mb-2 flex items-center justify-between">
@@ -71,6 +110,11 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
                 </span>
               </div>
             </header>
+            {owned === 0 && (
+              <p className="mb-2 text-[11px] text-muted-foreground italic">
+                No {biome.name} monsters yet — save up {cheapest} 🪙 to unlock your first.
+              </p>
+            )}
             <div className="grid grid-cols-3 gap-3" role="list">
               {inBiome.map((m) => {
           const unlocked = isUnlocked(m);
@@ -78,6 +122,7 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
           const canAfford = coins >= m.cost;
           const taps = monsterTaps[m.id] ?? 0;
           const evo = getMonsterEvolution(m, taps);
+          const progressPct = m.cost > 0 ? Math.min(100, Math.round((coins / m.cost) * 100)) : 100;
 
           return (
             <motion.button
@@ -100,9 +145,15 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
             >
               {!unlocked && (
                 <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-background/60 z-10" aria-hidden="true">
-                  <div className="flex flex-col items-center gap-1">
+                  <div className="flex flex-col items-center gap-1 w-full px-2">
                     <Lock className="w-5 h-5 text-muted-foreground" />
                     <span className="text-xs font-bold text-accent">🪙 {m.cost}</span>
+                    <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                      <div className="h-full bg-accent transition-all" style={{ width: `${progressPct}%` }} />
+                    </div>
+                    <span className="text-[9px] text-muted-foreground tabular-nums">
+                      {Math.min(coins, m.cost)}/{m.cost}
+                    </span>
                   </div>
                 </div>
               )}
@@ -139,6 +190,38 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
           </section>
         );
       })}
+
+      {showChecklist && (
+        <section className="mt-4 rounded-lg border-2 border-border bg-card/50 p-3" aria-label="Collection checklist">
+          <h4 className="mb-2 font-display text-base text-foreground">Checklist</h4>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            {MONSTERS.map((m) => {
+              const unlocked = isUnlocked(m);
+              return (
+                <li key={m.id} className="flex items-center gap-2 text-xs">
+                  <span
+                    className={`flex h-4 w-4 items-center justify-center rounded-sm border ${unlocked ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/40"}`}
+                    aria-hidden
+                  >
+                    {unlocked && <Check className="h-3 w-3" />}
+                  </span>
+                  <span className={`font-body ${unlocked ? "text-foreground" : "text-muted-foreground"}`}>
+                    {unlocked ? m.name : "???"}
+                  </span>
+                  <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${rarityBadge[m.rarity]}`}>
+                    {m.rarity}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+        </TabsContent>
+        <TabsContent value="rewards">
+          <CoinRewardGallery />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
