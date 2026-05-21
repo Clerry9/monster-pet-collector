@@ -463,6 +463,8 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
                         if (!interactive) return;
                         if (e.key === " " || e.key === "Enter") { e.preventDefault(); setPick(i); }
                       }}
+                      onFocus={() => setFocusedSlot(i)}
+                      onBlur={() => setFocusedSlot((f) => (f === i ? null : f))}
                       role="radio"
                       aria-checked={isPick}
                       aria-label={`Slot ${i + 1}: ${s.reward.label}, ${oddsPerSlot}% chance`}
