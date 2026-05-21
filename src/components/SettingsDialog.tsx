@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Cpu, Box, Volume2, GraduationCap, Camera, RotateCcw, Play, Sparkles, Gamepad2, Search } from "lucide-react";
+import { X, Cpu, Box, Volume2, GraduationCap, Camera, RotateCcw, Play, Sparkles, Gamepad2, Search, Accessibility, Bell } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getLowPowerMode, setLowPowerMode, subscribeLowPower, type LowPowerMode } from "@/lib/lowPower";
 import {
@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { getCelebrationsEnabled, setCelebrationsEnabled } from "@/components/RewardCelebration";
 import { getFriendSearchEnabled, setFriendSearchEnabled } from "@/components/FriendSearch";
 import { CrazyGamesSetupDialog } from "@/components/CrazyGamesSetupDialog";
+import { getA11yPrefs, setA11yPrefs, subscribeA11yPrefs, type A11yPrefs } from "@/lib/a11yPrefs";
+import { requestNotificationPermission, notificationsSupported } from "@/lib/notifications";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -54,6 +56,8 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
   const [celebrationsOn, setCelebrationsOn] = useState<boolean>(() => getCelebrationsEnabled());
   const [friendSearchOn, setFriendSearchOn] = useState<boolean>(() => getFriendSearchEnabled());
   const [crazyOpen, setCrazyOpen] = useState(false);
+  const [a11y, setA11y] = useState<A11yPrefs>(() => getA11yPrefs());
+  useEffect(() => subscribeA11yPrefs((p) => setA11y(p)), []);
 
   const selectMode = (m: LowPowerMode) => { setLowPowerMode(m); setMode(m); };
 
@@ -134,6 +138,54 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
                     />
                   </div>
                 ))}
+              </div>
+            </section>
+
+            {/* --- Accessibility --- */}
+            <section aria-labelledby="a11y-heading" className="space-y-3 mb-6">
+              <div className="flex items-center gap-2 text-sm font-bold" id="a11y-heading">
+                <Accessibility size={14} /> Accessibility
+              </div>
+              <div className="flex items-center justify-between rounded-xl border-2 border-wood-dark/30 bg-background p-3">
+                <div>
+                  <div className="text-xs font-bold">Reduce motion</div>
+                  <div className="text-[11px] text-muted-foreground">Calms animations and transitions everywhere.</div>
+                </div>
+                <Switch
+                  checked={a11y.reducedMotion}
+                  onCheckedChange={(v) => setA11yPrefs({ reducedMotion: !!v })}
+                  aria-label="Reduce motion toggle"
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-xl border-2 border-wood-dark/30 bg-background p-3">
+                <div>
+                  <div className="text-xs font-bold">Increase contrast</div>
+                  <div className="text-[11px] text-muted-foreground">Stronger text, borders and focus outlines.</div>
+                </div>
+                <Switch
+                  checked={a11y.highContrast}
+                  onCheckedChange={(v) => setA11yPrefs({ highContrast: !!v })}
+                  aria-label="Increase contrast toggle"
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-xl border-2 border-wood-dark/30 bg-background p-3">
+                <div>
+                  <div className="text-xs font-bold flex items-center gap-1.5"><Bell size={12} /> Reminders</div>
+                  <div className="text-[11px] text-muted-foreground">Notify me when my daily reward and energy are ready.</div>
+                </div>
+                <Switch
+                  checked={a11y.notifications}
+                  disabled={!notificationsSupported()}
+                  onCheckedChange={async (v) => {
+                    if (v) {
+                      const ok = await requestNotificationPermission();
+                      setA11yPrefs({ notifications: ok });
+                    } else {
+                      setA11yPrefs({ notifications: false });
+                    }
+                  }}
+                  aria-label="Reminder notifications toggle"
+                />
               </div>
             </section>
 
