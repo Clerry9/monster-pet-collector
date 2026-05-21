@@ -534,6 +534,13 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
               `Miss. Ball landed on slot ${winningSlot + 1}, ${slots[winningSlot].reward.label}. You picked slot ${pick + 1}.`}
           </div>
 
+          {/* Focus-announce region: tells SR users which wedge currently has
+              keyboard focus before they press Enter or Space to select it. */}
+          <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            {phase === "idle" && focusedSlot !== null && slots[focusedSlot] &&
+              `Focused slot ${focusedSlot + 1}: ${slots[focusedSlot].reward.label}, ${oddsPerSlot}% chance. Press Enter or Space to select.`}
+          </div>
+
           {/* Receipt — shown for the current win/miss AND persisted (from
               `lastReceipt`) after the player claims, so they can always see
               what they just won until the next spin starts. */}
