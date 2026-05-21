@@ -368,6 +368,30 @@ export function LuckyRouletteModal({ open, coins, onClose, onClaim, onSpendCoins
                                 "Locked in. Spin to test your luck!"}
           </p>
 
+          {/* Live odds + reward preview — updates as the user clicks or
+              keyboard-focuses a wedge so they always see exactly what's at
+              stake before confirming. */}
+          {phase === "idle" && (() => {
+            const idx = pick ?? focusedSlot;
+            if (idx === null) return null;
+            const s = slots[idx];
+            return (
+              <div
+                className="mb-3 rounded-lg border-2 border-gold bg-wood-dark/60 px-3 py-1.5 text-left text-cream-light"
+                role="status"
+                aria-live="polite"
+              >
+                <div className="flex items-center justify-between gap-2 font-display text-[11px]">
+                  <span>SLOT {idx + 1}: {s.reward.emoji} {s.reward.label}</span>
+                  <span className="tabular-nums text-gold">{oddsPerSlot}%</span>
+                </div>
+                <div className="text-[10px] font-display text-cream/85 whitespace-normal break-words">
+                  Win: +{s.reward.amount} {s.reward.emoji} {s.reward.label} · Miss: 0 (try again or spend {PAID_SPIN_COST}🪙)
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Felt roulette table bowl wraps the wheel */}
           <div
             className="relative mx-auto rounded-full flex items-center justify-center"

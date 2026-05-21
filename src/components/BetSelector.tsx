@@ -94,27 +94,29 @@ export function BetSelector({
   };
 
   return (
-    <div className="flex flex-col gap-1.5" aria-label="Bet controls">
+    <div className="flex flex-col gap-1.5 items-start" aria-label="Bet controls">
+      {/* PREVIEW BET — moved left-aligned, wrapping, narrow so it never
+          overlaps the spin/roll action button on the right. */}
       <div
-        className="rounded-lg border-2 border-wood-dark bg-cream-light/95 px-3 py-1.5 text-wood-dark shadow-chunky-sm"
+        className="self-start max-w-[220px] rounded-lg border-2 border-wood-dark bg-cream-light/95 px-2.5 py-1 text-wood-dark shadow-chunky-sm"
         role="status"
         aria-live="polite"
       >
-        <div className="flex items-center justify-between gap-3 font-display text-[10px] leading-tight">
-          <span>PREVIEW BET ×{selectedBet}</span>
-          <span className={insufficient ? "text-destructive" : "text-wood-dark"}>COST {cost}⚡</span>
-        </div>
-        <div className="mt-1 flex items-center justify-between gap-2 text-[9px] font-display leading-tight text-wood-dark/75">
-          <span>Expected board rewards pay ×{selectedBet}</span>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-display text-[10px] leading-tight whitespace-normal break-words">
+          <span>PREVIEW ×{selectedBet}</span>
+          <span className={insufficient ? "text-destructive" : "text-wood-dark/80"}>· {cost}⚡/roll</span>
           <button
             type="button"
             onClick={confirmBet}
             disabled={!hasPreview || insufficient}
-            className="rounded-full border border-wood-dark bg-gold px-2 py-0.5 text-[9px] text-wood-dark disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="ml-auto rounded-full border border-wood-dark bg-gold px-2 py-0.5 text-[9px] text-wood-dark disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             aria-label={insufficient ? `Cannot confirm bet times ${selectedBet}. It costs ${cost} energy and you have ${energy ?? 0}.` : `Confirm bet times ${selectedBet} for ${cost} energy per roll`}
           >
             {hasPreview ? "CONFIRM" : "ACTIVE"}
           </button>
+        </div>
+        <div className="text-[9px] font-display leading-tight text-wood-dark/70 whitespace-normal break-words">
+          Board rewards pay ×{selectedBet}
         </div>
       </div>
       <div
