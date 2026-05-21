@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { getAvailableBets } from "@/data/levels";
 import { energyCostForBet } from "@/hooks/useGameState";
 
@@ -26,6 +26,23 @@ export function BetSelector({
   const [now, setNow] = useState(() => Date.now());
   const [previewBet, setPreviewBet] = useState<number | null>(null);
   const betButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
+  // Object-detection-lite: if the available width is too tight, stack
+  // the preview chip above the bet row instead of letting it overlap.
+  const [stackPreview, setStackPreview] = useState(false);
+  useLayoutEffect(() => {
+    const el = rootRef.current?.parentElement;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const measure = () => {
+      // Reserve ~180px for the action button column; below ~380px we stack.
+      setStackPreview(el.clientWidth < 380);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
@@ -93,12 +110,10 @@ export function BetSelector({
     betButtonRefs.current[next]?.focus();
   };
 
-  return (
-    <div className="flex flex-col gap-1.5 items-start" aria-label="Bet controls">
-      {/* PREVIEW BET — moved left-aligned, wrapping, narrow so it never
-          overlaps the spin/roll action button on the right. */}
+  const previewCard = (
       <div
-        className="self-start max-w-[220px] rounded-lg border-2 border-wood-dark bg-cream-light/95 px-2.5 py-1 text-wood-dark shadow-chunky-sm"
+        ref={previewRef}
+        className={`max-w-[200px] rounded-lg border-2 border-wood-dark bg-cream-light/95 px-2.5 py-1 text-wood-dark shadow-chunky-sm ${stackPreview ? "self-start" : "self-end ml-auto"}`}
         role="status"
         aria-live="polite"
       >
@@ -119,8 +134,13 @@ export function BetSelector({
           Board rewards pay ×{selectedBet}
         </div>
       </div>
+  );
+
+  return (
+    <div ref={rootRef} className="flex flex-col gap-1.5 items-stretch w-full" aria-label="Bet controls">
+      {stackPreview && previewCard}
       <div
-        className="flex items-center gap-3"
+        className="flex items-center gap-3 flex-wrap"
         role="radiogroup"
         aria-label="Bet multiplier"
         aria-describedby="bet-preview-help"
@@ -193,6 +213,7 @@ export function BetSelector({
           </motion.button>
         ))}
       </div>
+      {!stackPreview && previewCard}
       </div>
     </div>
   );
