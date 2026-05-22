@@ -401,9 +401,16 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
           {phase === "reveal" && (
             <motion.div
               className="relative cursor-pointer"
-              initial={{ scale: 0, rotateY: 180 }}
-              animate={{ scale: 1, rotateY: 0 }}
-              transition={{ type: "spring", damping: 15, stiffness: 100, delay: 0.1 }}
+              initial={{ scale: 0.4, rotateY: 180, y: 60, opacity: 0 }}
+              animate={{ scale: 1, rotateY: 0, y: 0, opacity: 1 }}
+              transition={{
+                type: "spring",
+                damping: 14,
+                stiffness: 110,
+                delay: 0.1,
+                opacity: { duration: 0.35, delay: 0.1 },
+                y: { type: "spring", damping: 18, stiffness: 140, delay: 0.1 },
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 requestClose();
