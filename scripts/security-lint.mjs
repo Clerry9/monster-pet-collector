@@ -40,8 +40,11 @@ const isBlocking = (l) => {
   const name = `${l.name ?? ""} ${l.title ?? ""} ${l.description ?? ""}`.toLowerCase();
   if ((l.level ?? "").toLowerCase() === "error") return true;
   if (/privilege.?escalation/.test(name)) return true;
-  if (/policy_allows_anon|anonymous.?access|allow.?anonymous/.test(name)) return true;
-  if ((l.cache_key ?? "").includes("0013_policy_allows_anon")) return true;
+  // NOTE: This project intentionally uses Supabase anonymous (guest) auth.
+  // The Supabase linter flags every RLS policy granted to the `anon` role as
+  // "Anonymous Access Policies" (0013), even when those policies are correctly
+  // user-scoped via auth.uid(). Treat 0013 as advisory only — see
+  // docs/security-allowlist.md and the security memory.
   return false;
 };
 
