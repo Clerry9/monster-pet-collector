@@ -32,6 +32,7 @@ import { BetSelector } from "@/components/BetSelector";
 import { LevelUpCelebration } from "@/components/LevelUpCelebration";
 import { PrestigeCelebration } from "@/components/PrestigeCelebration";
 import { CardReveal } from "@/components/CardReveal";
+import { ZIndexDebugOverlay } from "@/components/ZIndexDebugOverlay";
 import { IslandRewardRoulette, IslandReward } from "@/components/IslandRewardRoulette";
 import { LuckyRouletteModal, LuckyRouletteReward } from "@/components/LuckyRouletteModal";
 import { useGameState, BoardTile, energyCostForBet } from "@/hooks/useGameState";
@@ -914,6 +915,8 @@ const Index = () => {
           drawingFlipRef.current = false;
         }}
       />
+
+      <ZIndexDebugOverlay />
 
       <IslandRewardRoulette
         open={rouletteOpen}
