@@ -1355,6 +1355,12 @@ const Index = () => {
           setLuckyOpen(false);
           mainTutorial.markCompleted();
           setCoachStartIndex(0);
+          // Even if the user skips the tutorial, still kick off the
+          // post-tutorial onboarding chain so the Daily Reward shows up.
+          if (!daily.alreadyClaimed) {
+            setPostTutorialStep("daily");
+            window.setTimeout(() => daily.openModal(), 400);
+          }
         }}
         onFinish={() => {
           setCoachOpen(false);
