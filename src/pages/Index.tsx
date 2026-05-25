@@ -239,6 +239,8 @@ function EventBanner({
 
 const Index = () => {
   const game = useGameState();
+  const bonusInv = useBonusInventory();
+  const [activeBonus, setActiveBonus] = useState<BonusReward | null>(null);
   useCheckoutSuccessToast();
   // Tutorial completion gates the daily reward auto-open so we can chain
   // tutorial -> daily reward -> mini-game in order.
