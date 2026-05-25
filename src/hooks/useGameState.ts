@@ -112,7 +112,8 @@ export const SPIN_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 // Energy may exceed the cap if granted directly (packs, ads, daily reward),
 // in which case regen pauses until the player spends back down.
 export const ENERGY_BASE_CAP = 150;
-export const ENERGY_REGEN_MS = 3 * 60 * 1000;
+// Tuned so a full level-1 cap (150⚡) refills in ~1 hour → 1⚡ every 24s.
+export const ENERGY_REGEN_MS = 24 * 1000;
 export const ENERGY_PER_LEVEL_PCT = 0.10;
 
 export function energyCapForLevel(level: number): number {
