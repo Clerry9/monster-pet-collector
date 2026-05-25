@@ -118,6 +118,19 @@ export function EntitlementDashboard(props: DashProps) {
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-3">
+      {user?.is_anonymous && (
+        <div className="panel-wood p-3 border-2 border-amber-400 bg-amber-400/10">
+          <div className="flex items-start gap-2 text-cream-light">
+            <AlertTriangle size={16} className="mt-0.5 text-amber-300 shrink-0" />
+            <div className="text-xs space-y-1">
+              <div className="font-display text-sm text-amber-200">You're playing as a guest</div>
+              <p className="text-cream/80">
+                Your progress and purchases are tied to this browser only. Link an email or Google account so you don't lose them if you clear data or switch devices. Use the <strong>Link Account</strong> option in the menu.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="panel-wood p-4 space-y-2">
         <h2 className="font-display text-cream-light text-lg">My Account</h2>
         <p className="text-cream/70 text-xs">Live entitlement summary — credits, unlocks, and memberships.</p>
