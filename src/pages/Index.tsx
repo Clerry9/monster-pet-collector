@@ -1390,6 +1390,7 @@ const Index = () => {
       />
       <DailyMissionsModal open={missionsOpen} onClose={() => setMissionsOpen(false)} />
       <RewardCelebration kind={celebration} onDone={handleCelebrationDone} />
+      <OrientationHint />
     </div>
   );
 };
