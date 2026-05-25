@@ -80,6 +80,12 @@ const FALLBACK_TIERS: Tier[] = [
 
 const FALLBACK_TIMEOUT_MS = 3000;
 
+// External IDs treated as recurring subscriptions for badge rendering.
+const SUBSCRIPTION_PRICE_IDS = new Set<string>([
+  "collector_club_monthly",
+  "monster_elite_monthly",
+]);
+
 function PricingSkeleton() {
   return (
     <div className="space-y-3" aria-hidden>
