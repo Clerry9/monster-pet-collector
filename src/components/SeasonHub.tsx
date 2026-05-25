@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Season, SeasonReward, formatTimeRemaining } from "@/data/seasons";
 import { SeasonProgress } from "@/hooks/useSeason";
 import { useAuth } from "@/hooks/useAuth";
-import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { usePaddleCheckout, confirmGuestCheckout } from "@/hooks/usePaddleCheckout";
 import { MiniGame } from "@/components/MiniGame";
 import { MiniGameJack } from "@/components/MiniGameJack";
 import { SeasonLeaderboard } from "@/components/SeasonLeaderboard";
@@ -62,6 +62,7 @@ export function SeasonHub({
       toast.error("Please log in to purchase the season pass");
       return;
     }
+    if (!confirmGuestCheckout(user)) return;
     try {
       await openCheckout({
         priceId: getSeasonPassTier(playerLevel).priceId,
