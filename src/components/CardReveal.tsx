@@ -1,7 +1,27 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { GameCard, CardRarity } from "@/data/cards";
 import { Sparkles, X as XIcon } from "lucide-react";
+import { getA11yPrefs, subscribeA11yPrefs } from "@/lib/a11yPrefs";
+
+/** Returns true if the OS or the in-app a11y pref requests reduced motion. */
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    const os = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    return os || getA11yPrefs().reducedMotion;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduced(mq.matches || getA11yPrefs().reducedMotion);
+    mq.addEventListener?.("change", sync);
+    const unsub = subscribeA11yPrefs(() => sync());
+    return () => { mq.removeEventListener?.("change", sync); unsub(); };
+  }, []);
+  return reduced;
+}
 
 const RARITY_COLORS: Record<CardRarity, { bg: string; border: string; glow: string; text: string; nameText: string; subText: string; artBg: string }> = {
   common:    { bg: "bg-gradient-to-br from-slate-500 via-slate-400 to-slate-600",       border: "border-slate-200",  glow: "shadow-slate-300/40", text: "text-slate-100",   nameText: "text-white", subText: "text-slate-50/95",  artBg: "bg-gradient-to-br from-white/30 to-white/5" },
@@ -42,6 +62,7 @@ const PHASE_ANNOUNCEMENTS: Record<Phase, string> = {
 
 export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
   const [phase, setPhase] = useState<Phase>("idle");
+  const reducedMotion = usePrefersReducedMotion();
   const [canDismiss, setCanDismiss] = useState(false);
   /** 0 → 1 progress for the dismiss-grace countdown indicator. */
   const [dismissProgress, setDismissProgress] = useState(0);
