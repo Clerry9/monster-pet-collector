@@ -146,6 +146,14 @@ function Rail({ items, side, onLearnMore }: { items: RailItem[]; side: "left" | 
                     NEW
                   </motion.span>
                 )}
+                {it.badge && (
+                  <span
+                    className="absolute -top-1 -right-1 bg-cyan-500 text-cream-light text-[9px] font-display px-1.5 rounded-full border border-wood-dark tabular-nums leading-tight"
+                    aria-hidden="true"
+                  >
+                    {it.badge}
+                  </span>
+                )}
                 {it.countdownMs !== undefined && (
                   <span
                     key={Math.floor(it.countdownMs / 1000)}
