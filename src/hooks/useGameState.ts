@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getLevelForXp, getLevelProgress, getAvailableBets } from "@/data/levels";
 import { drawRandomCard, GameCard, CARD_SETS, TRADE_VALUES } from "@/data/cards";
 import { isSeasonPassActive } from "@/hooks/useSeason";
+import { rollBonusReward, type BonusReward } from "@/lib/bonusRewards";
 
 export interface DiceTier {
   id: string;
@@ -517,7 +518,7 @@ export function useGameState() {
 
   // Monster XP is now gained from "food" tiles during rollDice, no more tapping
 
-  const rollDice = useCallback((): { steps: number; tile: BoardTile; card?: GameCard; monsterLevelUp?: { name: string; level: number; coinBonus: number }; islandStarEarned?: boolean } | null => {
+  const rollDice = useCallback((): { steps: number; tile: BoardTile; card?: GameCard; monsterLevelUp?: { name: string; level: number; coinBonus: number }; islandStarEarned?: boolean; bonusReward?: BonusReward } | null => {
     // Each roll costs `betMultiplier` energy (×1 = 1, ×2 = 2, ×3 = 3 …).
     const energyCost = energyCostForBet(state.betMultiplier);
     if (state.energy < energyCost) return null;
@@ -555,6 +556,9 @@ export function useGameState() {
     const newIsland = Math.floor(newPosition / TILES_PER_ISLAND);
     const crossedIsland = newIsland !== oldIsland;
     const islandStarEarned = tile.type === "star" || (crossedIsland && Math.random() < 0.3);
+
+    // Phase 1: per-roll bonus reward (chance scales with bet multiplier).
+    const bonusReward = rollBonusReward(state.betMultiplier) ?? undefined;
 
     update((s) => {
       const newXp = s.xp + xpGain;
@@ -653,7 +657,7 @@ export function useGameState() {
         })(),
       };
     });
-    return { steps, tile: modifiedTile, card: drawnCard, monsterLevelUp, islandStarEarned };
+    return { steps, tile: modifiedTile, card: drawnCard, monsterLevelUp, islandStarEarned, bonusReward };
   }, [state.rolls, state.position, state.activeDiceTier, state.betMultiplier, state.xp, state.activeMonster, state.monsterTaps, update]);
 
   const addStars = useCallback(

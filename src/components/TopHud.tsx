@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Gem, Coins, Key, Star, Flame, PawPrint, Plus } from "lucide-react";
+import { Gem, Coins, Key, Star, Flame, PawPrint, Plus, Sparkles } from "lucide-react";
 import { getLevelProgress } from "@/data/levels";
 import { energyCostForBet } from "@/hooks/useGameState";
 
@@ -8,6 +8,7 @@ interface TopHudProps {
   coins: number;
   keys: number;          // 0..3 collected key shards
   stars: number;
+  shards?: number;       // Phase 1: bonus reward currency for summoning
   xp: number;
   level: number;
   betMultiplier: number;
@@ -16,14 +17,15 @@ interface TopHudProps {
   onAddCoins?: () => void;
   onAddKeys?: () => void;
   onAddStars?: () => void;
+  onAddShards?: () => void;
 }
 
 /**
  * Coin-Master style top HUD: gem · coin · 3 key slots · star + center XP bar.
  */
 export function TopHud({
-  gems, coins, keys, stars, xp, level, betMultiplier, guestName,
-  onAddGems, onAddCoins, onAddKeys, onAddStars,
+  gems, coins, keys, stars, shards = 0, xp, level, betMultiplier, guestName,
+  onAddGems, onAddCoins, onAddKeys, onAddStars, onAddShards,
 }: TopHudProps) {
   const { current, progress, xpInLevel, xpNeeded } = getLevelProgress(xp);
 
@@ -55,6 +57,12 @@ export function TopHud({
           value={stars}
           onAdd={onAddStars}
           ariaLabel={`${stars.toLocaleString()} stars`}
+        />
+        <Counter
+          icon={<Sparkles size={14} className="text-cyan-300" fill="currentColor" />}
+          value={shards}
+          onAdd={onAddShards}
+          ariaLabel={`${shards.toLocaleString()} shards`}
         />
       </div>
 

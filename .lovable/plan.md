@@ -1,65 +1,127 @@
-## Goals
 
-Ship a focused round of polish on the spin/reveal flow, then start the battle system in a follow-up step.
+# Reward, Monster Summoning, 3D Polish, and Battle System
 
-## 1. Card reveal: portal + reduced-motion + always on top
+Split into four phases. Each is shippable on its own; we approve and build in order.
 
-- `src/components/CardReveal.tsx`
-  - Wrap the modal in `createPortal(..., document.body)` so it escapes any parent `transform`/`overflow` stacking contexts.
-  - Read `prefers-reduced-motion` via `window.matchMedia("(prefers-reduced-motion: reduce)")` and the existing `a11yPrefs.reducedMotion` toggle. When true: drop the `y` slide, use `duration: 0` for fade, and skip the spring on the inner card.
-  - Keep `z-[100]` / close button `z-[110]`, ensure `position: fixed` and no parent transforms once portaled.
+---
 
-## 2. Dev-only z-index debug overlay
+## Phase 1 — Per-roll bonus reward system
 
-- `src/components/ZIndexDebugOverlay.tsx`
-  - Early-return `null` unless `import.meta.env.DEV` is true (still respects `?zdebug=1` / `localStorage` to toggle within dev). Production builds will tree-shake the body.
+Every roll already grants tile rewards. On top of that, add a **bonus roll** whose chance and quality scale with `bet_multiplier`.
 
-## 3. E2E stacking check
+**Bonus pool (one is granted when triggered):**
 
-- Add a Vitest + Testing Library check at `src/components/CardReveal.stacking.test.tsx` that:
-  - Renders `<BetSelector>` + `<CardReveal>` inside a wrapper, at three viewport widths (375 / 768 / 1280) via `window.innerWidth` + `matchMedia` stubs.
-  - Asserts the portaled reveal container has a computed `z-index` strictly greater than any element matching the betting/spin controls.
-  - This is a lightweight DOM-level check (not Playwright) so it runs in the existing test suite.
+| Bonus | Effect | Rarity |
+|---|---|---|
+| Energy refill | +10/+25/+50 energy | common |
+| Monster buff | +10% coin gain or +1 step range for next 5 rolls | common |
+| Mini-game token | Grants 1 free MiniGame / MiniGameJack play | uncommon |
+| Build discount | -25% building costs for 5, 10, or 15 minutes | uncommon |
+| Shard drop | 1–10 shards (rarity-weighted by bet) | always available, scales |
+| Mega shard burst | 25–50 shards | rare |
 
-## 4. Autospin button vertical alignment
+**Trigger formula:** `chance = clamp(0.15 + log2(bet) * 0.08, 0.15, 0.65)`. Higher bets also bias the pool toward better outcomes. Shards are the most common drop so progression always feels rewarding.
 
-- `src/components/GameBoard.tsx` (spin controls row)
-  - Wrap the autospin button and the energy pill in a single flex row with `items-center`, equal vertical padding, and matching height so the autospin button sits on the same baseline as the energy number.
-  - Verify at mobile (375), tablet (768), and desktop widths.
+**Where it slots in:** `useGameState.ts` `spin()` returns a `bonusReward` alongside the tile reward. `Index.tsx` displays it via a new `BonusRewardToast` component that animates over the board.
 
-## 5. Always show a reward after the tutorial
+**Build-discount timer:** stored in `game_state.active_buffs` (new jsonb column) with `expires_at`. Read by building-cost UIs.
 
-- `src/pages/Index.tsx`
-  - On both tutorial `onFinish` AND `onClose` (skip), trigger the post-tutorial chain.
-  - If the daily reward is already claimed today, instead of skipping, open a fallback reward — a one-time "tutorial bonus" (small coin/dice grant via `game.addCoins`) shown through `RewardCelebration` so the player always sees something.
+**Buff stack:** stored similarly; consumed per-roll counter or timer.
 
-## 6. Multiplier picker button
+---
 
-- `src/components/BetSelector.tsx`
-  - Add a dedicated "Multiplier" button that opens a small popover (or inline expander) listing the available multipliers as large tap targets, instead of relying only on the inline pills. Keep the existing pills for keyboard users; the button is the primary touch affordance on mobile.
+## Phase 2 — Shards & monster summoning/merging
 
-## 7. Responsive screen-size + rotate-screen hint
+Replaces direct coin-buy of monsters with a gacha-style summon + merge loop.
 
-- New `src/components/OrientationHint.tsx`
-  - Detects `window.matchMedia("(orientation: portrait) and (max-width: 768px)")`.
-  - If portrait on a small phone where the board would clip, show a non-blocking toast / banner: "Rotate your device for the best experience 🔄". Dismissible; remembers dismissal in `localStorage`.
-- `src/pages/Index.tsx`: mount once near the top of the layout.
-- Pass over `GameBoard`, `BetSelector`, and spin controls to confirm they fit at 320, 375, 414, 768, 1024, and 1366 widths. Tighten any overflow with `flex-wrap` / `min-w-0` as needed.
+**New columns on `game_state`:**
+- `shards` int default 0
+- `monster_collection` jsonb — `{ "<monsterId>": { level: 0, copies: 1 } }`
+- `active_buffs` jsonb (from Phase 1)
 
-## 8. Battle system (kickoff)
+**Summon costs (server RPC `summon_monster(rarity)`):**
+- 50 shards → random **common**
+- 100 shards → random **rare**
+- 125 shards → random **epic**
+- 150 shards → random **legendary**
 
-After 1–7 are merged and approved, start the battle system as a separate plan. Initial scope to confirm with you before building:
+Random pick respects existing rarity tags in `MONSTERS`. Newly summoned monsters start at **Level 0**.
 
-- Turn-based 1v1 battles using owned monsters
-- Stats derived from monster level + equipped cards
-- PvE first (wild monster encounters from board tiles), PvP later
-- New `battles` table, `battle_logs` table with RLS, edge function for damage resolution to prevent client cheating
+**Merging (RPC `merge_monsters(monsterId)`):**
+- 3 copies of the same monster at level N → 1 copy at level N+1, capped at the monster's existing evolution count (4 levels).
+- Triggers `LevelUpCelebration` and switches the rendered evolution.
 
-I'll draft a full battle-system plan once this round ships.
+**UI changes:**
+- `MonsterCollection.tsx` gains a **Summon** panel with 4 rarity buttons + animated reveal of the summoned monster.
+- Per-card "Merge" button when ≥3 copies exist.
+- Existing coin-cost monster purchases removed; legacy unlocks are auto-converted (each previously-unlocked monster becomes 1 copy at its current evolution level).
+- Top HUD: add a shard counter (✨) next to gem/coin/star.
 
-## Technical notes
+---
 
-- Portal target: `document.body`; guard with `typeof document !== "undefined"` for SSR safety even though we're CSR.
-- Reduced motion source of truth: combine OS pref (`matchMedia`) OR app pref (`getA11yPrefs().reducedMotion`).
-- Dev gate: `import.meta.env.DEV` is Vite's standard flag and is stripped from production bundles.
-- Stacking test uses `getComputedStyle` on portal root vs. control nodes; no Playwright dependency added.
+## Phase 3 — All-3D monsters with idle animations
+
+Currently `Monster3D` renders 2D sprites on a billboard plane. We'll upgrade to animated 3D sprites for every monster, no GLB assets needed.
+
+- Add idle skeleton: gentle bob, slight rotation drift, rim-light glow pulse, on-summon "pop" (scale 0 → 1 with overshoot).
+- Add `useFrame` triggers for: `summon`, `mergeUp`, `hit`, `attack`, `victory`, `faint` (used by battle system).
+- Ensure `MonsterDisplay`, `MonsterCollection` thumbnails, and the new battle UI all use `Monster3D` consistently (collection thumbs use `compact`).
+- Keep low-power 2D fallback intact.
+
+---
+
+## Phase 4 — Battle system (PvE + async PvP)
+
+Turn-based, server-authoritative to prevent cheating. Cinematic 1v1 fights between owned monsters.
+
+**Derived stats per monster (computed server-side from level + rarity + evolution):**
+- HP, Attack, Defense, Speed
+- One signature move per rarity tier
+
+**Combat actions (each turn):** Attack · Defend (50% damage taken, +25% next turn) · Special (signature move, 3-turn cooldown) · Item (heal potion from inventory if any)
+
+**PvE encounters:**
+- Wild monsters appear from tile interactions (new "battle" tile type or a chance from skull tiles).
+- Win → coins, XP, **shards**, occasional buff token.
+
+**Async PvP:**
+- Players upload a **defense team** (1 monster initially, 3 later).
+- Match queue picks an opponent within ±10% power, fight resolves on the server when the attacker initiates.
+- Daily PvP cap to keep load bounded. Win → leaderboard points + shards.
+
+**New tables (migration):**
+- `monster_stats_def` — base stats per monster ID and rarity tier multipliers.
+- `battles` — `id, attacker_id, defender_id, mode ('pve'|'pvp'), attacker_monster, defender_monster, winner_id, log jsonb, created_at`.
+- `pvp_defense_teams` — `user_id, monster_id, power, updated_at`.
+- `pvp_seasons` (optional in v1) — rating per player.
+
+**Edge function `battle-resolve`:**
+- Validates ownership, computes stats, simulates the turn the client requested (attacker action vs defender's chosen action), returns next state + animation events.
+- Server stores full log so we can replay it client-side.
+
+**UI:**
+- `BattleArena.tsx` page/modal — two `Monster3D` instances facing each other, HP bars, animated action cards.
+- `BattleResult.tsx` celebration on victory.
+- `PvPHub.tsx` for queue + defense team picker.
+
+---
+
+## Sequencing & deliverables
+
+```text
+Phase 1 (rewards + buffs)         ~ small, immediately playable
+  └─> Phase 2 (shards + summon)   ~ unlocks new progression loop
+        └─> Phase 3 (3D polish)   ~ visual upgrade everywhere
+              └─> Phase 4 (battles) ~ biggest chunk; PvE first, then PvP
+```
+
+Each phase: schema migration → server RPC/edge function → hook changes → UI → tests where helpful.
+
+## Open assumptions (confirm or adjust)
+
+1. **Legacy monsters:** Players who already bought monsters with coins get 1 copy at their current evolution converted into the new `monster_collection`. No refund.
+2. **PvP defense:** 1-monster team in v1; 3-monster team in a follow-up.
+3. **Battle initiation:** PvE is automatic from board tiles; PvP requires the player to open the PvP hub and tap "Find match".
+4. **Buff stacking:** Same buff refreshes timer rather than stacking.
+
+Reply with any adjustments, otherwise approve and I'll start with Phase 1.

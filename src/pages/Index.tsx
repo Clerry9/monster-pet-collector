@@ -66,6 +66,9 @@ import { FriendSearchDebug, type FriendSearchPauseReason } from "@/components/Fr
 import { EnergyRefillModal } from "@/components/EnergyRefillModal";
 import { scheduleAt, cancelScheduled } from "@/lib/notifications";
 import { OrientationHint } from "@/components/OrientationHint";
+import { BonusRewardToast } from "@/components/BonusRewardToast";
+import { useBonusInventory } from "@/hooks/useBonusInventory";
+import type { BonusReward } from "@/lib/bonusRewards";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season" | "account";
 
@@ -236,6 +239,8 @@ function EventBanner({
 
 const Index = () => {
   const game = useGameState();
+  const bonusInv = useBonusInventory();
+  const [activeBonus, setActiveBonus] = useState<BonusReward | null>(null);
   useCheckoutSuccessToast();
   // Tutorial completion gates the daily reward auto-open so we can chain
   // tutorial -> daily reward -> mini-game in order.
@@ -256,6 +261,7 @@ const Index = () => {
     card?: GameCard;
     islandStarEarned?: boolean;
     monsterLevelUp?: { name: string; level: number; coinBonus: number };
+    bonusReward?: BonusReward;
   } | null>(null);
   const [levelUpData, setLevelUpData] = useState<ReturnType<typeof getLevelForXp> | null>(null);
   const [prestigeTier, setPrestigeTier] = useState<number | null>(null);
@@ -575,6 +581,18 @@ const Index = () => {
         duration: 4000,
       });
     }
+    // Phase 1: per-roll bonus reward — grant + animated toast.
+    if (result.bonusReward) {
+      const r = result.bonusReward;
+      if (r.kind === "energy") {
+        game.addEnergy(r.amount);
+      } else {
+        bonusInv.grant(r);
+      }
+      setActiveBonus(r);
+    }
+    // Decrement active monster buff (if any) — applies to coin gain elsewhere.
+    if (bonusInv.monsterBuff) bonusInv.consumeBuffRoll();
     // Flush any deferred level-up / prestige celebrations now that the hop is done.
     if (pendingLevelUpRef.current) {
       setLevelUpData(pendingLevelUpRef.current);
@@ -936,6 +954,8 @@ const Index = () => {
 
       <ZIndexDebugOverlay />
 
+      <BonusRewardToast reward={activeBonus} onDone={() => setActiveBonus(null)} />
+
       <IslandRewardRoulette
         open={rouletteOpen}
         onClose={() => setRouletteOpen(false)}
@@ -1083,6 +1103,7 @@ const Index = () => {
                     coins={game.coins}
                     keys={hudKeys}
                     stars={game.islandStars}
+                    shards={bonusInv.shards}
                     xp={game.xp}
                     level={game.level}
                     betMultiplier={game.betMultiplier}
