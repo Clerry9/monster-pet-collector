@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscriptions, isSubscriptionActive, type SubscriptionRow } from "@/hooks/useSubscription";
 import { useSeason } from "@/hooks/useSeason";
-import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { usePaddleCheckout, confirmGuestCheckout } from "@/hooks/usePaddleCheckout";
 import { MONSTERS } from "@/data/monsters";
 import { DICE_TIERS } from "@/hooks/useGameState";
 
@@ -106,6 +106,7 @@ export function EntitlementDashboard(props: DashProps) {
 
   const handleSubscribe = (priceId: string) => {
     if (!user) return;
+    if (!confirmGuestCheckout(user)) return;
     void openCheckout({
       priceId,
       customerEmail: user.email ?? undefined,
