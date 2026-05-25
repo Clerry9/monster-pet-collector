@@ -256,7 +256,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
   if (!card) return null;
   const colors = RARITY_COLORS[card.rarity];
 
-  return (
+  const content = (
     <AnimatePresence>
       {card && (
         <motion.div
@@ -268,6 +268,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={reducedMotion ? { duration: 0 } : undefined}
           onClick={() => {
             // Background tap closes only when the reveal is fully shown OR
             // the safety dismiss timer has elapsed. The deterministic
