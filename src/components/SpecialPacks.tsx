@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { CreditCard, Sparkles, Layers } from "lucide-react";
-import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { usePaddleCheckout, confirmGuestCheckout } from "@/hooks/usePaddleCheckout";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -80,6 +80,7 @@ export function SpecialPacks() {
       toast.error("Please log in to make purchases");
       return;
     }
+    if (!confirmGuestCheckout(user)) return;
     // Lightweight analytics — logged to the browser console and surfaced in
     // any analytics relay listening to console events. Records the clamped
     // card count we expect the server to grant.
