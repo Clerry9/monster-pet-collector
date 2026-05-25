@@ -80,6 +80,12 @@ const FALLBACK_TIERS: Tier[] = [
 
 const FALLBACK_TIMEOUT_MS = 3000;
 
+// External IDs treated as recurring subscriptions for badge rendering.
+const SUBSCRIPTION_PRICE_IDS = new Set<string>([
+  "collector_club_monthly",
+  "monster_elite_monthly",
+]);
+
 function PricingSkeleton() {
   return (
     <div className="space-y-3" aria-hidden>
@@ -192,7 +198,14 @@ const Pricing = () => {
             {tiers.map((t) => (
               <div key={t.externalId} className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card p-4">
                 <div className="min-w-0">
-                  <h2 className="text-lg font-semibold truncate">{t.name}</h2>
+                  <h2 className="text-lg font-semibold truncate flex items-center gap-2">
+                    <span className="truncate">{t.name}</span>
+                    {SUBSCRIPTION_PRICE_IDS.has(t.externalId) && (
+                      <span className="shrink-0 rounded-full bg-primary/15 text-primary text-[10px] font-display uppercase tracking-wider px-2 py-0.5 border border-primary/30">
+                        Subscription
+                      </span>
+                    )}
+                  </h2>
                   {t.description && (
                     <p className="text-sm text-muted-foreground">{t.description}</p>
                   )}
@@ -213,7 +226,7 @@ const Pricing = () => {
         <section className="space-y-3 pt-4">
           <h2 className="text-2xl font-semibold">Payment & Billing</h2>
           <p>
-            Payments are processed securely by <strong>Paddle.com</strong>, the Merchant of Record for all orders placed with JAC Consulting. Paddle handles checkout, billing, tax, invoicing, and refund decisions. One-time purchases only — no subscriptions or auto-renewals. See our{" "}
+            Payments are processed securely by <strong>Paddle.com</strong>, the Merchant of Record for all orders placed with JAC Consulting. Paddle handles checkout, billing, tax, invoicing, and refund decisions. Most items are one-time purchases. <strong>Collector Club</strong> and <strong>Monster Elite</strong> are monthly subscriptions that auto-renew until you cancel — you can cancel anytime from the in-game <em>My Account</em> screen and keep access through the end of the paid period. See our{" "}
             <Link to="/refund" className="text-primary underline">Refund Policy</Link> and{" "}
             <Link to="/terms" className="text-primary underline">Terms of Service</Link>. For billing questions, contact{" "}
             <a className="text-primary underline" href="mailto:MPetCinfo@proton.me">MPetCinfo@proton.me</a>.

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { DICE_PACKS, DICE_TIERS } from "@/hooks/useGameState";
 import { Lock, Check, Zap, CreditCard, Sparkles } from "lucide-react";
-import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { usePaddleCheckout, confirmGuestCheckout } from "@/hooks/usePaddleCheckout";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { PrestigeRewardsPanel } from "@/components/PrestigeRewardsPanel";
@@ -56,7 +56,7 @@ export function DiceShop({
       toast.error("Please log in to make purchases");
       return;
     }
-
+    if (!confirmGuestCheckout(user)) return;
     try {
       await openCheckout({
         priceId,
@@ -74,7 +74,7 @@ export function DiceShop({
       if (!user) toast.error("Please log in to make purchases");
       return;
     }
-
+    if (!confirmGuestCheckout(user)) return;
     try {
       await openCheckout({
         priceId,

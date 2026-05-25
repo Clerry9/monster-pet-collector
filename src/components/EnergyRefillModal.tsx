@@ -1,7 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ENERGY_PACKS, AD_REFILL_AMOUNT, type EnergyPack } from "@/data/energyPacks";
-import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { usePaddleCheckout, confirmGuestCheckout } from "@/hooks/usePaddleCheckout";
+import { useAuth } from "@/hooks/useAuth";
 import { useRewardedAd } from "@/hooks/useRewardedAd";
 import { Zap, Play, Coins } from "lucide-react";
 import { toast } from "sonner";
@@ -25,12 +26,14 @@ export function EnergyRefillModal({
   open, onClose, energy, energyCap, playerLevel, customerEmail, onAdRewardEnergy,
 }: EnergyRefillModalProps) {
   const { openCheckout, loading } = usePaddleCheckout();
+  const { user } = useAuth();
   const ad = useRewardedAd(playerLevel, () => {
     onAdRewardEnergy(AD_REFILL_AMOUNT);
     toast.success(`+${AD_REFILL_AMOUNT}⚡ from ad!`);
   });
 
   const buy = async (pack: EnergyPack) => {
+    if (!confirmGuestCheckout(user)) return;
     try {
       await openCheckout({
         priceId: pack.paddlePriceId,

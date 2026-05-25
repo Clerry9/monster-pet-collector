@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Crown, Check, X as XIcon, RefreshCw } from "lucide-react";
+import { Loader2, Crown, Check, X as XIcon, RefreshCw, ExternalLink, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscriptions, isSubscriptionActive, type SubscriptionRow } from "@/hooks/useSubscription";
 import { useSeason } from "@/hooks/useSeason";
-import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { usePaddleCheckout, confirmGuestCheckout } from "@/hooks/usePaddleCheckout";
 import { MONSTERS } from "@/data/monsters";
 import { DICE_TIERS } from "@/hooks/useGameState";
 
@@ -42,6 +42,7 @@ export function EntitlementDashboard(props: DashProps) {
   const [purchases, setPurchases] = useState<any[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [portalBusy, setPortalBusy] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -85,8 +86,27 @@ export function EntitlementDashboard(props: DashProps) {
     }
   };
 
+  const handleOpenPortal = async (subscriptionId?: string) => {
+    setPortalBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal", {
+        body: subscriptionId ? { subscriptionId } : {},
+      });
+      if (error) throw error;
+      const url = (data as { url?: string } | null)?.url;
+      if (!url) throw new Error("No portal URL returned");
+      // Portal sessions cannot be embedded in an iframe — open a new tab.
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      toast.error("Couldn't open billing portal", { description: e?.message ?? "Try again later" });
+    } finally {
+      setPortalBusy(false);
+    }
+  };
+
   const handleSubscribe = (priceId: string) => {
     if (!user) return;
+    if (!confirmGuestCheckout(user)) return;
     void openCheckout({
       priceId,
       customerEmail: user.email ?? undefined,
@@ -98,6 +118,19 @@ export function EntitlementDashboard(props: DashProps) {
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-3">
+      {user?.is_anonymous && (
+        <div className="panel-wood p-3 border-2 border-amber-400 bg-amber-400/10">
+          <div className="flex items-start gap-2 text-cream-light">
+            <AlertTriangle size={16} className="mt-0.5 text-amber-300 shrink-0" />
+            <div className="text-xs space-y-1">
+              <div className="font-display text-sm text-amber-200">You're playing as a guest</div>
+              <p className="text-cream/80">
+                Your progress and purchases are tied to this browser only. Link an email or Google account so you don't lose them if you clear data or switch devices. Use the <strong>Link Account</strong> option in the menu.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="panel-wood p-4 space-y-2">
         <h2 className="font-display text-cream-light text-lg">My Account</h2>
         <p className="text-cream/70 text-xs">Live entitlement summary — credits, unlocks, and memberships.</p>
@@ -199,8 +232,18 @@ export function EntitlementDashboard(props: DashProps) {
           const canCancel = active && !sub.cancel_at_period_end && sub.status !== "canceled";
           const canResume = sub.cancel_at_period_end && sub.status !== "canceled";
           const busy = busyId === sub.paddle_subscription_id;
+          const isPastDue = sub.status === "past_due";
           return (
             <div key={sub.id} className="rounded-lg border-2 border-wood-dark bg-cream/10 p-3 space-y-2">
+              {isPastDue && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-400 bg-amber-400/15 px-2 py-1.5 text-[11px] text-amber-100">
+                  <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                  <div>
+                    <div className="font-display">Payment failed</div>
+                    <div>Your last renewal didn't go through. Update your payment method to keep your membership active.</div>
+                  </div>
+                </div>
+              )}
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="font-display text-cream-light">{meta.name}</div>
@@ -217,7 +260,16 @@ export function EntitlementDashboard(props: DashProps) {
                   ? <>Access ends <strong>{fmtDate(sub.current_period_end)}</strong></>
                   : <>Renews <strong>{fmtDate(sub.current_period_end)}</strong></>}
               </div>
-              <div className="flex gap-2 pt-1">
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleOpenPortal(sub.paddle_subscription_id)}
+                  disabled={portalBusy}
+                  className="px-3 py-1.5 rounded-md bg-cream/20 text-cream-light text-xs font-display border-2 border-wood-dark hover:bg-cream/30 disabled:opacity-50 flex items-center gap-1"
+                  title="Update payment method, view invoices, manage subscription"
+                >
+                  <ExternalLink size={12} /> Manage billing
+                </button>
                 {canCancel && (
                   <button
                     type="button"
