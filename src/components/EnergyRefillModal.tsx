@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRewardedAd } from "@/hooks/useRewardedAd";
 import { Zap, Play, Coins } from "lucide-react";
 import { toast } from "sonner";
+import { AdPlaybackOverlay } from "./AdPlaybackOverlay";
 
 interface EnergyRefillModalProps {
   open: boolean;
@@ -47,6 +48,8 @@ export function EnergyRefillModal({
   };
 
   return (
+    <>
+    <AdPlaybackOverlay open={ad.loading} label={`Ad playing — +${AD_REFILL_AMOUNT}⚡ on completion`} />
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md" data-testid="energy-refill-modal">
         <DialogHeader>
@@ -111,5 +114,6 @@ export function EnergyRefillModal({
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
