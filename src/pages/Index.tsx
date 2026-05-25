@@ -954,6 +954,8 @@ const Index = () => {
 
       <ZIndexDebugOverlay />
 
+      <BonusRewardToast reward={activeBonus} onDone={() => setActiveBonus(null)} />
+
       <IslandRewardRoulette
         open={rouletteOpen}
         onClose={() => setRouletteOpen(false)}
