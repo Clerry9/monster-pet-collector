@@ -1266,6 +1266,7 @@ const Index = () => {
                 monsterTaps={game.monsterTaps}
                 onSelect={game.setActiveMonster}
                 onUnlock={game.unlockMonster}
+                onGrantMonster={game.grantMonster}
               />
             </motion.div>
           )}
