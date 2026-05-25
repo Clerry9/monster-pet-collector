@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getLevelForXp, getLevelProgress, getAvailableBets } from "@/data/levels";
 import { drawRandomCard, GameCard, CARD_SETS, TRADE_VALUES } from "@/data/cards";
 import { isSeasonPassActive } from "@/hooks/useSeason";
+import { rollBonusReward, type BonusReward } from "@/lib/bonusRewards";
 
 export interface DiceTier {
   id: string;
