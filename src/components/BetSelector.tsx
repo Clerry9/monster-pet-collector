@@ -1,9 +1,7 @@
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { getAvailableBets } from "@/data/levels";
 import { energyCostForBet } from "@/hooks/useGameState";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ChevronDown } from "lucide-react";
 
 interface BetSelectorProps {
   coins: number;
@@ -26,7 +24,6 @@ export function BetSelector({
   // even between server pushes (e.g. when a regen tick crosses the 1000-energy
   // gate that unlocks the high tiers).
   const [now, setNow] = useState(() => Date.now());
-  const betButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
@@ -78,38 +75,29 @@ export function BetSelector({
     onSetBet(mult);
   };
 
-  const [pickerOpen, setPickerOpen] = useState(false);
-
-  const focusBetAt = (index: number) => {
-    const next = (index + available.length) % available.length;
-    betButtonRefs.current[next]?.focus();
+  // Tap-to-cycle: advance to the next available multiplier; wrap around.
+  const cycleBet = () => {
+    if (available.length === 0) return;
+    const idx = available.indexOf(selectedBet);
+    // Try each subsequent option until one is affordable; else just advance.
+    for (let step = 1; step <= available.length; step += 1) {
+      const next = available[(Math.max(0, idx) + step) % available.length];
+      const nextCost = energyCostForBet(next);
+      if (typeof energy !== "number" || energy >= nextCost) {
+        onSetBet(next);
+        return;
+      }
+    }
+    // Nothing affordable — let parent handle the insufficient-energy hint.
+    const fallback = available[(Math.max(0, idx) + 1) % available.length];
+    onInsufficientEnergy?.(fallback, energyCostForBet(fallback));
   };
-
-  // Compact inline bet summary — replaces the old floating PREVIEW card so it
-  // never overlaps the spin controls. Just text, wraps naturally.
-  const betSummary = (
-    <span
-      className="font-display text-[10px] leading-tight text-wood-dark/80 whitespace-normal break-words"
-      role="status"
-      aria-live="polite"
-    >
-      ACTIVE ×{selectedBet} · {cost}⚡/roll
-    </span>
-  );
 
   return (
     <div className="flex flex-col gap-1.5 items-stretch w-full" aria-label="Bet controls">
       <div
         className="flex items-center gap-3 flex-wrap"
-        role="radiogroup"
         aria-label="Bet multiplier"
-        onKeyDown={(e) => {
-          const currentIndex = available.indexOf(selectedBet);
-          if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); focusBetAt(Math.max(0, currentIndex) + 1); }
-          else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); focusBetAt(Math.max(0, currentIndex) - 1); }
-          else if (e.key === "Home") { e.preventDefault(); focusBetAt(0); }
-          else if (e.key === "End") { e.preventDefault(); focusBetAt(available.length - 1); }
-        }}
       >
       {/* Energy pill */}
       <div
@@ -132,12 +120,6 @@ export function BetSelector({
         <span className="text-[11px] font-display leading-none">
           {useReal ? `${energy}/${energyCap}` : `${currentBet}/${max}`}
           {overflow > 0 && <span className="ml-1 text-[9px] opacity-90">+{overflow}</span>}
-          <span
-            className={`ml-1 text-[9px] tabular-nums ${insufficient ? "text-destructive font-bold" : "opacity-80"}`}
-            aria-label={`Each roll costs ${cost} energy`}
-          >
-            −{cost}⚡/roll
-          </span>
           {countdown && (
             <span
               className="ml-1 text-[9px] opacity-80 tabular-nums"
@@ -149,70 +131,19 @@ export function BetSelector({
         </span>
       </div>
 
-      {/* Bet multiplier picker — gold pills */}
-      <div className="flex items-center gap-1">
-        {available.map((mult, index) => (
-          <motion.button
-            key={mult}
-            ref={(node) => { betButtonRefs.current[index] = node; }}
-            type="button"
-            whileTap={{ scale: 0.9 }}
-            role="radio"
-            aria-checked={selectedBet === mult}
-            aria-label={`${mult} times multiplier. Costs ${energyCostForBet(mult)} energy per roll.`}
-            onClick={() => chooseBet(mult)}
-            className={`px-2.5 py-1 text-[11px] font-display leading-none rounded-full border-2 transition-all ${
-              selectedBet === mult
-                ? "pill-gold border-wood-dark scale-105"
-                : "bg-cream-light/60 border-wood-dark text-wood-dark hover:text-wood-dark"
-            }`}
-          >
-            BET ×{mult}
-          </motion.button>
-        ))}
-      </div>
-
-      {/* Dedicated multiplier picker button — large touch target popover
-          duplicates the same options so mobile users have an obvious way
-          to change the bet without scanning the pill row. */}
-      <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className="pill-gold border-2 border-wood-dark px-3 py-1.5 text-[11px] font-display leading-none rounded-full flex items-center gap-1"
-            aria-label={`Change bet multiplier. Current ×${selectedBet}.`}
-          >
-            ×{selectedBet}
-            <ChevronDown size={12} aria-hidden="true" />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent
-          align="end"
-          className="w-44 p-2 bg-cream border-2 border-wood-dark z-[60]"
-        >
-          <div className="font-display text-[10px] uppercase tracking-wider text-wood-dark/70 mb-1 px-1">
-            Choose multiplier
-          </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            {available.map((mult) => (
-              <button
-                key={mult}
-                type="button"
-                onClick={() => { chooseBet(mult); setPickerOpen(false); }}
-                className={`py-2 px-2 text-xs font-display rounded-md border-2 border-wood-dark ${
-                  selectedBet === mult ? "pill-gold" : "bg-cream-light hover:bg-cream-light/80 text-wood-dark"
-                }`}
-                aria-pressed={selectedBet === mult}
-              >
-                <div>BET ×{mult}</div>
-                <div className="text-[9px] opacity-80 leading-tight">{energyCostForBet(mult)}⚡/roll</div>
-              </button>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      {betSummary}
+      {/* Single tap-to-cycle multiplier button */}
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.92 }}
+        onClick={cycleBet}
+        aria-label={`Bet multiplier ×${selectedBet}. Tap to change. Costs ${cost} energy per roll.`}
+        className={`pill-gold border-2 border-wood-dark px-4 py-2 font-display rounded-full leading-none flex flex-col items-center justify-center min-w-[84px] ${
+          insufficient ? "ring-2 ring-destructive" : ""
+        }`}
+      >
+        <span className="text-sm">BET ×{selectedBet}</span>
+        <span className="text-[9px] opacity-80 mt-0.5">tap to change</span>
+      </motion.button>
       </div>
     </div>
   );
