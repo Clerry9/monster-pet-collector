@@ -975,7 +975,7 @@ const Index = () => {
         <BuildDiscountBadge
           percent={bonusInv.buildDiscount?.percent ?? null}
           expiresAt={bonusInv.buildDiscount?.expiresAt ?? null}
-          onClose={() => bonusInv.grant({ kind: "build_discount", amount: 0, label: "", emoji: "" } as BonusReward) /* no-op fallback */}
+          onClose={() => bonusInv.clearBuildDiscount()}
           onOpenBuild={() => setTab("season")}
         />
       )}
