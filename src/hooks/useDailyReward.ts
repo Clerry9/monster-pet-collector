@@ -88,8 +88,11 @@ export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen
 
   const claim = useCallback(async () => {
     if (!user || alreadyClaimed) return;
+    // Optimistically stop the "claim now" pulse the instant the user taps.
+    // The RPC result below will overwrite this with the canonical timestamp.
+    setLastClaimedAt(new Date().toISOString());
     const { data, error } = await (supabase as any).rpc("claim_daily_streak");
-    if (error) return;
+    if (error) { setShowModal(false); return; }
     const result = Array.isArray(data) ? data[0] : data;
     if (result && !result.already_claimed) {
       setStreak(result.current_streak);
