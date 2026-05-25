@@ -66,6 +66,9 @@ import { FriendSearchDebug, type FriendSearchPauseReason } from "@/components/Fr
 import { EnergyRefillModal } from "@/components/EnergyRefillModal";
 import { scheduleAt, cancelScheduled } from "@/lib/notifications";
 import { OrientationHint } from "@/components/OrientationHint";
+import { BonusRewardToast } from "@/components/BonusRewardToast";
+import { useBonusInventory } from "@/hooks/useBonusInventory";
+import type { BonusReward } from "@/lib/bonusRewards";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season" | "account";
 
@@ -256,6 +259,7 @@ const Index = () => {
     card?: GameCard;
     islandStarEarned?: boolean;
     monsterLevelUp?: { name: string; level: number; coinBonus: number };
+    bonusReward?: BonusReward;
   } | null>(null);
   const [levelUpData, setLevelUpData] = useState<ReturnType<typeof getLevelForXp> | null>(null);
   const [prestigeTier, setPrestigeTier] = useState<number | null>(null);
