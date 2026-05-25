@@ -1103,6 +1103,7 @@ const Index = () => {
                     coins={game.coins}
                     keys={hudKeys}
                     stars={game.islandStars}
+                    shards={bonusInv.shards}
                     xp={game.xp}
                     level={game.level}
                     betMultiplier={game.betMultiplier}
