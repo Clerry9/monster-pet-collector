@@ -526,4 +526,10 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
       )}
     </AnimatePresence>
   );
+
+  // Portal to <body> so the modal always escapes any parent `transform` or
+  // `overflow` stacking contexts (e.g. the fullscreen board wrapper) and
+  // sits above the betting/spin controls on every breakpoint.
+  if (typeof document === "undefined") return content;
+  return createPortal(content, document.body);
 };
