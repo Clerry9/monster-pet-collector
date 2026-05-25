@@ -69,6 +69,7 @@ import { OrientationHint } from "@/components/OrientationHint";
 import { BonusRewardToast } from "@/components/BonusRewardToast";
 import { useBonusInventory } from "@/hooks/useBonusInventory";
 import type { BonusReward } from "@/lib/bonusRewards";
+import { BuildDiscountBadge } from "@/components/BuildDiscountBadge";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season" | "account";
 
@@ -590,6 +591,20 @@ const Index = () => {
         bonusInv.grant(r);
       }
       setActiveBonus(r);
+      // First-time directions when a build-cost discount is awarded.
+      if (r.kind === "build_discount") {
+        const KEY = "lov_build_discount_intro_v1";
+        try {
+          if (!localStorage.getItem(KEY)) {
+            localStorage.setItem(KEY, "1");
+            toast("🔨 Build Discount Unlocked!", {
+              description: `Open the Event tab → "Build a Monster Hut" to spend coins at −${r.amount}% for ${r.durationMinutes ?? 5} min.`,
+              duration: 7000,
+              action: { label: "Show me", onClick: () => setTab("season") },
+            });
+          }
+        } catch { /* ignore */ }
+      }
     }
     // Decrement active monster buff (if any) — applies to coin gain elsewhere.
     if (bonusInv.monsterBuff) bonusInv.consumeBuffRoll();
@@ -956,6 +971,15 @@ const Index = () => {
 
       <BonusRewardToast reward={activeBonus} onDone={() => setActiveBonus(null)} />
 
+      {isBoardTab && (
+        <BuildDiscountBadge
+          percent={bonusInv.buildDiscount?.percent ?? null}
+          expiresAt={bonusInv.buildDiscount?.expiresAt ?? null}
+          onClose={() => bonusInv.grant({ kind: "build_discount", amount: 0, label: "", emoji: "" } as BonusReward) /* no-op fallback */}
+          onOpenBuild={() => setTab("season")}
+        />
+      )}
+
       <IslandRewardRoulette
         open={rouletteOpen}
         onClose={() => setRouletteOpen(false)}
@@ -1135,6 +1159,8 @@ const Index = () => {
                     onOpenCollection={() => setTab("collection")}
                     onOpenCards={() => setTab("cards")}
                     onOpenRoulette={() => setLuckyOpen(true)}
+                    shards={bonusInv.shards}
+                    onOpenShards={() => setTab("collection")}
                     rouletteCooldownMs={luckyCooldown.freeAvailable ? 0 : luckyCooldown.remainingMs}
                     onLearnMore={handleRailLearnMore}
                   />
