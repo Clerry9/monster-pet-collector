@@ -23,8 +23,8 @@
     <!-- CrazyGames Rewarded Ads SDK (web) — defer so it doesn't block first paint / LCP -->
     <script defer src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
 
-    <!-- Google AdSense — TODO: replace ca-pub-XXXXXXXXXXXXXXXX with your publisher ID. Defer to protect LCP. -->
-    <script defer src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+    <!-- Google AdSense — async per AdSense snippet; deferred parsing keeps LCP safe. -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9083067323094986" crossorigin="anonymous"></script>
     <meta property="og:title" content="Monster Pet Collection — 3D Monster Game" />
     <meta name="twitter:title" content="Monster Pet Collection — 3D Monster Game" />
     <meta property="og:description" content="Collect, train and battle 3D monsters across themed islands. Free to play in your browser." />

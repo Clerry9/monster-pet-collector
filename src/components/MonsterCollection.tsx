@@ -1,10 +1,13 @@
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { MONSTERS, Monster, getMonsterEvolution, BIOMES } from "@/data/monsters";
-import { Lock, Sparkles, Check } from "lucide-react";
+import { Lock, Sparkles, Check, Combine } from "lucide-react";
 import { useState } from "react";
 import { Monster3D } from "./Monster3D";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CoinRewardGallery } from "./CoinRewardGallery";
+import { useBonusInventory } from "@/hooks/useBonusInventory";
+import { SUMMON_COST, MERGE_COPIES_REQUIRED, type SummonRarity } from "@/lib/summon";
+import { toast } from "sonner";
 
 interface Props {
   unlockedMonsters: string[];
@@ -13,6 +16,8 @@ interface Props {
   monsterTaps: Record<string, number>;
   onSelect: (id: string) => void;
   onUnlock: (id: string) => void;
+  /** Free unlock used by the summon flow when a brand-new monster is summoned. */
+  onGrantMonster?: (id: string) => void;
 }
 
 const rarityColors: Record<string, string> = {
@@ -29,8 +34,42 @@ const rarityBadge: Record<string, string> = {
   legendary: "bg-accent/20 text-accent",
 };
 
-export function MonsterCollection({ unlockedMonsters, activeMonster, coins, monsterTaps, onSelect, onUnlock }: Props) {
+export function MonsterCollection({ unlockedMonsters, activeMonster, coins, monsterTaps, onSelect, onUnlock, onGrantMonster }: Props) {
   const isUnlocked = (m: Monster) => unlockedMonsters.includes(m.id);
+  const inv = useBonusInventory();
+  const [summoned, setSummoned] = useState<Monster | null>(null);
+
+  const handleSummon = (rarity: SummonRarity) => {
+    const cost = SUMMON_COST[rarity];
+    if (inv.shards < cost) {
+      toast.error("NOT ENOUGH SHARDS", {
+        description: `${rarity.toUpperCase()} summon needs ${cost}💠. You have ${inv.shards}.`,
+      });
+      return;
+    }
+    const monster = inv.summon(rarity);
+    if (!monster) return;
+    if (!unlockedMonsters.includes(monster.id) && onGrantMonster) {
+      onGrantMonster(monster.id);
+      toast.success(`✨ Summoned ${monster.name}!`, {
+        description: `New ${monster.rarity} monster added to your collection.`,
+      });
+    } else {
+      toast.success(`+1 ${monster.name}`, {
+        description: "Spare copy — merge 3 to level up!",
+      });
+    }
+    setSummoned(monster);
+    setTimeout(() => setSummoned(null), 2200);
+  };
+
+  const handleMerge = (monsterId: string, monsterName: string) => {
+    const newLevel = inv.merge(monsterId);
+    if (newLevel == null) return;
+    toast.success(`🌟 ${monsterName} → Lv. ${newLevel}!`, {
+      description: "Evolution complete.",
+    });
+  };
 
   const totalOwned = MONSTERS.filter(isUnlocked).length;
   const overallPct = Math.round((totalOwned / MONSTERS.length) * 100);
@@ -50,6 +89,57 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
           <TabsTrigger value="rewards">Rewards</TabsTrigger>
         </TabsList>
         <TabsContent value="monsters">
+      {/* Phase 2 — Summon altar */}
+      <section className="mb-4 rounded-xl border-2 border-primary/50 bg-gradient-to-b from-card to-card/40 p-3" aria-label="Summon altar">
+        <header className="mb-2 flex items-center justify-between">
+          <h4 className="font-display text-base text-foreground flex items-center gap-1.5">
+            <Sparkles size={16} className="text-cyan-400" />
+            Summon Altar
+          </h4>
+          <span className="text-[11px] font-body text-muted-foreground">
+            💠 {inv.shards.toLocaleString()} shards
+          </span>
+        </header>
+        <div className="grid grid-cols-4 gap-1.5">
+          {(["common", "rare", "epic", "legendary"] as SummonRarity[]).map((r) => {
+            const cost = SUMMON_COST[r];
+            const can = inv.shards >= cost;
+            return (
+              <button
+                key={r}
+                onClick={() => handleSummon(r)}
+                disabled={!can}
+                className={`flex flex-col items-center gap-0.5 rounded-lg border-2 p-2 text-[10px] font-bold uppercase transition-all focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40 disabled:cursor-not-allowed ${rarityColors[r] ?? "border-border"} ${can ? "hover:scale-105 active:scale-95 bg-card" : "bg-card/50"}`}
+                aria-label={`Summon a random ${r} monster for ${cost} shards`}
+              >
+                <span className={`px-1.5 py-0.5 rounded-full ${rarityBadge[r]}`}>{r}</span>
+                <span className="text-foreground tabular-nums">💠 {cost}</span>
+              </button>
+            );
+          })}
+        </div>
+        <AnimatePresence>
+          {summoned && (
+            <motion.div
+              key={summoned.id + Date.now()}
+              initial={{ opacity: 0, scale: 0.4, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.6, y: -20 }}
+              transition={{ type: "spring", stiffness: 320, damping: 22 }}
+              className="mt-3 flex items-center gap-3 rounded-lg border-2 border-primary bg-primary/10 p-2"
+            >
+              <div className="w-14 h-14">
+                <Monster3D src={summoned.image} size={56} compact />
+              </div>
+              <div className="flex-1">
+                <div className="font-display text-sm text-foreground">You summoned {summoned.name}!</div>
+                <div className="text-[10px] text-muted-foreground">{summoned.rarity} · starts at Level 0</div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </section>
+
       <div className="mb-3 flex items-end justify-between gap-2">
         <h3 className="font-display text-2xl text-foreground text-glow-purple">
           Monster Album
@@ -123,6 +213,10 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
           const taps = monsterTaps[m.id] ?? 0;
           const evo = getMonsterEvolution(m, taps);
           const progressPct = m.cost > 0 ? Math.min(100, Math.round((coins / m.cost) * 100)) : 100;
+          const entry = inv.collection[m.id];
+          const copies = entry?.copies ?? 0;
+          const mergeLevel = entry?.level ?? 0;
+          const canMerge = copies >= MERGE_COPIES_REQUIRED && mergeLevel < 4;
 
           return (
             <motion.button
@@ -183,6 +277,30 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rarityBadge[m.rarity]}`}>
                 {m.rarity}
               </span>
+              {unlocked && (copies > 0 || mergeLevel > 0) && (
+                <div className="flex flex-col items-center gap-0.5 mt-0.5 w-full">
+                  <span className="text-[9px] font-body text-cyan-400 tabular-nums">
+                    +{mergeLevel} · ×{copies}
+                  </span>
+                  {canMerge && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); handleMerge(m.id, m.name); }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.stopPropagation();
+                          handleMerge(m.id, m.name);
+                        }
+                      }}
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold cursor-pointer hover:brightness-110"
+                      aria-label={`Merge 3 ${m.name} copies to level up`}
+                    >
+                      <Combine size={9} /> Merge
+                    </span>
+                  )}
+                </div>
+              )}
             </motion.button>
           );
               })}

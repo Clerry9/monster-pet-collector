@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { BonusReward } from "@/lib/bonusRewards";
+import { MERGE_COPIES_REQUIRED, MAX_MERGE_LEVEL, SUMMON_COST, pickRandomMonster, type SummonRarity } from "@/lib/summon";
+import type { Monster } from "@/data/monsters";
 
 /**
  * Client-side inventory for Phase 1 bonus rewards. Stored in localStorage so it
@@ -23,11 +25,18 @@ export interface MonsterBuff {
   rollsLeft: number;
 }
 
+/** Per-monster collection entry — current merge level + spare copies. */
+export interface CollectionEntry {
+  level: number;
+  copies: number;
+}
+
 interface Inventory {
   shards: number;
   minigameTokens: number;
   buildDiscount: BuildDiscount | null;
   monsterBuff: MonsterBuff | null;
+  collection: Record<string, CollectionEntry>;
 }
 
 const DEFAULTS: Inventory = {
@@ -35,6 +44,7 @@ const DEFAULTS: Inventory = {
   minigameTokens: 0,
   buildDiscount: null,
   monsterBuff: null,
+  collection: {},
 };
 
 function load(): Inventory {
@@ -152,5 +162,74 @@ export function useBonusInventory() {
     return true;
   }, []);
 
-  return { ...inv, grant, consumeBuffRoll, consumeMinigameToken, spendShards };
+  /**
+   * Spend shards to summon a random monster of the given rarity.
+   * If the player already owns it, adds 1 copy (used for merging).
+   * Otherwise adds it as a new Level 0 entry with 1 copy.
+   * Returns the summoned monster, or null if insufficient shards.
+   */
+  const summon = useCallback((rarity: SummonRarity): Monster | null => {
+    const cost = SUMMON_COST[rarity];
+    const cur = ensure();
+    if (cur.shards < cost) return null;
+    const monster = pickRandomMonster(rarity);
+    if (!monster) return null;
+    update((p) => {
+      const existing = p.collection[monster.id];
+      const next: CollectionEntry = existing
+        ? { ...existing, copies: existing.copies + 1 }
+        : { level: 0, copies: 1 };
+      return {
+        ...p,
+        shards: p.shards - cost,
+        collection: { ...p.collection, [monster.id]: next },
+      };
+    });
+    return monster;
+  }, []);
+
+  /**
+   * Merge 3 spare copies of a monster into +1 level. Caps at MAX_MERGE_LEVEL.
+   * Returns the new level on success, null otherwise.
+   */
+  const merge = useCallback((monsterId: string): number | null => {
+    const cur = ensure();
+    const entry = cur.collection[monsterId];
+    if (!entry) return null;
+    if (entry.copies < MERGE_COPIES_REQUIRED) return null;
+    if (entry.level >= MAX_MERGE_LEVEL) return null;
+    const nextLevel = entry.level + 1;
+    update((p) => ({
+      ...p,
+      collection: {
+        ...p.collection,
+        [monsterId]: {
+          level: nextLevel,
+          copies: entry.copies - MERGE_COPIES_REQUIRED,
+        },
+      },
+    }));
+    return nextLevel;
+  }, []);
+
+  /** Ensure a previously-unlocked monster appears in the new collection at level 0. */
+  const ensureCollectionEntry = useCallback((monsterId: string) => {
+    const cur = ensure();
+    if (cur.collection[monsterId]) return;
+    update((p) => ({
+      ...p,
+      collection: { ...p.collection, [monsterId]: { level: 0, copies: 1 } },
+    }));
+  }, []);
+
+  return {
+    ...inv,
+    grant,
+    consumeBuffRoll,
+    consumeMinigameToken,
+    spendShards,
+    summon,
+    merge,
+    ensureCollectionEntry,
+  };
 }
