@@ -148,6 +148,11 @@ export function useBonusInventory() {
     });
   }, []);
 
+  /** Dismiss the active build-cost discount (e.g. user tapped the X). */
+  const clearBuildDiscount = useCallback(() => {
+    update((p) => ({ ...p, buildDiscount: null }));
+  }, []);
+
   const consumeMinigameToken = useCallback((): boolean => {
     const cur = ensure();
     if (cur.minigameTokens <= 0) return false;
@@ -231,5 +236,6 @@ export function useBonusInventory() {
     summon,
     merge,
     ensureCollectionEntry,
+    clearBuildDiscount,
   };
 }

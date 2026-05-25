@@ -11,6 +11,7 @@ import { MiniGameJack } from "@/components/MiniGameJack";
 import { SeasonLeaderboard } from "@/components/SeasonLeaderboard";
 import { getBuildCoinCost } from "@/data/buildings";
 import { getSeasonPassTier } from "@/lib/seasonPass";
+import { useBonusInventory } from "@/hooks/useBonusInventory";
 
 interface SeasonHubProps {
   season: Season;
@@ -55,7 +56,12 @@ export function SeasonHub({
   const { openCheckout, loading } = usePaddleCheckout();
   const [miniGameOpen, setMiniGameOpen] = useState(false);
   const [jackGameOpen, setJackGameOpen] = useState(false);
-  const buildCost = getBuildCoinCost(playerLevel);
+  const bonusInv = useBonusInventory();
+  const rawBuildCost = getBuildCoinCost(playerLevel);
+  const discountPct = bonusInv.buildDiscount?.percent ?? 0;
+  const buildCost = discountPct > 0
+    ? Math.round(rawBuildCost * (1 - discountPct / 100))
+    : rawBuildCost;
 
   const handleBuyPass = async () => {
     if (!user) {

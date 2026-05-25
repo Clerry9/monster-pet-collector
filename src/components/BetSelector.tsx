@@ -96,41 +96,9 @@ export function BetSelector({
   return (
     <div className="flex flex-col gap-1.5 items-stretch w-full" aria-label="Bet controls">
       <div
-        className="flex items-center gap-3 flex-wrap"
+        className="flex items-center justify-center gap-3 flex-wrap"
         aria-label="Bet multiplier"
       >
-      {/* Energy pill */}
-      <div
-        className="pill-energy flex items-center gap-1.5 px-3 py-1.5 min-w-[120px]"
-        role="status"
-        aria-label={useReal ? `Energy ${energy} of ${energyCap}. Selected bet costs ${cost} energy per roll${countdown ? `. Next energy in ${countdown}` : ""}` : `Selected bet costs ${cost} energy per roll`}
-        title={useReal
-          ? `Energy refills 1 every 3 minutes up to ${energyCap}${countdown ? ` — next +1 in ${countdown}` : ""}`
-          : undefined}
-      >
-        <span aria-hidden="true" className="text-[10px] leading-none">⚡</span>
-        <div className="flex-1 h-1.5 rounded-full bg-wood-dark/40 overflow-hidden">
-          <motion.div
-            className="h-full bg-cream-light rounded-full"
-            initial={false}
-            animate={{ width: `${energyPct}%` }}
-            transition={{ type: "spring", stiffness: 200, damping: 20 }}
-          />
-        </div>
-        <span className="text-[11px] font-display leading-none">
-          {useReal ? `${energy}/${energyCap}` : `${currentBet}/${max}`}
-          {overflow > 0 && <span className="ml-1 text-[9px] opacity-90">+{overflow}</span>}
-          {countdown && (
-            <span
-              className="ml-1 text-[9px] opacity-80 tabular-nums"
-              aria-label={`Next energy in ${countdown}`}
-            >
-              +1 in {countdown}
-            </span>
-          )}
-        </span>
-      </div>
-
       {/* Single tap-to-cycle multiplier button */}
       <motion.button
         type="button"

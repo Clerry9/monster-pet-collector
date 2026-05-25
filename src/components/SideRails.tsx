@@ -30,6 +30,10 @@ interface Props {
   onOpenCollection: () => void;
   onOpenCards: () => void;
   onOpenRoulette: () => void;
+  /** Total shards held — drives the SHARDS rail counter. */
+  shards?: number;
+  /** Opens the Monster Collection (summon altar) tab. */
+  onOpenShards?: () => void;
   /** ms until the next free lucky-roulette spin. 0 / undefined = available now. */
   rouletteCooldownMs?: number;
   onLearnMore?: (railId: string) => void;
@@ -40,6 +44,7 @@ export function SideRails({
   onOpenSeason, onOpenSpin, onOpenDaily, onOpenSpecials, onOpenCollection, onOpenCards,
   onOpenRoulette,
   rouletteCooldownMs,
+  shards = 0, onOpenShards,
   onLearnMore,
 }: Props) {
   const luckyReady = !rouletteCooldownMs || rouletteCooldownMs <= 0;
@@ -49,6 +54,14 @@ export function SideRails({
     { id: "cards", icon: <Gamepad2 size={18} />, label: "CARDS", onClick: onOpenCards, tip: "Browse every card you've drawn and see how close each set is to completion." },
   ];
   const right: RailItem[] = [
+    {
+      id: "shards",
+      icon: <Sparkles size={18} className="text-cyan-300" />,
+      label: "SHARDS",
+      badge: shards > 0 ? String(shards) : undefined,
+      onClick: onOpenShards ?? onOpenCollection,
+      tip: "Your summoning shards. Tap to open the Monster Collection and spend them at the Summon Altar.",
+    },
     {
       id: "roulette",
       icon: <Dices size={18} />,
@@ -132,6 +145,14 @@ function Rail({ items, side, onLearnMore }: { items: RailItem[]; side: "left" | 
                   >
                     NEW
                   </motion.span>
+                )}
+                {it.badge && (
+                  <span
+                    className="absolute -top-1 -right-1 bg-cyan-500 text-cream-light text-[9px] font-display px-1.5 rounded-full border border-wood-dark tabular-nums leading-tight"
+                    aria-hidden="true"
+                  >
+                    {it.badge}
+                  </span>
                 )}
                 {it.countdownMs !== undefined && (
                   <span
