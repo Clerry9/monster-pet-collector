@@ -1,7 +1,27 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { GameCard, CardRarity } from "@/data/cards";
 import { Sparkles, X as XIcon } from "lucide-react";
+import { getA11yPrefs, subscribeA11yPrefs } from "@/lib/a11yPrefs";
+
+/** Returns true if the OS or the in-app a11y pref requests reduced motion. */
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    const os = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    return os || getA11yPrefs().reducedMotion;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduced(mq.matches || getA11yPrefs().reducedMotion);
+    mq.addEventListener?.("change", sync);
+    const unsub = subscribeA11yPrefs(() => sync());
+    return () => { mq.removeEventListener?.("change", sync); unsub(); };
+  }, []);
+  return reduced;
+}
 
 const RARITY_COLORS: Record<CardRarity, { bg: string; border: string; glow: string; text: string; nameText: string; subText: string; artBg: string }> = {
   common:    { bg: "bg-gradient-to-br from-slate-500 via-slate-400 to-slate-600",       border: "border-slate-200",  glow: "shadow-slate-300/40", text: "text-slate-100",   nameText: "text-white", subText: "text-slate-50/95",  artBg: "bg-gradient-to-br from-white/30 to-white/5" },
@@ -42,6 +62,7 @@ const PHASE_ANNOUNCEMENTS: Record<Phase, string> = {
 
 export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
   const [phase, setPhase] = useState<Phase>("idle");
+  const reducedMotion = usePrefersReducedMotion();
   const [canDismiss, setCanDismiss] = useState(false);
   /** 0 → 1 progress for the dismiss-grace countdown indicator. */
   const [dismissProgress, setDismissProgress] = useState(0);
@@ -235,7 +256,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
   if (!card) return null;
   const colors = RARITY_COLORS[card.rarity];
 
-  return (
+  const content = (
     <AnimatePresence>
       {card && (
         <motion.div
@@ -247,6 +268,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={reducedMotion ? { duration: 0 } : undefined}
           onClick={() => {
             // Background tap closes only when the reveal is fully shown OR
             // the safety dismiss timer has elapsed. The deterministic
@@ -401,9 +423,9 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
           {phase === "reveal" && (
             <motion.div
               className="relative cursor-pointer"
-              initial={{ scale: 0.4, rotateY: 180, y: 60, opacity: 0 }}
-              animate={{ scale: 1, rotateY: 0, y: 0, opacity: 1 }}
-              transition={{
+              initial={reducedMotion ? { opacity: 0 } : { scale: 0.4, rotateY: 180, y: 60, opacity: 0 }}
+              animate={reducedMotion ? { opacity: 1 } : { scale: 1, rotateY: 0, y: 0, opacity: 1 }}
+              transition={reducedMotion ? { duration: 0 } : {
                 type: "spring",
                 damping: 14,
                 stiffness: 110,
@@ -504,4 +526,10 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
       )}
     </AnimatePresence>
   );
+
+  // Portal to <body> so the modal always escapes any parent `transform` or
+  // `overflow` stacking contexts (e.g. the fullscreen board wrapper) and
+  // sits above the betting/spin controls on every breakpoint.
+  if (typeof document === "undefined") return content;
+  return createPortal(content, document.body);
 };

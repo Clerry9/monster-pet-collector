@@ -449,7 +449,7 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
         style={fullscreen ? { bottom: "calc(env(safe-area-inset-bottom, 0px) + 7.5rem)" } : undefined}
       >
         {/* Row: AUTO pill | Dial | spacer */}
-        <div className="flex items-end gap-2">
+        <div className="flex items-center gap-2">
           {/* AUTO toggle pill (purple) */}
           <button
             type="button"

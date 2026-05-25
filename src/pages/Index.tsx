@@ -65,6 +65,7 @@ import { useNavigate } from "react-router-dom";
 import { FriendSearchDebug, type FriendSearchPauseReason } from "@/components/FriendSearchDebug";
 import { EnergyRefillModal } from "@/components/EnergyRefillModal";
 import { scheduleAt, cancelScheduled } from "@/lib/notifications";
+import { OrientationHint } from "@/components/OrientationHint";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season" | "account";
 
@@ -448,6 +449,23 @@ const Index = () => {
     setCoachStartIndex(0);
     setCoachOpen(true);
   };
+
+  /**
+   * Guarantees the player sees a reward immediately after the tutorial
+   * concludes (skip or finish). If today's daily reward is still available
+   * we let the daily-reward chain run. Otherwise we grant a one-time
+   * "tutorial bonus" (coins + energy) and fire a celebration so the
+   * onboarding never ends on an empty screen.
+   */
+  const grantTutorialBonusOnce = useCallback(() => {
+    const KEY = "lov_tutorial_bonus_granted_v1";
+    try { if (localStorage.getItem(KEY) === "1") return; } catch { /* ignore */ }
+    try { localStorage.setItem(KEY, "1"); } catch { /* ignore */ }
+    game.addCoins(250);
+    game.addEnergy(5);
+    setCelebration("coins");
+    toast.success("🎓 Tutorial Bonus!", { description: "+250 🪙 and +5 ⚡ to get you started" });
+  }, [game]);
 
   // Start background music on mount
   useEffect(() => {
@@ -1363,6 +1381,8 @@ const Index = () => {
           if (!daily.alreadyClaimed) {
             setPostTutorialStep("daily");
             window.setTimeout(() => daily.openModal(), 400);
+          } else {
+            window.setTimeout(grantTutorialBonusOnce, 400);
           }
         }}
         onFinish={() => {
@@ -1378,6 +1398,7 @@ const Index = () => {
             // Skip daily, jump straight to mini-game intro.
             setPostTutorialStep("minigame");
             window.setTimeout(() => setTab("season"), 400);
+            window.setTimeout(grantTutorialBonusOnce, 400);
           }
         }}
       />
@@ -1389,6 +1410,7 @@ const Index = () => {
       />
       <DailyMissionsModal open={missionsOpen} onClose={() => setMissionsOpen(false)} />
       <RewardCelebration kind={celebration} onDone={handleCelebrationDone} />
+      <OrientationHint />
     </div>
   );
 };

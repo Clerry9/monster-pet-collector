@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { getAvailableBets } from "@/data/levels";
 import { energyCostForBet } from "@/hooks/useGameState";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronDown } from "lucide-react";
 
 interface BetSelectorProps {
   coins: number;
@@ -75,6 +77,8 @@ export function BetSelector({
     }
     onSetBet(mult);
   };
+
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const focusBetAt = (index: number) => {
     const next = (index + available.length) % available.length;
@@ -167,6 +171,47 @@ export function BetSelector({
           </motion.button>
         ))}
       </div>
+
+      {/* Dedicated multiplier picker button — large touch target popover
+          duplicates the same options so mobile users have an obvious way
+          to change the bet without scanning the pill row. */}
+      <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="pill-gold border-2 border-wood-dark px-3 py-1.5 text-[11px] font-display leading-none rounded-full flex items-center gap-1"
+            aria-label={`Change bet multiplier. Current ×${selectedBet}.`}
+          >
+            ×{selectedBet}
+            <ChevronDown size={12} aria-hidden="true" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="end"
+          className="w-44 p-2 bg-cream border-2 border-wood-dark z-[60]"
+        >
+          <div className="font-display text-[10px] uppercase tracking-wider text-wood-dark/70 mb-1 px-1">
+            Choose multiplier
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {available.map((mult) => (
+              <button
+                key={mult}
+                type="button"
+                onClick={() => { chooseBet(mult); setPickerOpen(false); }}
+                className={`py-2 px-2 text-xs font-display rounded-md border-2 border-wood-dark ${
+                  selectedBet === mult ? "pill-gold" : "bg-cream-light hover:bg-cream-light/80 text-wood-dark"
+                }`}
+                aria-pressed={selectedBet === mult}
+              >
+                <div>BET ×{mult}</div>
+                <div className="text-[9px] opacity-80 leading-tight">{energyCostForBet(mult)}⚡/roll</div>
+              </button>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+
       {betSummary}
       </div>
     </div>

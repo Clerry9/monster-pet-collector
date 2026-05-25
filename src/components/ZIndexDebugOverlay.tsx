@@ -10,6 +10,9 @@ import { useEffect, useState } from "react";
  * with z-index >= 50 in magenta so collisions are obvious at a glance.
  */
 export const ZIndexDebugOverlay = () => {
+  // Hard gate: never render in production builds. Vite tree-shakes
+  // `import.meta.env.DEV === false` branches so the body ships only in dev.
+  if (!import.meta.env.DEV) return null;
   const [enabled, setEnabled] = useState(false);
   const [info, setInfo] = useState<{ vw: number; vh: number; topZ: number; topTag: string }>({
     vw: 0, vh: 0, topZ: 0, topTag: "",
