@@ -423,9 +423,9 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
           {phase === "reveal" && (
             <motion.div
               className="relative cursor-pointer"
-              initial={{ scale: 0.4, rotateY: 180, y: 60, opacity: 0 }}
-              animate={{ scale: 1, rotateY: 0, y: 0, opacity: 1 }}
-              transition={{
+              initial={reducedMotion ? { opacity: 0 } : { scale: 0.4, rotateY: 180, y: 60, opacity: 0 }}
+              animate={reducedMotion ? { opacity: 1 } : { scale: 1, rotateY: 0, y: 0, opacity: 1 }}
+              transition={reducedMotion ? { duration: 0 } : {
                 type: "spring",
                 damping: 14,
                 stiffness: 110,
