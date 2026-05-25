@@ -1381,6 +1381,8 @@ const Index = () => {
           if (!daily.alreadyClaimed) {
             setPostTutorialStep("daily");
             window.setTimeout(() => daily.openModal(), 400);
+          } else {
+            window.setTimeout(grantTutorialBonusOnce, 400);
           }
         }}
         onFinish={() => {
@@ -1396,6 +1398,7 @@ const Index = () => {
             // Skip daily, jump straight to mini-game intro.
             setPostTutorialStep("minigame");
             window.setTimeout(() => setTab("season"), 400);
+            window.setTimeout(grantTutorialBonusOnce, 400);
           }
         }}
       />
