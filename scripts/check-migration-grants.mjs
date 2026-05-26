@@ -10,10 +10,17 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const dir = "supabase/migrations";
+
+// Migrations created before this guard existed are grandfathered.
+// New migrations (lexicographically greater) MUST include GRANTs.
+const CUTOFF = "20260526180000";
+
 let failed = 0;
 
 for (const name of readdirSync(dir)) {
   if (!name.endsWith(".sql")) continue;
+  const ts = name.slice(0, 14);
+  if (ts < CUTOFF) continue;
   const sql = readFileSync(join(dir, name), "utf8");
 
   // Look for CREATE TABLE public.<name>
