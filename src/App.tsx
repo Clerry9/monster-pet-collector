@@ -17,6 +17,7 @@ import AdminRewards from "./pages/AdminRewards";
 import AdminPackAnalytics from "./pages/AdminPackAnalytics";
 import AdminCosmetics from "./pages/AdminCosmetics";
 import Achievements from "./pages/Achievements";
+import Arena from "./pages/Arena";
 import { CookieConsent } from "./components/CookieConsent";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -134,6 +135,19 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Achievements />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/arena"
+              element={
+                <ProtectedRoute>
+                  <ErrorBoundary
+                    title="Arena error"
+                    message="The Gladiator Arena hit a runtime error. Reload to try again."
+                  >
+                    <Arena />
+                  </ErrorBoundary>
                 </ProtectedRoute>
               }
             />
