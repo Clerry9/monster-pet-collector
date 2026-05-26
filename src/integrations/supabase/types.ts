@@ -313,10 +313,10 @@ export type Database = {
           id: string
           monsters_granted: string[]
           pack_id: string
-          paddle_transaction_id: string | null
           price_id: string | null
           rolls_granted: number
           stars_granted: number
+          stripe_transaction_id: string | null
           user_id: string
         }
         Insert: {
@@ -329,10 +329,10 @@ export type Database = {
           id?: string
           monsters_granted?: string[]
           pack_id: string
-          paddle_transaction_id?: string | null
           price_id?: string | null
           rolls_granted?: number
           stars_granted?: number
+          stripe_transaction_id?: string | null
           user_id: string
         }
         Update: {
@@ -345,10 +345,10 @@ export type Database = {
           id?: string
           monsters_granted?: string[]
           pack_id?: string
-          paddle_transaction_id?: string | null
           price_id?: string | null
           rolls_granted?: number
           stars_granted?: number
+          stripe_transaction_id?: string | null
           user_id?: string
         }
         Relationships: []
@@ -389,11 +389,11 @@ export type Database = {
           environment: string
           id: string
           pack_id: string | null
-          paddle_transaction_id: string
           price_id: string
           product_id: string
           rolls_granted: number
           status: string
+          stripe_transaction_id: string
           user_id: string
         }
         Insert: {
@@ -401,11 +401,11 @@ export type Database = {
           environment?: string
           id?: string
           pack_id?: string | null
-          paddle_transaction_id: string
           price_id: string
           product_id: string
           rolls_granted?: number
           status?: string
+          stripe_transaction_id: string
           user_id: string
         }
         Update: {
@@ -413,11 +413,11 @@ export type Database = {
           environment?: string
           id?: string
           pack_id?: string | null
-          paddle_transaction_id?: string
           price_id?: string
           product_id?: string
           rolls_granted?: number
           status?: string
+          stripe_transaction_id?: string
           user_id?: string
         }
         Relationships: []
@@ -577,11 +577,11 @@ export type Database = {
           current_period_start: string | null
           environment: string
           id: string
-          paddle_customer_id: string
-          paddle_subscription_id: string
           price_id: string
           product_id: string
           status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
           updated_at: string
           user_id: string
         }
@@ -592,11 +592,11 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
-          paddle_customer_id: string
-          paddle_subscription_id: string
           price_id: string
           product_id: string
           status?: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
           updated_at?: string
           user_id: string
         }
@@ -607,11 +607,11 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
-          paddle_customer_id?: string
-          paddle_subscription_id?: string
           price_id?: string
           product_id?: string
           status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
           updated_at?: string
           user_id?: string
         }

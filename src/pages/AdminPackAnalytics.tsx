@@ -19,7 +19,7 @@ interface AnalyticsRow {
   user_id: string;
   pack_id: string;
   price_id: string | null;
-  paddle_transaction_id: string | null;
+  stripe_transaction_id: string | null;
   event: string;
   rolls_granted: number;
   coins_granted: number;
@@ -241,8 +241,8 @@ export default function AdminPackAnalytics() {
                   <TableCell className="text-right tabular-nums">{r.stars_granted}</TableCell>
                   <TableCell className="text-xs">{r.dice_tier ?? "—"}</TableCell>
                   <TableCell className="text-xs">{r.environment}</TableCell>
-                  <TableCell className="font-mono text-[10px] truncate max-w-[120px]" title={r.paddle_transaction_id ?? ""}>
-                    {r.paddle_transaction_id ?? "—"}
+                  <TableCell className="font-mono text-[10px] truncate max-w-[120px]" title={r.stripe_transaction_id ?? ""}>
+                    {r.stripe_transaction_id ?? "—"}
                   </TableCell>
                 </TableRow>
               ))}

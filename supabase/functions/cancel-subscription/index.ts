@@ -1,12 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { getPaddleClient, gatewayFetch, type PaddleEnv } from '../_shared/paddle.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-  'Content-Type': 'application/json',
-};
+import { type StripeEnv, createStripeClient, corsHeaders } from '../_shared/stripe.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -39,28 +32,19 @@ Deno.serve(async (req) => {
     const { data: row } = await admin
       .from('subscriptions')
       .select('*')
-      .eq('paddle_subscription_id', subscriptionId)
+      .eq('stripe_subscription_id', subscriptionId)
       .eq('user_id', userId)
       .maybeSingle();
     if (!row) {
       return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: corsHeaders });
     }
-    const env = row.environment as PaddleEnv;
+    const env = row.environment as StripeEnv;
+    const stripe = createStripeClient(env);
 
     if (action === 'cancel') {
-      // Cancel at end of billing period via Paddle SDK
-      const paddle = getPaddleClient(env);
-      await paddle.subscriptions.cancel(subscriptionId, { effectiveFrom: 'next_billing_period' });
+      await stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: true });
     } else {
-      // Resume = clear scheduled cancellation
-      const res = await gatewayFetch(env, `/subscriptions/${subscriptionId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ scheduled_change: null }),
-      });
-      if (!res.ok) {
-        const txt = await res.text();
-        return new Response(JSON.stringify({ error: 'Paddle error', detail: txt }), { status: 400, headers: corsHeaders });
-      }
+      await stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: false });
     }
 
     return new Response(JSON.stringify({ ok: true }), { headers: corsHeaders });

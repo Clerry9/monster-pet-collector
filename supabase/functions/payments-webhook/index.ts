@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { verifyWebhook, EventName, type PaddleEnv } from '../_shared/paddle.ts';
+import { type StripeEnv, createStripeClient, verifyWebhook } from '../_shared/stripe.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -87,7 +87,7 @@ async function grantRouletteSpins(userId: string, priceId: string, transactionId
       user_id: userId,
       pack_id: entry.packId,
       price_id: priceId,
-      paddle_transaction_id: transactionId,
+      stripe_transaction_id: transactionId,
       event: 'pack_fulfilled',
       // No dedicated spins column on pack_analytics — record under
       // rolls_granted so admin dashboards have a single quantity column.
@@ -134,7 +134,7 @@ async function grantPerks(userId: string, perk: Perk, ctx?: { priceId?: string; 
       user_id: userId,
       pack_id: perk.packId,
       price_id: ctx?.priceId ?? null,
-      paddle_transaction_id: ctx?.transactionId ?? null,
+      stripe_transaction_id: ctx?.transactionId ?? null,
       event: 'pack_fulfilled',
       rolls_granted: rolls,
       coins_granted: coins,
@@ -184,185 +184,190 @@ async function grantPerks(userId: string, perk: Perk, ctx?: { priceId?: string; 
   }
 }
 
+function resolvePriceLookup(price: any): string {
+  return price?.lookup_key || price?.metadata?.lovable_external_id || price?.id || '';
+}
+
+async function handleCheckoutCompleted(session: any, env: StripeEnv) {
+  // Only fulfil one-time payments here. Subscription rows are written by
+  // customer.subscription.created/updated handlers, but we still grant the
+  // subscription's first-period perks via that path.
+  if (session.mode !== 'payment') return;
+
+  const userId = session.metadata?.userId;
+  if (!userId) {
+    console.error('No userId in checkout session metadata');
+    return;
+  }
+
+  // Idempotency
+  const { data: existing } = await supabase
+    .from('purchases')
+    .select('id, status')
+    .eq('stripe_transaction_id', session.id)
+    .maybeSingle();
+  if (existing && existing.status === 'completed') {
+    console.log('Duplicate session ignored:', session.id);
+    return;
+  }
+
+  // Pull line items with price expanded to get lookup_key
+  const stripe = createStripeClient(env);
+  const items = await stripe.checkout.sessions.listLineItems(session.id, {
+    expand: ['data.price.product'],
+    limit: 1,
+  });
+  const item = items.data[0];
+  const price = item?.price as any;
+  const priceExternalId = resolvePriceLookup(price);
+  const productExternalId = (price?.product?.metadata?.lovable_external_id) || price?.product?.id || '';
+
+  const perk = PACK_MAP[priceExternalId];
+  if (!perk) console.warn('No perk mapping for price:', priceExternalId);
+  const rollsToGrant = perk?.rolls ?? 0;
+  const coinsToGrant = perk?.coins ?? 0;
+  const starsToGrant = perk?.stars ?? 0;
+  const cardFlipsToGrant = perk?.cardFlips ?? 0;
+
+  const { error: purchaseError } = await supabase.from('purchases').upsert({
+    user_id: userId,
+    stripe_transaction_id: session.id,
+    product_id: productExternalId,
+    price_id: priceExternalId,
+    pack_id: perk?.packId || session.metadata?.packId || 'unknown',
+    rolls_granted: rollsToGrant,
+    status: 'completed',
+    environment: env,
+  }, { onConflict: 'stripe_transaction_id' });
+
+  if (purchaseError) {
+    console.error('Failed to record purchase:', purchaseError);
+    return;
+  }
+
+  if (perk && (rollsToGrant || coinsToGrant || starsToGrant || cardFlipsToGrant || perk.unlockDiceTier || perk.unlockMonsters)) {
+    await grantPerks(userId, perk, { priceId: priceExternalId, transactionId: session.id, environment: env });
+  }
+
+  if (ROULETTE_SPIN_MAP[priceExternalId]) {
+    await grantRouletteSpins(userId, priceExternalId, session.id, env);
+  }
+
+  // Season pass one-time purchases (tier prices count here too)
+  const seasonInstanceId = session.metadata?.seasonInstanceId;
+  if (seasonInstanceId && (priceExternalId.startsWith('season_pass_') || session.metadata?.packId === 'season_pass')) {
+    const { data: existingSeason } = await supabase
+      .from('season_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('season_id', seasonInstanceId)
+      .maybeSingle();
+    if (existingSeason) {
+      await supabase.from('season_progress')
+        .update({ pass_purchased: true })
+        .eq('user_id', userId)
+        .eq('season_id', seasonInstanceId);
+    } else {
+      await supabase.from('season_progress').insert({
+        user_id: userId,
+        season_id: seasonInstanceId,
+        pass_purchased: true,
+      });
+    }
+    console.log(`Season pass granted: user=${userId}, season=${seasonInstanceId}`);
+  }
+
+  console.log(`Purchase fulfilled: user=${userId}, pack=${perk?.packId}, rolls=${rollsToGrant}, coins=${coinsToGrant}`);
+}
+
+async function handleSubscriptionUpsert(subscription: any, env: StripeEnv) {
+  const userId = subscription.metadata?.userId;
+  if (!userId) { console.warn('Subscription event without userId'); return; }
+  const item = subscription.items?.data?.[0];
+  const price = item?.price;
+  const priceId = resolvePriceLookup(price);
+  const productId = price?.product;
+  if (!priceId || !productId) { console.warn('Subscription missing price info'); return; }
+
+  const periodStart = item?.current_period_start ?? subscription.current_period_start;
+  const periodEnd = item?.current_period_end ?? subscription.current_period_end;
+  const periodStartIso = periodStart ? new Date(periodStart * 1000).toISOString() : null;
+  const periodEndIso = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
+
+  const { data: priorSub } = await supabase
+    .from('subscriptions')
+    .select('current_period_start, status')
+    .eq('stripe_subscription_id', subscription.id)
+    .maybeSingle();
+
+  const isNewPeriod =
+    !priorSub ||
+    (periodStartIso && priorSub.current_period_start !== periodStartIso);
+
+  await supabase.from('subscriptions').upsert({
+    user_id: userId,
+    stripe_subscription_id: subscription.id,
+    stripe_customer_id: subscription.customer,
+    product_id: productId,
+    price_id: priceId,
+    status: subscription.status,
+    current_period_start: periodStartIso,
+    current_period_end: periodEndIso,
+    cancel_at_period_end: subscription.cancel_at_period_end || false,
+    environment: env,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'stripe_subscription_id' });
+
+  if (isNewPeriod && (subscription.status === 'active' || subscription.status === 'trialing')) {
+    const subPerk = PACK_MAP[priceId];
+    if (subPerk) {
+      await grantPerks(userId, subPerk, { priceId, transactionId: subscription.id, environment: env });
+      console.log(`Granted subscription perks for ${priceId} period ${periodStartIso}`);
+    }
+  }
+}
+
+async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
+  await supabase.from('subscriptions')
+    .update({ status: 'canceled', updated_at: new Date().toISOString() })
+    .eq('stripe_subscription_id', subscription.id)
+    .eq('environment', env);
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
   }
-
-  const url = new URL(req.url);
-  const env = (url.searchParams.get('env') || 'sandbox') as PaddleEnv;
+  const rawEnv = new URL(req.url).searchParams.get('env');
+  if (rawEnv !== 'sandbox' && rawEnv !== 'live') {
+    console.error('Webhook received with invalid env:', rawEnv);
+    return new Response(JSON.stringify({ received: true, ignored: 'invalid env' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  const env: StripeEnv = rawEnv;
 
   try {
     const event = await verifyWebhook(req, env);
-    console.log('Received event:', event.eventType, 'env:', env);
+    console.log('Received event:', event.type, 'env:', env);
 
-    switch (event.eventType) {
-      case EventName.TransactionCompleted: {
-        const data = event.data as any;
-        const customData = data.customData || {};
-        const userId = customData.userId;
-
-        if (!userId) {
-          console.error('No userId in customData — cannot grant entitlement');
-          break;
-        }
-
-        // ---- Idempotency guard ----
-        // Each Paddle transaction id is unique. If we've already recorded a
-        // 'completed' purchase for this id, the perks were already granted —
-        // bail out so a webhook retry / duplicate delivery doesn't double-grant.
-        {
-          const { data: existing } = await supabase
-            .from('purchases')
-            .select('id, status')
-            .eq('paddle_transaction_id', data.id)
-            .maybeSingle();
-          if (existing && existing.status === 'completed') {
-            console.log('Duplicate transaction event ignored:', data.id);
-            break;
-          }
-        }
-
-        // Extract price info from transaction items
-        const item = data.items?.[0];
-        const priceExternalId = item?.price?.importMeta?.externalId || item?.price?.id || '';
-        const productExternalId = item?.product?.importMeta?.externalId || item?.product?.id || '';
-
-        const perk = PACK_MAP[priceExternalId];
-        if (!perk) {
-          console.warn('No perk mapping for price:', priceExternalId);
-        }
-        const rollsToGrant = perk?.rolls ?? 0;
-        const coinsToGrant = perk?.coins ?? 0;
-        const starsToGrant = perk?.stars ?? 0;
-        const cardFlipsToGrant = perk?.cardFlips ?? 0;
-
-        // Record the purchase
-        const { error: purchaseError } = await supabase.from('purchases').upsert({
-          user_id: userId,
-          paddle_transaction_id: data.id,
-          product_id: productExternalId,
-          price_id: priceExternalId,
-          pack_id: perk?.packId || customData.packId || 'unknown',
-          rolls_granted: rollsToGrant,
-          status: 'completed',
-          environment: env,
-        }, { onConflict: 'paddle_transaction_id' });
-
-        if (purchaseError) {
-          console.error('Failed to record purchase:', purchaseError);
-          break;
-        }
-
-        // Apply ALL economic rewards in a single read-modify-write so
-        // multiple bundles (e.g. VIP) credit atomically.
-        if (perk && (rollsToGrant || coinsToGrant || starsToGrant || cardFlipsToGrant || perk.unlockDiceTier || perk.unlockMonsters)) {
-          await grantPerks(userId, perk, { priceId: priceExternalId, transactionId: data.id, environment: env });
-        }
-
-        // Roulette spin packs — independent fulfillment path (writes to
-        // roulette_state, not game_state).
-        if (ROULETTE_SPIN_MAP[priceExternalId]) {
-          await grantRouletteSpins(userId, priceExternalId, data.id, env);
-        }
-
-        // Handle Season Pass purchase
-        if (priceExternalId === 'season_pass_one_time' || customData.packId === 'season_pass') {
-          const seasonInstanceId = customData.seasonInstanceId;
-          if (seasonInstanceId) {
-            // Upsert the season_progress row with pass_purchased = true
-            const { data: existing } = await supabase
-              .from('season_progress')
-              .select('*')
-              .eq('user_id', userId)
-              .eq('season_id', seasonInstanceId)
-              .maybeSingle();
-
-            if (existing) {
-              await supabase
-                .from('season_progress')
-                .update({ pass_purchased: true })
-                .eq('user_id', userId)
-                .eq('season_id', seasonInstanceId);
-            } else {
-              await supabase.from('season_progress').insert({
-                user_id: userId,
-                season_id: seasonInstanceId,
-                pass_purchased: true,
-              });
-            }
-            console.log(`Season pass granted: user=${userId}, season=${seasonInstanceId}`);
-          } else {
-            console.warn('Season pass purchase had no seasonInstanceId in customData');
-          }
-        }
-
-        console.log(`Purchase fulfilled: user=${userId}, pack=${perk?.packId}, rolls=${rollsToGrant}, coins=${coinsToGrant}`);
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(event.data.object, env);
         break;
-      }
-
-      case EventName.SubscriptionCreated:
-      case EventName.SubscriptionUpdated: {
-        const data = event.data as any;
-        const userId = data.customData?.userId;
-        if (!userId) { console.warn('Subscription event without userId'); break; }
-        const item = data.items?.[0];
-        const priceId = item?.price?.importMeta?.externalId ?? item?.price?.id;
-        const productId = item?.product?.importMeta?.externalId ?? item?.product?.id;
-        if (!priceId || !productId) { console.warn('Subscription missing externalId'); break; }
-        // ---- Subscription renewal idempotency ----
-        // For renewals, Paddle fires subscription.updated with a new
-        // current_period_start. Only grant recurring perks when the period
-        // start advances vs. what we already stored.
-        const periodStart = data.currentBillingPeriod?.startsAt;
-        const { data: priorSub } = await supabase
-          .from('subscriptions')
-          .select('current_period_start, status')
-          .eq('paddle_subscription_id', data.id)
-          .maybeSingle();
-        const isNewPeriod =
-          !priorSub ||
-          (periodStart && priorSub.current_period_start !== periodStart);
-        await supabase.from('subscriptions').upsert({
-          user_id: userId,
-          paddle_subscription_id: data.id,
-          paddle_customer_id: data.customerId,
-          product_id: productId,
-          price_id: priceId,
-          status: data.status,
-          current_period_start: periodStart,
-          current_period_end: data.currentBillingPeriod?.endsAt,
-          cancel_at_period_end: data.scheduledChange?.action === 'cancel',
-          environment: env,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'paddle_subscription_id' });
-        // Grant subscription perks once per billing period.
-        if (isNewPeriod && (data.status === 'active' || data.status === 'trialing')) {
-          const subPerk = PACK_MAP[priceId];
-          if (subPerk) {
-            await grantPerks(userId, subPerk, { priceId, transactionId: data.id, environment: env });
-            console.log(`Granted subscription perks for ${priceId} period ${periodStart}`);
-          }
-        }
-        console.log(`Subscription ${event.eventType}: ${data.id}`);
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpsert(event.data.object, env);
         break;
-      }
-
-      case EventName.SubscriptionCanceled: {
-        const data = event.data as any;
-        await supabase.from('subscriptions')
-          .update({ status: 'canceled', updated_at: new Date().toISOString() })
-          .eq('paddle_subscription_id', data.id)
-          .eq('environment', env);
+      case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(event.data.object, env);
         break;
-      }
-
-      case EventName.TransactionPaymentFailed:
-        console.log('Payment failed:', (event.data as any).id, 'env:', env);
+      case 'invoice.payment_failed':
+        console.log('Payment failed:', (event.data.object as any).id, 'env:', env);
         break;
-
       default:
-        console.log('Unhandled event:', event.eventType);
+        console.log('Unhandled event:', event.type);
     }
 
     return new Response(JSON.stringify({ received: true }), {
