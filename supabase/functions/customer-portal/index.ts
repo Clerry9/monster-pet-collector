@@ -1,12 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { getPaddleClient, type PaddleEnv } from '../_shared/paddle.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-  'Content-Type': 'application/json',
-};
+import { type StripeEnv, createStripeClient, corsHeaders } from '../_shared/stripe.ts';
 
 /**
  * Creates a Paddle customer portal session for the caller. The portal lets
@@ -49,40 +42,25 @@ Deno.serve(async (req) => {
     // caller specifies a subscriptionId, scope the lookup to it.
     const q = admin
       .from('subscriptions')
-      .select('paddle_customer_id, paddle_subscription_id, environment, created_at')
+      .select('stripe_customer_id, stripe_subscription_id, environment, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
     const { data: rows } = body.subscriptionId
-      ? await q.eq('paddle_subscription_id', body.subscriptionId).limit(1)
+      ? await q.eq('stripe_subscription_id', body.subscriptionId).limit(1)
       : await q.limit(1);
     const sub = rows?.[0];
-    if (!sub?.paddle_customer_id) {
+    if (!sub?.stripe_customer_id) {
       return new Response(
         JSON.stringify({ error: 'No subscription found for this account' }),
         { status: 404, headers: corsHeaders },
       );
     }
 
-    const paddle = getPaddleClient(sub.environment as PaddleEnv);
-    // Pass the specific subscription if the caller asked for it; otherwise
-    // create a general portal session.
-    const portal: any = await paddle.customerPortalSessions.create(
-      sub.paddle_customer_id,
-      body.subscriptionId ? [body.subscriptionId] : [],
-    );
-
-    const generalUrl: string | undefined = portal?.urls?.general?.overview;
-    const subscriptionUrl: string | undefined =
-      body.subscriptionId
-        ? (portal?.urls?.subscriptions ?? []).find(
-            (s: any) => s?.id === body.subscriptionId,
-          )?.cancelSubscription ?? generalUrl
-        : generalUrl;
-
-    return new Response(
-      JSON.stringify({ url: subscriptionUrl ?? generalUrl }),
-      { headers: corsHeaders },
-    );
+    const stripe = createStripeClient(sub.environment as StripeEnv);
+    const portal = await stripe.billingPortal.sessions.create({
+      customer: sub.stripe_customer_id as string,
+    });
+    return new Response(JSON.stringify({ url: portal.url }), { headers: corsHeaders });
   } catch (e) {
     console.error('customer-portal error', e);
     return new Response(
