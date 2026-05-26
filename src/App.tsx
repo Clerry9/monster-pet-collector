@@ -18,6 +18,8 @@ import AdminPackAnalytics from "./pages/AdminPackAnalytics";
 import AdminCosmetics from "./pages/AdminCosmetics";
 import Achievements from "./pages/Achievements";
 import Arena from "./pages/Arena";
+import ArenaReplay from "./pages/ArenaReplay";
+import PvP from "./pages/PvP";
 import { CookieConsent } from "./components/CookieConsent";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -147,6 +149,26 @@ const App = () => (
                     message="The Gladiator Arena hit a runtime error. Reload to try again."
                   >
                     <Arena />
+                  </ErrorBoundary>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/arena/replay"
+              element={
+                <ProtectedRoute>
+                  <ErrorBoundary title="Replay error" message="The replay viewer hit an error.">
+                    <ArenaReplay />
+                  </ErrorBoundary>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pvp"
+              element={
+                <ProtectedRoute>
+                  <ErrorBoundary title="PvP error" message="PvP hit a runtime error. Reload to try again.">
+                    <PvP />
                   </ErrorBoundary>
                 </ProtectedRoute>
               }

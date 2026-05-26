@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
       const def = rehydrate(b.defender_monster, b.defender_hp, b.defender_special_cd);
       if (action === "special" && atk.special_cd > 0) return json({ error: "special on cooldown" }, 400);
 
-      const enemyAction = aiPick(def);
+      const enemyAction = aiPick(def, run.wave);
       const events = resolveRound(atk, def, action, enemyAction);
       const log = [...b.log, ...events];
       const winner = atk.hp <= 0 && def.hp <= 0 ? "draw" : def.hp <= 0 ? "attacker" : atk.hp <= 0 ? "defender" : null;

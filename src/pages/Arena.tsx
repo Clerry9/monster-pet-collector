@@ -195,6 +195,9 @@ export default function Arena() {
                   <Button onClick={() => { arena.reset(); setPicking(true); }} className="w-full font-display">
                     Return to Lobby
                   </Button>
+                  <Link to="/arena/replay" className="block mt-2 text-center text-[11px] text-gold underline hover:text-gold/80">
+                    📜 View Battle Replay
+                  </Link>
                 </motion.div>
               )}
             </AnimatePresence>
