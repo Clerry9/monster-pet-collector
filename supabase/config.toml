@@ -1,1 +1,19 @@
 project_id = "tpvnkpoodakakuhrnzxs"
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.payments-webhook]
+verify_jwt = false
+
+[functions.list-pricing]
+verify_jwt = false
+
+[functions.refresh-subscription]
+verify_jwt = false
+
+[functions.cancel-subscription]
+verify_jwt = false
+
+[functions.customer-portal]
+verify_jwt = false

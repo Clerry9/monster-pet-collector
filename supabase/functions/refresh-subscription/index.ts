@@ -1,12 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { getPaddleClient, type PaddleEnv } from '../_shared/paddle.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-  'Content-Type': 'application/json',
-};
+import { type StripeEnv, createStripeClient, corsHeaders } from '../_shared/stripe.ts';
 
 /**
  * Re-syncs the caller's subscription rows from Paddle.
@@ -23,39 +16,41 @@ Deno.serve(async (req) => {
     if (!authHeader.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
+    const token = authHeader.replace('Bearer ', '');
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } },
     );
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token);
-    if (claimsErr || !claims?.claims?.sub) {
+    const { data: userData } = await supabase.auth.getUser(token);
+    const userId = userData?.user?.id;
+    if (!userId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
-    const userId = claims.claims.sub as string;
 
     const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const { data: rows } = await admin
       .from('subscriptions')
-      .select('paddle_subscription_id, environment')
+      .select('stripe_subscription_id, environment')
       .eq('user_id', userId);
 
     let refreshed = 0;
     for (const row of rows ?? []) {
       try {
-        const paddle = getPaddleClient(row.environment as PaddleEnv);
-        const sub: any = await paddle.subscriptions.get(row.paddle_subscription_id);
+        const stripe = createStripeClient(row.environment as StripeEnv);
+        const sub: any = await stripe.subscriptions.retrieve(row.stripe_subscription_id);
+        const item = sub.items?.data?.[0];
+        const periodStart = item?.current_period_start ?? sub.current_period_start;
+        const periodEnd = item?.current_period_end ?? sub.current_period_end;
         await admin.from('subscriptions').update({
           status: sub.status,
-          current_period_start: sub.currentBillingPeriod?.startsAt ?? null,
-          current_period_end: sub.currentBillingPeriod?.endsAt ?? null,
-          cancel_at_period_end: sub.scheduledChange?.action === 'cancel',
+          current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
+          current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+          cancel_at_period_end: sub.cancel_at_period_end || false,
           updated_at: new Date().toISOString(),
-        }).eq('paddle_subscription_id', row.paddle_subscription_id);
+        }).eq('stripe_subscription_id', row.stripe_subscription_id);
         refreshed++;
       } catch (e) {
-        console.warn('Failed to refresh sub', row.paddle_subscription_id, e);
+        console.warn('Failed to refresh sub', row.stripe_subscription_id, e);
       }
     }
 
