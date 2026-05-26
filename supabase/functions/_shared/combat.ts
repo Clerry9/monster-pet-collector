@@ -86,11 +86,15 @@ export function powerRating(c: Combatant): number {
 }
 
 /** AI policy: choose action for an NPC combatant. */
-export function aiPick(self: Combatant): Action {
-  if (self.special_cd === 0 && self.hp / self.max_hp > 0.35 && Math.random() < 0.55) {
+export function aiPick(self: Combatant, wave = 1): Action {
+  // Special-move frequency scales with wave: 55% at W1 → ~90% by W15+.
+  const specialChance = Math.min(0.9, 0.55 + (wave - 1) * 0.025);
+  if (self.special_cd === 0 && self.hp / self.max_hp > 0.30 && Math.random() < specialChance) {
     return "special";
   }
-  if (self.hp / self.max_hp < 0.30 && Math.random() < 0.50) return "defend";
+  // Higher waves: defend more aggressively when low HP to stretch fights.
+  const defendThreshold = Math.min(0.45, 0.30 + (wave - 1) * 0.01);
+  if (self.hp / self.max_hp < defendThreshold && Math.random() < 0.55) return "defend";
   return "attack";
 }
 
@@ -258,9 +262,16 @@ export function generateGladiator(wave: number, allStats: BaseStats[]): Combatan
   }
   const base = pool[Math.floor(Math.random() * pool.length)];
   const c = buildCombatant(base, isBoss ? level + 2 : level, `Wave ${wave} ${base.monster_id}`);
+  // Per-wave difficulty scaling stacks on top of level/rarity. ~+4%/wave compounding.
+  const waveMult = 1 + Math.min(2.0, wave * 0.04); // capped at +200% for very deep runs
+  c.max_hp = Math.round(c.max_hp * waveMult);
+  c.hp = c.max_hp;
+  c.atk = Math.round(c.atk * (1 + Math.min(1.2, wave * 0.035)));
+  c.def = Math.round(c.def * (1 + Math.min(1.0, wave * 0.03)));
+  c.spd = Math.round(c.spd * (1 + Math.min(0.5, wave * 0.015)));
   if (isBoss) {
-    c.hp = Math.round(c.hp * 1.3);
-    c.max_hp = c.hp;
+    c.max_hp = Math.round(c.max_hp * 1.3);
+    c.hp = c.max_hp;
     c.atk = Math.round(c.atk * 1.2);
   }
   return c;
