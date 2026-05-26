@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:security": "vitest run src/test/security"
   },
   "dependencies": {
     "@capacitor-community/admob": "^6.0.0",
