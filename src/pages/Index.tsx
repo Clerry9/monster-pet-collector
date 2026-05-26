@@ -828,6 +828,16 @@ const Index = () => {
             <Swords size={16} />
             <span className="text-[7px] font-display leading-none mt-0.5">ARENA</span>
           </RouterLink>
+          <RouterLink
+            to="/pvp"
+            className="fixed top-2 z-50 icon-tile-gold w-10 h-10 flex flex-col items-center justify-center shadow-chunky"
+            style={{ right: "9.5rem" }}
+            aria-label="PvP Coliseum"
+            title="PvP Coliseum"
+          >
+            <Swords size={16} />
+            <span className="text-[7px] font-display leading-none mt-0.5">PVP</span>
+          </RouterLink>
         </>
       )}
 
