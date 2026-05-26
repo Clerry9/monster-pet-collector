@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.arena-action]
 verify_jwt = false
+
+[functions.pvp-match]
+verify_jwt = false
