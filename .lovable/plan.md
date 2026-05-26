@@ -1,127 +1,96 @@
 
-# Reward, Monster Summoning, 3D Polish, and Battle System
+# Phase 4 — Battle System + Gladiator Arena
 
-Split into four phases. Each is shippable on its own; we approve and build in order.
-
----
-
-## Phase 1 — Per-roll bonus reward system
-
-Every roll already grants tile rewards. On top of that, add a **bonus roll** whose chance and quality scale with `bet_multiplier`.
-
-**Bonus pool (one is granted when triggered):**
-
-| Bonus | Effect | Rarity |
-|---|---|---|
-| Energy refill | +10/+25/+50 energy | common |
-| Monster buff | +10% coin gain or +1 step range for next 5 rolls | common |
-| Mini-game token | Grants 1 free MiniGame / MiniGameJack play | uncommon |
-| Build discount | -25% building costs for 5, 10, or 15 minutes | uncommon |
-| Shard drop | 1–10 shards (rarity-weighted by bet) | always available, scales |
-| Mega shard burst | 25–50 shards | rare |
-
-**Trigger formula:** `chance = clamp(0.15 + log2(bet) * 0.08, 0.15, 0.65)`. Higher bets also bias the pool toward better outcomes. Shards are the most common drop so progression always feels rewarding.
-
-**Where it slots in:** `useGameState.ts` `spin()` returns a `bonusReward` alongside the tile reward. `Index.tsx` displays it via a new `BonusRewardToast` component that animates over the board.
-
-**Build-discount timer:** stored in `game_state.active_buffs` (new jsonb column) with `expires_at`. Read by building-cost UIs.
-
-**Buff stack:** stored similarly; consumed per-roll counter or timer.
+Building the turn-based battle engine, then layering three modes on top. Shipped in three sub-phases so each is playable on its own.
 
 ---
 
-## Phase 2 — Shards & monster summoning/merging
+## 4A — Core combat engine (server-authoritative)
 
-Replaces direct coin-buy of monsters with a gacha-style summon + merge loop.
-
-**New columns on `game_state`:**
-- `shards` int default 0
-- `monster_collection` jsonb — `{ "<monsterId>": { level: 0, copies: 1 } }`
-- `active_buffs` jsonb (from Phase 1)
-
-**Summon costs (server RPC `summon_monster(rarity)`):**
-- 50 shards → random **common**
-- 100 shards → random **rare**
-- 125 shards → random **epic**
-- 150 shards → random **legendary**
-
-Random pick respects existing rarity tags in `MONSTERS`. Newly summoned monsters start at **Level 0**.
-
-**Merging (RPC `merge_monsters(monsterId)`):**
-- 3 copies of the same monster at level N → 1 copy at level N+1, capped at the monster's existing evolution count (4 levels).
-- Triggers `LevelUpCelebration` and switches the rendered evolution.
-
-**UI changes:**
-- `MonsterCollection.tsx` gains a **Summon** panel with 4 rarity buttons + animated reveal of the summoned monster.
-- Per-card "Merge" button when ≥3 copies exist.
-- Existing coin-cost monster purchases removed; legacy unlocks are auto-converted (each previously-unlocked monster becomes 1 copy at its current evolution level).
-- Top HUD: add a shard counter (✨) next to gem/coin/star.
-
----
-
-## Phase 3 — All-3D monsters with idle animations
-
-Currently `Monster3D` renders 2D sprites on a billboard plane. We'll upgrade to animated 3D sprites for every monster, no GLB assets needed.
-
-- Add idle skeleton: gentle bob, slight rotation drift, rim-light glow pulse, on-summon "pop" (scale 0 → 1 with overshoot).
-- Add `useFrame` triggers for: `summon`, `mergeUp`, `hit`, `attack`, `victory`, `faint` (used by battle system).
-- Ensure `MonsterDisplay`, `MonsterCollection` thumbnails, and the new battle UI all use `Monster3D` consistently (collection thumbs use `compact`).
-- Keep low-power 2D fallback intact.
-
----
-
-## Phase 4 — Battle system (PvE + async PvP)
-
-Turn-based, server-authoritative to prevent cheating. Cinematic 1v1 fights between owned monsters.
-
-**Derived stats per monster (computed server-side from level + rarity + evolution):**
-- HP, Attack, Defense, Speed
-- One signature move per rarity tier
-
-**Combat actions (each turn):** Attack · Defend (50% damage taken, +25% next turn) · Special (signature move, 3-turn cooldown) · Item (heal potion from inventory if any)
-
-**PvE encounters:**
-- Wild monsters appear from tile interactions (new "battle" tile type or a chance from skull tiles).
-- Win → coins, XP, **shards**, occasional buff token.
-
-**Async PvP:**
-- Players upload a **defense team** (1 monster initially, 3 later).
-- Match queue picks an opponent within ±10% power, fight resolves on the server when the attacker initiates.
-- Daily PvP cap to keep load bounded. Win → leaderboard points + shards.
+The foundation every mode reuses.
 
 **New tables (migration):**
-- `monster_stats_def` — base stats per monster ID and rarity tier multipliers.
-- `battles` — `id, attacker_id, defender_id, mode ('pve'|'pvp'), attacker_monster, defender_monster, winner_id, log jsonb, created_at`.
-- `pvp_defense_teams` — `user_id, monster_id, power, updated_at`.
-- `pvp_seasons` (optional in v1) — rating per player.
+- `monster_stats_def` — base HP/Atk/Def/Spd per monster id + rarity multipliers + signature move id
+- `battles` — `id, user_id, mode ('pve'|'arena'|'pvp'), attacker_monster jsonb, defender_monster jsonb, winner ('attacker'|'defender'), log jsonb, rewards jsonb, created_at`
+- `arena_runs` — `id, user_id, wave int, current_hp int, current_monster_id, status ('active'|'ended'), best_wave int, started_at, ended_at`
+- `pvp_defense_teams` — `user_id, monster_id, power int, updated_at`
 
-**Edge function `battle-resolve`:**
-- Validates ownership, computes stats, simulates the turn the client requested (attacker action vs defender's chosen action), returns next state + animation events.
-- Server stores full log so we can replay it client-side.
+**Derived stats (server-side, deterministic):**
+```text
+HP  = baseHP  * (1 + 0.25 * level) * rarityMult
+Atk = baseAtk * (1 + 0.20 * level) * rarityMult
+Def = baseDef * (1 + 0.15 * level) * rarityMult
+Spd = baseSpd + 2 * level
+rarityMult: common 1.0 · rare 1.15 · epic 1.35 · legendary 1.6
+```
 
-**UI:**
-- `BattleArena.tsx` page/modal — two `Monster3D` instances facing each other, HP bars, animated action cards.
-- `BattleResult.tsx` celebration on victory.
-- `PvPHub.tsx` for queue + defense team picker.
+**Turn actions:** Attack · Defend (½ dmg taken, +25% next attack) · Special (signature, 3-turn CD) · Item (heal potion from inventory)
+
+**Edge function `battle-action`:**
+- Input: `battle_id`, `action`, optional `item_id`
+- Validates ownership, computes both sides' chosen action, applies damage, returns updated state + animation event list (`["attack","hit","crit","faint",...]`)
+- Server stores the full log so replays are possible
+
+**Shared UI:**
+- `BattleArena.tsx` — two `Monster3D` instances facing each other, HP bars, action card row, floating damage numbers, victory/defeat overlay
+- `BattleResult.tsx` — celebration with rewards breakdown
+- Hook `useBattle(battleId)` polling state from server
 
 ---
 
-## Sequencing & deliverables
+## 4B — PvE encounters + Gladiator Arena (Endless Colosseum)
+
+Both use the same engine; arena is a wrapped multi-fight loop.
+
+**PvE encounters:**
+- Skull tiles gain ~30% chance to spawn a wild monster fight (and a new "⚔️ Battle" tile type added to the board pool)
+- Wild monster level scales to your party average; defeat → coins + XP + 1–5 shards + small chance of buff token
+
+**Gladiator Arena — Endless Colosseum:**
+- Entry from a new "Arena" tab in `GameTabs`
+- Pick **one** monster from your collection to enter
+- Fight escalating AI gladiators wave 1..∞; HP carries between waves
+- Between waves: choose 1 of 3 (heal 30% · +10% atk next fight · skip wave for half rewards)
+- Every wave 5 = boss (legendary-class stats) with a 25–50 shard payout
+- Run ends on faint; rewards = `floor(wave * 5)` coins + `floor(wave * 1.5)` shards + cosmetic title at milestones (W10, W25, W50, W100)
+- `best_wave` shown on a public leaderboard view
+- One free run/day, additional runs cost 50 energy
+
+**New files:**
+- `src/pages/Arena.tsx` (route `/arena`)
+- `src/components/ArenaWaveSelect.tsx` (between-wave choice)
+- `src/components/ArenaLeaderboard.tsx`
+- Edge function `arena-start` / `arena-next-wave` / `arena-end`
+
+---
+
+## 4C — Async PvP
+
+Built last because it depends on matchmaking + power calc tuning from 4B.
+
+- `PvPHub.tsx` page — defense team picker (1 monster v1), "Find match" button, recent results, weekly leaderboard
+- Edge function `pvp-find-match` — picks an opponent within ±10% power from `pvp_defense_teams`
+- Edge function `pvp-resolve` — runs full simulated battle server-side using each side's monster (defender uses AI policy: special on CD, defend below 30% HP, else attack), writes to `battles`
+- Daily cap: 10 PvP fights/day. Win → leaderboard points + 5–15 shards. Loss → 2 shards consolation.
+
+---
+
+## Technical notes
+
+- All combat math lives in **one** TS module (`supabase/functions/_shared/combat.ts`) imported by every battle edge function — no client math, prevents cheating
+- Signature moves table seeded with: common = "Power Strike (1.5× atk)", rare = "Quick Slash (hits twice, 0.8× each)", epic = "Crushing Blow (2× atk, ignores 50% def)", legendary = "Cataclysm (2.5× atk + 20% bleed for 2 turns)"
+- `Monster3D` already has the hook points the plan called for; we'll wire `attack/hit/faint/victory` frame triggers in 4A
+- Arena AI gladiators are generated procedurally from `MONSTERS` with level = `floor(wave * 0.6) + 1`, rarity weight shifts toward legendary at higher waves
+- Reuses Phase 2 `shards` column for all battle rewards — no new currency
+
+---
+
+## Sequencing
 
 ```text
-Phase 1 (rewards + buffs)         ~ small, immediately playable
-  └─> Phase 2 (shards + summon)   ~ unlocks new progression loop
-        └─> Phase 3 (3D polish)   ~ visual upgrade everywhere
-              └─> Phase 4 (battles) ~ biggest chunk; PvE first, then PvP
+4A  Engine + BattleArena UI + monster_stats_def seed   (foundation)
+ └─ 4B  PvE tile + Gladiator Arena Colosseum            (single-player, ships independently)
+     └─ 4C  Async PvP hub + matchmaking                 (depends on tuned power formula)
 ```
 
-Each phase: schema migration → server RPC/edge function → hook changes → UI → tests where helpful.
-
-## Open assumptions (confirm or adjust)
-
-1. **Legacy monsters:** Players who already bought monsters with coins get 1 copy at their current evolution converted into the new `monster_collection`. No refund.
-2. **PvP defense:** 1-monster team in v1; 3-monster team in a follow-up.
-3. **Battle initiation:** PvE is automatic from board tiles; PvP requires the player to open the PvP hub and tap "Find match".
-4. **Buff stacking:** Same buff refreshes timer rather than stacking.
-
-Reply with any adjustments, otherwise approve and I'll start with Phase 1.
+Approve and I'll start with 4A (migration + combat module + BattleArena scaffolding).
