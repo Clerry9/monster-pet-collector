@@ -74,6 +74,123 @@ export type Database = {
         }
         Relationships: []
       }
+      arena_runs: {
+        Row: {
+          atk_buff_pct: number
+          best_wave: number
+          coins_earned: number
+          current_hp: number
+          ended_at: string | null
+          id: string
+          max_hp: number
+          monster_id: string
+          monster_level: number
+          monster_rarity: string
+          shards_earned: number
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+          wave: number
+        }
+        Insert: {
+          atk_buff_pct?: number
+          best_wave?: number
+          coins_earned?: number
+          current_hp: number
+          ended_at?: string | null
+          id?: string
+          max_hp: number
+          monster_id: string
+          monster_level?: number
+          monster_rarity?: string
+          shards_earned?: number
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          wave?: number
+        }
+        Update: {
+          atk_buff_pct?: number
+          best_wave?: number
+          coins_earned?: number
+          current_hp?: number
+          ended_at?: string | null
+          id?: string
+          max_hp?: number
+          monster_id?: string
+          monster_level?: number
+          monster_rarity?: string
+          shards_earned?: number
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          wave?: number
+        }
+        Relationships: []
+      }
+      battles: {
+        Row: {
+          arena_run_id: string | null
+          attacker_hp: number
+          attacker_monster: Json
+          attacker_special_cd: number
+          created_at: string
+          current_turn: number
+          defender_hp: number
+          defender_monster: Json
+          defender_special_cd: number
+          ended_at: string | null
+          id: string
+          log: Json
+          mode: string
+          rewards: Json | null
+          status: string
+          user_id: string
+          winner: string | null
+        }
+        Insert: {
+          arena_run_id?: string | null
+          attacker_hp: number
+          attacker_monster: Json
+          attacker_special_cd?: number
+          created_at?: string
+          current_turn?: number
+          defender_hp: number
+          defender_monster: Json
+          defender_special_cd?: number
+          ended_at?: string | null
+          id?: string
+          log?: Json
+          mode: string
+          rewards?: Json | null
+          status?: string
+          user_id: string
+          winner?: string | null
+        }
+        Update: {
+          arena_run_id?: string | null
+          attacker_hp?: number
+          attacker_monster?: Json
+          attacker_special_cd?: number
+          created_at?: string
+          current_turn?: number
+          defender_hp?: number
+          defender_monster?: Json
+          defender_special_cd?: number
+          ended_at?: string | null
+          id?: string
+          log?: Json
+          mode?: string
+          rewards?: Json | null
+          status?: string
+          user_id?: string
+          winner?: string | null
+        }
+        Relationships: []
+      }
       cosmetics_def: {
         Row: {
           asset_key: string | null
@@ -205,6 +322,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -231,6 +349,7 @@ export type Database = {
           pending_card_flips?: number
           position?: number
           rolls?: number
+          shards?: number
           total_steps?: number
           unlocked_dice_tiers?: string[]
           unlocked_monsters?: string[]
@@ -257,6 +376,7 @@ export type Database = {
           pending_card_flips?: number
           position?: number
           rolls?: number
+          shards?: number
           total_steps?: number
           unlocked_dice_tiers?: string[]
           unlocked_monsters?: string[]
@@ -299,6 +419,45 @@ export type Database = {
           target?: number
           title?: string
           weight?: number
+        }
+        Relationships: []
+      }
+      monster_stats_def: {
+        Row: {
+          base_atk: number
+          base_def: number
+          base_hp: number
+          base_spd: number
+          created_at: string
+          monster_id: string
+          rarity: string
+          signature_move_desc: string
+          signature_move_name: string
+          signature_multiplier: number
+        }
+        Insert: {
+          base_atk?: number
+          base_def?: number
+          base_hp?: number
+          base_spd?: number
+          created_at?: string
+          monster_id: string
+          rarity?: string
+          signature_move_desc?: string
+          signature_move_name?: string
+          signature_multiplier?: number
+        }
+        Update: {
+          base_atk?: number
+          base_def?: number
+          base_hp?: number
+          base_spd?: number
+          created_at?: string
+          monster_id?: string
+          rarity?: string
+          signature_move_desc?: string
+          signature_move_name?: string
+          signature_multiplier?: number
         }
         Relationships: []
       }
@@ -419,6 +578,42 @@ export type Database = {
           status?: string
           stripe_transaction_id?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      pvp_defense_teams: {
+        Row: {
+          losses: number
+          monster_id: string
+          monster_level: number
+          monster_rarity: string
+          power: number
+          rating: number
+          updated_at: string
+          user_id: string
+          wins: number
+        }
+        Insert: {
+          losses?: number
+          monster_id: string
+          monster_level?: number
+          monster_rarity?: string
+          power?: number
+          rating?: number
+          updated_at?: string
+          user_id: string
+          wins?: number
+        }
+        Update: {
+          losses?: number
+          monster_id?: string
+          monster_level?: number
+          monster_rarity?: string
+          power?: number
+          rating?: number
+          updated_at?: string
+          user_id?: string
+          wins?: number
         }
         Relationships: []
       }
@@ -723,6 +918,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -764,6 +960,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -799,6 +996,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -870,6 +1068,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -962,6 +1161,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -1013,6 +1213,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -1071,6 +1272,47 @@ export type Database = {
           user_id: string
         }[]
       }
+      grant_battle_rewards: {
+        Args: {
+          p_coins: number
+          p_shards: number
+          p_user_id: string
+          p_xp: number
+        }
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          shards: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       grant_card: {
         Args: { p_card_id: string }
         Returns: {
@@ -1092,6 +1334,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -1154,6 +1397,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -1225,6 +1469,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -1260,6 +1505,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -1295,6 +1541,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -1330,6 +1577,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -1365,6 +1613,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -1400,6 +1649,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -1435,6 +1685,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -1470,6 +1721,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -1505,6 +1757,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
@@ -1540,6 +1793,7 @@ export type Database = {
           pending_card_flips: number
           position: number
           rolls: number
+          shards: number
           total_steps: number
           unlocked_dice_tiers: string[]
           unlocked_monsters: string[]
