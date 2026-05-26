@@ -56,10 +56,10 @@ export function EntitlementDashboard(props: DashProps) {
   }, [user, subscriptions.length]);
 
   const handleSubAction = async (sub: SubscriptionRow, action: "cancel" | "resume") => {
-    setBusyId(sub.paddle_subscription_id);
+    setBusyId(sub.stripe_subscription_id);
     try {
       const { error } = await supabase.functions.invoke("cancel-subscription", {
-        body: { subscriptionId: sub.paddle_subscription_id, action },
+        body: { subscriptionId: sub.stripe_subscription_id, action },
       });
       if (error) throw error;
       toast.success(action === "cancel" ? "Cancellation scheduled" : "Subscription resumed", {
@@ -231,7 +231,7 @@ export function EntitlementDashboard(props: DashProps) {
           const active = isSubscriptionActive(sub);
           const canCancel = active && !sub.cancel_at_period_end && sub.status !== "canceled";
           const canResume = sub.cancel_at_period_end && sub.status !== "canceled";
-          const busy = busyId === sub.paddle_subscription_id;
+          const busy = busyId === sub.stripe_subscription_id;
           const isPastDue = sub.status === "past_due";
           return (
             <div key={sub.id} className="rounded-lg border-2 border-wood-dark bg-cream/10 p-3 space-y-2">
@@ -263,7 +263,7 @@ export function EntitlementDashboard(props: DashProps) {
               <div className="flex flex-wrap gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => handleOpenPortal(sub.paddle_subscription_id)}
+                  onClick={() => handleOpenPortal(sub.stripe_subscription_id)}
                   disabled={portalBusy}
                   className="px-3 py-1.5 rounded-md bg-cream/20 text-cream-light text-xs font-display border-2 border-wood-dark hover:bg-cream/30 disabled:opacity-50 flex items-center gap-1"
                   title="Update payment method, view invoices, manage subscription"

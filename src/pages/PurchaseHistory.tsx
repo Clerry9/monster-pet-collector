@@ -9,7 +9,7 @@ import { Footer } from "@/components/Footer";
 type PurchaseRow = {
   id: string;
   created_at: string;
-  paddle_transaction_id: string;
+  stripe_transaction_id: string;
   product_id: string;
   price_id: string;
   pack_id: string | null;
@@ -81,8 +81,8 @@ const PurchaseHistoryPage = () => {
       }
       if (q) {
         const hay = r.kind === "purchase"
-          ? `${r.row.pack_id ?? ""} ${r.row.price_id} ${r.row.product_id} ${r.row.paddle_transaction_id}`
-          : `${r.row.price_id} ${r.row.product_id} ${r.row.paddle_subscription_id} ${r.row.status}`;
+          ? `${r.row.pack_id ?? ""} ${r.row.price_id} ${r.row.product_id} ${r.row.stripe_transaction_id}`
+          : `${r.row.price_id} ${r.row.product_id} ${r.row.stripe_subscription_id} ${r.row.status}`;
         if (!hay.toLowerCase().includes(q)) return false;
       }
       return true;
@@ -163,7 +163,7 @@ const PurchaseHistoryPage = () => {
                       </span>
                     </div>
                     <div className="text-xs text-muted-foreground truncate">
-                      {r.row.product_id} · {r.row.paddle_transaction_id}
+                      {r.row.product_id} · {r.row.stripe_transaction_id}
                     </div>
                     {r.row.rolls_granted > 0 && (
                       <div className="text-xs text-primary">+{r.row.rolls_granted} rolls granted</div>
@@ -184,7 +184,7 @@ const PurchaseHistoryPage = () => {
                       </span>
                     </div>
                     <div className="text-xs text-muted-foreground truncate">
-                      {r.row.product_id} · {r.row.paddle_subscription_id}
+                      {r.row.product_id} · {r.row.stripe_subscription_id}
                     </div>
                     <div className="text-xs">
                       Status: <strong>{r.row.status}</strong>

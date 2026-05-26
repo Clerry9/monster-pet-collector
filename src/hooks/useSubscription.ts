@@ -1,16 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-
-const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
-function getEnv(): "sandbox" | "live" {
-  return clientToken?.startsWith("test_") ? "sandbox" : "live";
-}
+import { getStripeEnvironment } from "@/lib/stripe";
 
 export interface SubscriptionRow {
   id: string;
-  paddle_subscription_id: string;
-  paddle_customer_id: string;
+  stripe_subscription_id: string;
+  stripe_customer_id: string;
   product_id: string;
   price_id: string;
   status: string;
@@ -36,7 +32,7 @@ export function useSubscriptions() {
       .from("subscriptions")
       .select("*")
       .eq("user_id", user.id)
-      .eq("environment", getEnv())
+      .eq("environment", getStripeEnvironment())
       .order("created_at", { ascending: false });
     setSubs((data as SubscriptionRow[]) ?? []);
     setLoading(false);
@@ -59,7 +55,7 @@ export function useSubscriptions() {
     return () => { supabase.removeChannel(ch); };
   }, [user, refetch]);
 
-  return { subscriptions: subs, loading, refetch, environment: getEnv() };
+  return { subscriptions: subs, loading, refetch, environment: getStripeEnvironment() };
 }
 
 export function isSubscriptionActive(s: SubscriptionRow): boolean {
