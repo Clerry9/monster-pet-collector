@@ -50,18 +50,39 @@ Deno.serve(async (req) => {
     }
     const isRecurring = !!price.recurring;
 
+    // Strip any client-supplied userId from customData so it cannot
+    // override the server-validated userId from the JWT.
+    const safeCustomData = Object.fromEntries(
+      Object.entries(customData)
+        .filter(([k]) => k !== "userId")
+        .map(([k, v]) => [k, String(v)]),
+    );
     const metadata: Record<string, string> = {
-      userId,
-      ...Object.fromEntries(
-        Object.entries(customData).map(([k, v]) => [k, String(v)]),
-      ),
+      ...safeCustomData,
+      userId, // always wins
     };
+
+    // Validate successUrl is same-origin to prevent open-redirect abuse
+    // via attacker-crafted checkout sessions.
+    const allowedOrigin = new URL(req.url).origin;
+    const isSafeUrl = (u?: string) => {
+      if (!u) return false;
+      try {
+        return new URL(u).origin === allowedOrigin;
+      } catch {
+        return false;
+      }
+    };
+    const safeSuccessUrl = isSafeUrl(successUrl)
+      ? successUrl!
+      : `${allowedOrigin}/?checkout=success`;
+    const safeCancelUrl = safeSuccessUrl.replace("checkout=success", "checkout=canceled");
 
     const session = await stripe.checkout.sessions.create({
       mode: isRecurring ? "subscription" : "payment",
       line_items: [{ price: price.id, quantity }],
-      success_url: successUrl || `${new URL(req.url).origin}/?checkout=success`,
-      cancel_url: successUrl ? successUrl.replace("checkout=success", "checkout=canceled") : undefined,
+      success_url: safeSuccessUrl,
+      cancel_url: safeCancelUrl,
       ...(customerEmail ? { customer_email: customerEmail } : {}),
       metadata,
       ...(isRecurring ? { subscription_data: { metadata } } : {}),
