@@ -5,6 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useArena } from "@/hooks/useArena";
 import { BattleArena } from "@/components/BattleArena";
+import { BattleResultModal } from "@/components/BattleResultModal";
+import { BattleChoiceModal } from "@/components/BattleChoiceModal";
+import type { RunChoiceCard, RunItem } from "@/lib/combat";
 import { Button } from "@/components/ui/button";
 import { MONSTERS } from "@/data/monsters";
 import { Monster3D } from "@/components/Monster3D";
@@ -142,63 +145,32 @@ export default function Arena() {
             <BattleArena
               battle={arena.battle}
               onAction={(a) => arena.turn(a).catch(() => {})}
+              onUseItem={(id) => arena.useItem(id).catch(() => {})}
               loading={arena.loading}
               recentEvents={arena.lastEvents}
               waveLabel={`WAVE ${arena.run.wave}`}
+              items={(arena.run.items ?? []) as RunItem[]}
+              winStreak={arena.run.win_streak ?? 0}
             />
 
             <AnimatePresence>
-              {arena.run.status === "choosing" && !endedThisTurn && (
-                <motion.div
-                  key="choosing"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="rounded-2xl border-4 border-gold bg-wood-dark/80 p-4 shadow-chunky"
-                >
-                  <h3 className="font-display text-base text-gold text-center mb-2">
-                    Victory! Wave {arena.run.wave} cleared — choose a boon:
-                  </h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button onClick={() => arena.choose("heal").catch(() => {})} disabled={arena.loading} className="font-display flex-col h-auto py-3">
-                      <span className="text-2xl">❤️</span>
-                      <span className="text-[10px] mt-1">Heal 30%</span>
-                    </Button>
-                    <Button onClick={() => arena.choose("buff").catch(() => {})} disabled={arena.loading} className="font-display flex-col h-auto py-3">
-                      <span className="text-2xl">⚔️</span>
-                      <span className="text-[10px] mt-1">+10% ATK</span>
-                    </Button>
-                    <Button onClick={() => arena.choose("skip").catch(() => {})} disabled={arena.loading} variant="secondary" className="font-display flex-col h-auto py-3">
-                      <span className="text-2xl">⏭️</span>
-                      <span className="text-[10px] mt-1">Skip +rewards</span>
-                    </Button>
-                  </div>
-                </motion.div>
+              {arena.run.status === "choosing" && !endedThisTurn && arena.run.pending_choices && (
+                <BattleChoiceModal
+                  key="choice"
+                  choices={arena.run.pending_choices as RunChoiceCard[]}
+                  wave={arena.run.wave}
+                  loading={arena.loading}
+                  onPick={(id) => arena.choose(id).catch(() => {})}
+                />
               )}
 
               {endedThisTurn && (
-                <motion.div
-                  key="ended"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="rounded-2xl border-4 border-candy-red bg-wood-dark/90 p-6 text-center shadow-chunky"
-                >
-                  <h3 className="font-display text-2xl text-gold mb-2">Run Ended</h3>
-                  <p className="text-cream/90 mb-3">
-                    Reached <span className="text-gold font-display">Wave {arena.run.wave}</span>
-                  </p>
-                  <div className="text-sm space-y-1 mb-4">
-                    <div>💰 +{arena.run.coins_earned} coins</div>
-                    <div>✨ +{arena.run.shards_earned} shards</div>
-                    <div>🍖 +{arena.run.wave * 10} XP</div>
-                  </div>
-                  <Button onClick={() => { arena.reset(); setPicking(true); }} className="w-full font-display">
-                    Return to Lobby
-                  </Button>
-                  <Link to="/arena/replay" className="block mt-2 text-center text-[11px] text-gold underline hover:text-gold/80">
-                    📜 View Battle Replay
-                  </Link>
-                </motion.div>
+                <BattleResultModal
+                  key="result"
+                  run={arena.run}
+                  won={arena.lastResult?.winner === "attacker"}
+                  onClose={() => { arena.reset(); setPicking(true); }}
+                />
               )}
             </AnimatePresence>
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Action, ArenaRun, BattleState, TurnEvent } from "@/lib/combat";
+import type { Action, ArenaRun, BattleState, ItemId, RunChoiceCard, TurnEvent } from "@/lib/combat";
 
 export interface ArenaResponse {
   run: ArenaRun;
@@ -38,7 +38,7 @@ export function useArena() {
         .order("started_at", { ascending: false }).limit(1).maybeSingle();
       if (cancelled) return;
       if (r) {
-        setRun(r as ArenaRun);
+        setRun(r as unknown as ArenaRun);
         const { data: b } = await supabase.from("battles")
           .select("*").eq("arena_run_id", r.id).eq("status", "active")
           .order("created_at", { ascending: false }).limit(1).maybeSingle();
@@ -74,8 +74,10 @@ export function useArena() {
     handle({ op: "start", monster_id, level }), [handle]);
   const turn = useCallback((action: Action) =>
     handle({ op: "turn", action }), [handle]);
-  const choose = useCallback((choice: "heal" | "buff" | "skip") =>
-    handle({ op: "choose", choice }), [handle]);
+  const choose = useCallback((choiceId: string) =>
+    handle({ op: "choose", choice_id: choiceId }), [handle]);
+  const useItem = useCallback((itemId: ItemId) =>
+    handle({ op: "item", item_id: itemId }), [handle]);
   const abandon = useCallback(async () => {
     const res = await handle({ op: "abandon" });
     setRun(null); setBattle(null);
@@ -85,5 +87,5 @@ export function useArena() {
     setRun(null); setBattle(null); setLastEvents([]); setLastResult(null);
   }, []);
 
-  return { run, battle, loading, error, lastEvents, lastResult, start, turn, choose, abandon, reset };
+  return { run, battle, loading, error, lastEvents, lastResult, start, turn, choose, useItem, abandon, reset };
 }
