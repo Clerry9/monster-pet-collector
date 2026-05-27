@@ -1,20 +1,55 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Monster3D } from "./Monster3D";
 import { Button } from "./ui/button";
-import type { BattleState, TurnEvent } from "@/lib/combat";
+import type { BattleState, ItemId, RunItem, TurnEvent } from "@/lib/combat";
 import { MONSTERS } from "@/data/monsters";
 
 interface Props {
   battle: BattleState;
   onAction: (a: "attack" | "defend" | "special") => void;
+  onUseItem?: (id: ItemId) => void;
   loading?: boolean;
   recentEvents?: TurnEvent[];
   waveLabel?: string;
+  items?: RunItem[];
+  winStreak?: number;
 }
+
+const ELEMENT_EMOJI: Record<string, string> = {
+  fire: "🔥", water: "💧", earth: "🌿", air: "💨", neutral: "✦",
+};
+
+const ITEM_META: Record<ItemId, { emoji: string; label: string }> = {
+  potion: { emoji: "🧪", label: "Potion" },
+  bomb: { emoji: "💣", label: "Bomb" },
+  shield: { emoji: "🪄", label: "Shield" },
+};
 
 function monsterImage(id: string): string {
   return MONSTERS.find((m) => m.id === id)?.image ?? MONSTERS[0].image;
+}
+
+function StatusIcons({ c }: { c: { burn_turns?: number; poison_turns?: number; bleed_turns?: number; stun_turns?: number; freeze_turns?: number; shield_turns?: number } }) {
+  const items: Array<[string, number | undefined, string]> = [
+    ["🔥", c.burn_turns, "burn"],
+    ["☠️", c.poison_turns, "poison"],
+    ["🩸", c.bleed_turns, "bleed"],
+    ["💫", c.stun_turns, "stun"],
+    ["❄️", c.freeze_turns, "freeze"],
+    ["🛡️", c.shield_turns, "shield"],
+  ];
+  return (
+    <div className="flex gap-0.5 justify-center mt-0.5">
+      {items.map(([e, n, k]) =>
+        (n ?? 0) > 0 ? (
+          <span key={k} title={`${k} (${n})`} className="text-[10px] leading-none">
+            {e}<span className="text-cream/60 text-[8px]">{n}</span>
+          </span>
+        ) : null,
+      )}
+    </div>
+  );
 }
 
 function HpBar({ current, max, side }: { current: number; max: number; side: "attacker" | "defender" }) {
@@ -40,11 +75,32 @@ function HpBar({ current, max, side }: { current: number; max: number; side: "at
   );
 }
 
-export function BattleArena({ battle, onAction, loading, recentEvents, waveLabel }: Props) {
+export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents, waveLabel, items, winStreak }: Props) {
   const logRef = useRef<HTMLDivElement>(null);
+  const [shakeKey, setShakeKey] = useState(0);
+  const [flashKey, setFlashKey] = useState(0);
+  const [cinematic, setCinematic] = useState<{ name: string; side: "attacker" | "defender" } | null>(null);
+
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
   }, [battle.log.length]);
+
+  // Trigger shake/flash/cinematic from recent events
+  useEffect(() => {
+    if (!recentEvents || recentEvents.length === 0) return;
+    const big = recentEvents.some((e) => e.damage && e.damage > 0);
+    if (big) setShakeKey((k) => k + 1);
+    const crit = recentEvents.some((e) => e.crit);
+    if (crit) setFlashKey((k) => k + 1);
+    const special = recentEvents.find((e) => e.action === "special");
+    if (special) {
+      const name = special.side === "attacker" ? battle.attacker_monster.signature_name : battle.defender_monster.signature_name;
+      setCinematic({ name, side: special.side });
+      const t = setTimeout(() => setCinematic(null), 900);
+      return () => clearTimeout(t);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recentEvents]);
 
   const atk = battle.attacker_monster;
   const def = battle.defender_monster;
@@ -52,17 +108,73 @@ export function BattleArena({ battle, onAction, loading, recentEvents, waveLabel
   const defHp = battle.defender_hp;
   const canSpecial = battle.attacker_special_cd === 0 && battle.status === "active";
   const ended = battle.status === "ended";
+  const lowSelf = atkHp / atk.max_hp < 0.25;
+  const combo = atk.combo_count ?? 0;
 
   // Latest event used for floating damage numbers
   const lastEvent = recentEvents?.[recentEvents.length - 1];
 
   return (
-    <div className="relative w-full max-w-2xl mx-auto rounded-2xl border-4 border-wood-dark bg-gradient-to-b from-[#1a0f2e] via-[#2d1b4e] to-[#0d0824] shadow-chunky overflow-hidden">
+    <motion.div
+      key={`shake-${shakeKey}`}
+      animate={shakeKey > 0 ? { x: [-6, 6, -3, 3, 0], y: [2, -2, 0, 0, 0] } : { x: 0, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="relative w-full max-w-2xl mx-auto rounded-2xl border-4 border-wood-dark bg-gradient-to-b from-[#1a0f2e] via-[#2d1b4e] to-[#0d0824] shadow-chunky overflow-hidden"
+    >
       {waveLabel && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full bg-wood-dark border-2 border-gold text-gold font-display text-xs tracking-wider">
-          {waveLabel}
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full bg-wood-dark border-2 border-gold text-gold font-display text-xs tracking-wider flex items-center gap-2">
+          <span>{waveLabel}</span>
+          {(winStreak ?? 0) > 0 && (
+            <span className="text-[10px] text-orange-300">🔥 {winStreak}</span>
+          )}
         </div>
       )}
+
+      {/* Low HP vignette */}
+      <AnimatePresence>
+        {lowSelf && (
+          <motion.div
+            key="vignette"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="pointer-events-none absolute inset-0 z-10 shadow-[inset_0_0_120px_40px_rgba(220,38,38,0.55)] animate-pulse"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Crit white flash */}
+      <AnimatePresence>
+        {flashKey > 0 && (
+          <motion.div
+            key={`flash-${flashKey}`}
+            initial={{ opacity: 0.6 }} animate={{ opacity: 0 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="pointer-events-none absolute inset-0 z-30 bg-white"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Special move cinematic */}
+      <AnimatePresence>
+        {cinematic && (
+          <motion.div
+            key="cine"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-black/60"
+          >
+            <motion.div
+              initial={{ scale: 0.5, rotate: -8, opacity: 0 }}
+              animate={{ scale: 1.05, rotate: 0, opacity: 1 }}
+              exit={{ scale: 1.4, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 220, damping: 14 }}
+              className={`font-display text-3xl md:text-4xl tracking-widest text-center px-6 py-3 rounded-xl border-4 ${
+                cinematic.side === "attacker" ? "border-gold text-gold bg-gold/10" : "border-candy-red text-candy-red bg-candy-red/10"
+              } drop-shadow-[0_0_18px_rgba(255,215,0,0.6)]`}
+            >
+              {cinematic.name.toUpperCase()}<span className="text-lg">!</span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Arena floor gradient + glow */}
       <div className="relative h-72 overflow-hidden">
@@ -78,9 +190,11 @@ export function BattleArena({ battle, onAction, loading, recentEvents, waveLabel
           transition={{ duration: 0.25 }}
         >
           <Monster3D src={monsterImage(def.monster_id)} size={140} compact />
-          <div className="text-center font-display text-xs text-cream mt-1">
-            {def.name} Lv.{def.level}
+          <div className="text-center font-display text-xs text-cream mt-1 flex items-center justify-center gap-1">
+            <span>{ELEMENT_EMOJI[def.element ?? "neutral"]}</span>
+            <span>{def.name} Lv.{def.level}</span>
           </div>
+          <StatusIcons c={def} />
         </motion.div>
 
         {/* Attacker (bottom-left) */}
@@ -92,9 +206,11 @@ export function BattleArena({ battle, onAction, loading, recentEvents, waveLabel
           transition={{ duration: 0.25 }}
         >
           <Monster3D src={monsterImage(atk.monster_id)} size={140} compact />
-          <div className="text-center font-display text-xs text-cream mt-1">
-            {atk.name} Lv.{atk.level}
+          <div className="text-center font-display text-xs text-cream mt-1 flex items-center justify-center gap-1">
+            <span>{ELEMENT_EMOJI[atk.element ?? "neutral"]}</span>
+            <span>{atk.name} Lv.{atk.level}</span>
           </div>
+          <StatusIcons c={atk} />
         </motion.div>
 
         {/* Floating damage numbers */}
@@ -126,13 +242,31 @@ export function BattleArena({ battle, onAction, loading, recentEvents, waveLabel
         <HpBar current={atkHp} max={atk.max_hp} side="attacker" />
       </div>
 
+      {/* Combo meter */}
+      {combo > 0 && !ended && (
+        <div className="px-4 pt-1 flex items-center gap-1 text-[10px] font-display text-amber-300">
+          <span>COMBO</span>
+          {[1, 2, 3].map((n) => (
+            <span key={n} className={`h-1.5 flex-1 rounded ${n <= combo ? "bg-amber-300" : "bg-amber-300/15"}`} />
+          ))}
+          {combo >= 3 && <span className="ml-1 text-yellow-200">✦ FINISHER READY</span>}
+        </div>
+      )}
+
       {/* Battle log */}
       <div
         ref={logRef}
         className="mx-4 mt-2 h-20 overflow-y-auto rounded bg-black/40 border border-wood-dark p-2 text-[11px] font-body text-cream/90 space-y-0.5"
       >
         {battle.log.map((e, i) => (
-          <div key={i} className={e.crit ? "text-yellow-300" : e.bleed ? "text-rose-400" : ""}>
+          <div key={i} className={
+            e.crit ? "text-yellow-300"
+            : e.bleed ? "text-rose-400"
+            : e.burn ? "text-orange-400"
+            : e.poison ? "text-purple-300"
+            : e.stun ? "text-sky-300"
+            : ""
+          }>
             {e.text}
           </div>
         ))}
@@ -146,7 +280,7 @@ export function BattleArena({ battle, onAction, loading, recentEvents, waveLabel
           onClick={() => onAction("attack")}
           className="font-display"
         >
-          ⚔️ Attack
+          ⚔️ Attack{combo >= 2 ? " ✦" : ""}
         </Button>
         <Button
           variant="secondary"
@@ -166,6 +300,28 @@ export function BattleArena({ battle, onAction, loading, recentEvents, waveLabel
           {canSpecial ? "✨ Special" : `CD ${battle.attacker_special_cd}`}
         </Button>
       </div>
-    </div>
+
+      {/* Item bar */}
+      {items && items.length > 0 && onUseItem && (
+        <div className="px-4 pb-3 flex items-center gap-2 border-t border-wood-dark/50 pt-2">
+          <span className="text-[10px] font-display text-cream/60 mr-1">ITEMS</span>
+          {items.filter((it) => it.count > 0).map((it) => {
+            const meta = ITEM_META[it.id];
+            return (
+              <button
+                key={it.id}
+                onClick={() => onUseItem(it.id)}
+                disabled={loading || ended}
+                className="relative flex items-center gap-1 px-2 py-1 rounded-lg bg-black/40 border border-gold/40 text-cream text-xs hover:bg-black/60 hover:border-gold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title={meta.label}
+              >
+                <span className="text-base">{meta.emoji}</span>
+                <span className="font-display text-[10px]">×{it.count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </motion.div>
   );
 }

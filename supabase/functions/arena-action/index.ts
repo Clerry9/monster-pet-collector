@@ -254,9 +254,13 @@ Deno.serve(async (req) => {
       }).eq("id", run.id).select().single();
 
       if (cardGranted) {
-        // Grant 1 pending card flip via a permissive update on game_state through service role
+        // Read-modify-write add 1 pending card flip via service role
+        const { data: gs } = await admin
+          .from("game_state").select("pending_card_flips")
+          .eq("user_id", userId).maybeSingle();
+        const cur = gs?.pending_card_flips ?? 0;
         await admin.from("game_state")
-          .update({ pending_card_flips: 1 }) // simple +1 trigger; clamp_trigger caps it
+          .update({ pending_card_flips: Math.min(cur + 1, 10000) })
           .eq("user_id", userId);
       }
 
