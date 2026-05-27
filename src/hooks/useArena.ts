@@ -38,7 +38,7 @@ export function useArena() {
         .order("started_at", { ascending: false }).limit(1).maybeSingle();
       if (cancelled) return;
       if (r) {
-        setRun(r as ArenaRun);
+        setRun(r as unknown as ArenaRun);
         const { data: b } = await supabase.from("battles")
           .select("*").eq("arena_run_id", r.id).eq("status", "active")
           .order("created_at", { ascending: false }).limit(1).maybeSingle();
