@@ -558,6 +558,21 @@ const Index = () => {
     setHasLanded(true);
     // Personality reactions: celebrate or commiserate based on what we landed on.
     const tileType = result.tile?.type;
+    // Quick 2s popup summarizing what was won on the tile.
+    {
+      const v = result.tile?.value ?? 0;
+      let popup: LandingReward | null = null;
+      if (tileType === "coins") popup = { icon: "🪙", title: `+${v} Coins`, tone: "good" };
+      else if (tileType === "chest") popup = { icon: "🎁", title: `+${v} Coins`, subtitle: "Card unlocked!", tone: "good" };
+      else if (tileType === "bonus") popup = { icon: "⚡", title: `+${v} Energy`, tone: "good" };
+      else if (tileType === "food") popup = { icon: "🍖", title: `+${v} Monster XP`, tone: "good" };
+      else if (tileType === "star") popup = { icon: "⭐", title: `+${v} Coins`, subtitle: "Star tile!", tone: "good" };
+      else if (tileType === "skull") popup = { icon: "💀", title: `${v} Coins`, subtitle: "Ouch!", tone: "bad" };
+      if (popup && result.islandStarEarned && tileType !== "star") {
+        popup.subtitle = (popup.subtitle ? popup.subtitle + " · " : "") + "⭐ Island Star!";
+      }
+      if (popup) setLandingPopup(popup);
+    }
     if (tileType === "skull") {
       sfxSkull();
     } else if (tileType === "coins" || tileType === "bonus" || tileType === "chest" || tileType === "star") {
