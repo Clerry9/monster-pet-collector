@@ -82,16 +82,19 @@ export type Database = {
           current_hp: number
           ended_at: string | null
           id: string
+          items: Json
           max_hp: number
           monster_id: string
           monster_level: number
           monster_rarity: string
+          pending_choices: Json | null
           shards_earned: number
           started_at: string
           status: string
           updated_at: string
           user_id: string
           wave: number
+          win_streak: number
         }
         Insert: {
           atk_buff_pct?: number
@@ -100,16 +103,19 @@ export type Database = {
           current_hp: number
           ended_at?: string | null
           id?: string
+          items?: Json
           max_hp: number
           monster_id: string
           monster_level?: number
           monster_rarity?: string
+          pending_choices?: Json | null
           shards_earned?: number
           started_at?: string
           status?: string
           updated_at?: string
           user_id: string
           wave?: number
+          win_streak?: number
         }
         Update: {
           atk_buff_pct?: number
@@ -118,16 +124,19 @@ export type Database = {
           current_hp?: number
           ended_at?: string | null
           id?: string
+          items?: Json
           max_hp?: number
           monster_id?: string
           monster_level?: number
           monster_rarity?: string
+          pending_choices?: Json | null
           shards_earned?: number
           started_at?: string
           status?: string
           updated_at?: string
           user_id?: string
           wave?: number
+          win_streak?: number
         }
         Relationships: []
       }
@@ -422,6 +431,36 @@ export type Database = {
         }
         Relationships: []
       }
+      monster_progress: {
+        Row: {
+          created_at: string
+          id: string
+          level: number
+          monster_id: string
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level?: number
+          monster_id: string
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: number
+          monster_id?: string
+          updated_at?: string
+          user_id?: string
+          xp?: number
+        }
+        Relationships: []
+      }
       monster_stats_def: {
         Row: {
           base_atk: number
@@ -429,6 +468,7 @@ export type Database = {
           base_hp: number
           base_spd: number
           created_at: string
+          element: string
           monster_id: string
           rarity: string
           signature_move_desc: string
@@ -441,6 +481,7 @@ export type Database = {
           base_hp?: number
           base_spd?: number
           created_at?: string
+          element?: string
           monster_id: string
           rarity?: string
           signature_move_desc?: string
@@ -453,6 +494,7 @@ export type Database = {
           base_hp?: number
           base_spd?: number
           created_at?: string
+          element?: string
           monster_id?: string
           rarity?: string
           signature_move_desc?: string
@@ -1345,6 +1387,24 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      grant_monster_xp: {
+        Args: { p_monster_id: string; p_user_id: string; p_xp: number }
+        Returns: {
+          created_at: string
+          id: string
+          level: number
+          monster_id: string
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "monster_progress"
           isOneToOne: true
           isSetofReturn: false
         }
