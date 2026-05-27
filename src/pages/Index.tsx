@@ -69,6 +69,7 @@ import { EnergyRefillModal } from "@/components/EnergyRefillModal";
 import { scheduleAt, cancelScheduled } from "@/lib/notifications";
 import { OrientationHint } from "@/components/OrientationHint";
 import { BonusRewardToast } from "@/components/BonusRewardToast";
+import { LandingRewardPopup, type LandingReward } from "@/components/LandingRewardPopup";
 import { useBonusInventory } from "@/hooks/useBonusInventory";
 import type { BonusReward } from "@/lib/bonusRewards";
 import { BuildDiscountBadge } from "@/components/BuildDiscountBadge";
@@ -244,6 +245,7 @@ const Index = () => {
   const game = useGameState();
   const bonusInv = useBonusInventory();
   const [activeBonus, setActiveBonus] = useState<BonusReward | null>(null);
+  const [landingPopup, setLandingPopup] = useState<LandingReward | null>(null);
   useCheckoutSuccessToast();
   // Tutorial completion gates the daily reward auto-open so we can chain
   // tutorial -> daily reward -> mini-game in order.
@@ -556,6 +558,21 @@ const Index = () => {
     setHasLanded(true);
     // Personality reactions: celebrate or commiserate based on what we landed on.
     const tileType = result.tile?.type;
+    // Quick 2s popup summarizing what was won on the tile.
+    {
+      const v = result.tile?.value ?? 0;
+      let popup: LandingReward | null = null;
+      if (tileType === "coins") popup = { icon: "🪙", title: `+${v} Coins`, tone: "good" };
+      else if (tileType === "chest") popup = { icon: "🎁", title: `+${v} Coins`, subtitle: "Card unlocked!", tone: "good" };
+      else if (tileType === "bonus") popup = { icon: "⚡", title: `+${v} Energy`, tone: "good" };
+      else if (tileType === "food") popup = { icon: "🍖", title: `+${v} Monster XP`, tone: "good" };
+      else if (tileType === "star") popup = { icon: "⭐", title: `+${v} Coins`, subtitle: "Star tile!", tone: "good" };
+      else if (tileType === "skull") popup = { icon: "💀", title: `${v} Coins`, subtitle: "Ouch!", tone: "bad" };
+      if (popup && result.islandStarEarned && tileType !== "star") {
+        popup.subtitle = (popup.subtitle ? popup.subtitle + " · " : "") + "⭐ Island Star!";
+      }
+      if (popup) setLandingPopup(popup);
+    }
     if (tileType === "skull") {
       sfxSkull();
     } else if (tileType === "coins" || tileType === "bonus" || tileType === "chest" || tileType === "star") {
@@ -1002,6 +1019,7 @@ const Index = () => {
       <ZIndexDebugOverlay />
 
       <BonusRewardToast reward={activeBonus} onDone={() => setActiveBonus(null)} />
+      <LandingRewardPopup reward={landingPopup} onDone={() => setLandingPopup(null)} />
 
       {isBoardTab && (
         <BuildDiscountBadge
