@@ -69,6 +69,7 @@ import { EnergyRefillModal } from "@/components/EnergyRefillModal";
 import { scheduleAt, cancelScheduled } from "@/lib/notifications";
 import { OrientationHint } from "@/components/OrientationHint";
 import { BonusRewardToast } from "@/components/BonusRewardToast";
+import { LandingRewardPopup, type LandingReward } from "@/components/LandingRewardPopup";
 import { useBonusInventory } from "@/hooks/useBonusInventory";
 import type { BonusReward } from "@/lib/bonusRewards";
 import { BuildDiscountBadge } from "@/components/BuildDiscountBadge";
