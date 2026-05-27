@@ -1019,6 +1019,7 @@ const Index = () => {
       <ZIndexDebugOverlay />
 
       <BonusRewardToast reward={activeBonus} onDone={() => setActiveBonus(null)} />
+      <LandingRewardPopup reward={landingPopup} onDone={() => setLandingPopup(null)} />
 
       {isBoardTab && (
         <BuildDiscountBadge
