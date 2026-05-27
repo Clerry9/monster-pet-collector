@@ -548,6 +548,11 @@ const Index = () => {
   const handleLanded = () => {
     const result = lastResult;
     if (!result) return;
+    // Idempotency guard: only process each result once. Index re-renders
+    // (toasts, roulette open, drawnCard, etc.) recreate `handleLanded` and
+    // GameBoard's effect would otherwise re-fire this entire reward chain.
+    if (landedFiredForRef.current === result) return;
+    landedFiredForRef.current = result;
     setHasLanded(true);
     // Personality reactions: celebrate or commiserate based on what we landed on.
     const tileType = result.tile?.type;
