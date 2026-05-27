@@ -281,6 +281,11 @@ const Index = () => {
   const [starBurstKey, setStarBurstKey] = useState(0);
   // Island reward roulette — opens after the monster lands on an "island event" tile.
   const [rouletteOpen, setRouletteOpen] = useState(false);
+  // Tracks which `lastResult` instance has already been processed by
+  // handleLanded. Without this, the GameBoard's landed-effect re-fires
+  // every time Index re-renders (because `onLanded`'s identity changes),
+  // which would re-toast the Island Star and re-open the roulette in a loop.
+  const landedFiredForRef = useRef<typeof lastResult>(null);
   // Lucky Roulette mini-game (separate side-rail entry, not tied to board tiles)
   const [luckyOpen, setLuckyOpen] = useState(false);
   const luckyCooldown = useLuckyRouletteCooldown();
@@ -543,6 +548,11 @@ const Index = () => {
   const handleLanded = () => {
     const result = lastResult;
     if (!result) return;
+    // Idempotency guard: only process each result once. Index re-renders
+    // (toasts, roulette open, drawnCard, etc.) recreate `handleLanded` and
+    // GameBoard's effect would otherwise re-fire this entire reward chain.
+    if (landedFiredForRef.current === result) return;
+    landedFiredForRef.current = result;
     setHasLanded(true);
     // Personality reactions: celebrate or commiserate based on what we landed on.
     const tileType = result.tile?.type;
