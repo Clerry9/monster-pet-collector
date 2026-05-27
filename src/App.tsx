@@ -22,6 +22,7 @@ import ArenaReplay from "./pages/ArenaReplay";
 import PvP from "./pages/PvP";
 import { CookieConsent } from "./components/CookieConsent";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { SplashScreen } from "./components/SplashScreen";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -64,6 +65,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <SplashScreen />
           <Routes>
             <Route
               path="/auth"
