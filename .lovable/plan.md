@@ -1,63 +1,103 @@
-## Security Hardening Plan
+## Phase 1 Battle System Overhaul
 
-### 1. Revoke EXECUTE on internal-only SECURITY DEFINER functions
+Everything below ships as one focused update. Phase 2 (balance / new modes / bug-sweep) follows after this lands.
 
-Lock down functions that should never be invoked by a signed-in client. All user-facing RPCs (`apply_dice_roll`, `buy_dice_pack`, `claim_mission`, etc.) stay callable by `authenticated` — they're the safe interface to mutate `game_state`.
+---
 
-Migration revokes `EXECUTE` from `PUBLIC`, `anon`, `authenticated` and grants only `service_role` on:
+### 1. New mechanics (server-authoritative)
 
-- `grant_battle_rewards` (already partially locked — reapply for defense-in-depth)
-- `grant_paid_roulette_spins` (same)
-- `handle_new_user` (auth trigger only)
-- `clamp_game_state_ranges` (table trigger only)
-- `update_updated_at_column` (table trigger only)
+**Status effects** — extend `Combatant` with `burn_turns`, `stun_turns`, `freeze_turns`, `poison_turns`. End-of-round tick applies damage / skips next action / reduces spd.
+- Common → burn (5%/turn, 2 turns)
+- Rare → already has Quick Slash; add 30% stun on special
+- Epic → already ignores def; add freeze 2 turns
+- Legendary → existing bleed + poison stack
 
-Trigger functions stay invokable by triggers regardless of grants — the engine runs them as definer. Revoking client EXECUTE prevents an authenticated user from calling them directly via PostgREST.
+**Elemental types** — add `element: "fire"|"water"|"earth"|"air"|"neutral"` to `BaseStats`. Rock-paper-scissors:
+- fire > earth > air > water > fire; cross-pair = 1.5x dmg, reverse = 0.75x, same/neutral = 1.0x
+- Show element badge next to each combatant.
 
-### 2. Audit exposed RPC + edge endpoints
+**Combo system** — track `combo_count` on attacker. 3 consecutive `attack` actions (no defend/special break) → next attack is free (extra turn) at 1.2x. Display combo counter UI.
 
-Read-only pass — no code changes unless an issue is found. Deliverable is a short audit note appended to `mem://security/rpc-audit.md`:
+**Mid-battle items** — new `items` array on `ArenaRun` (potions, bombs, shields). Earn from rewards. New action `"item"` with `item_id` payload, validated server-side. Start with 1 potion per run.
 
-- For every public-schema function: list grants, document who is supposed to call it, and verify the function body enforces `auth.uid()` checks or `auth.role()` gates before mutating.
-- For every edge function (`arena-action`, `pvp-match`, `create-checkout`, roulette/pack/webhook handlers): confirm JWT validation via `getClaims`, confirm the userId used in DB writes comes from the verified claim (never from request body), and confirm any service-role DB call cannot be triggered with attacker-controlled identity.
-- Flag any gap as a follow-up task; do not silently fix in this pass.
+---
 
-### 3. Automated RLS regression tests (Vitest, service-role seeded)
+### 2. UI polish
 
-New directory: `src/test/security/`
+**Screen shake + hit flash** — wrap `BattleArena` root in motion div that triggers `x: [-6,6,-3,3,0]` on damage events. White flash overlay on crits via opacity pulse. Red vignette when player HP < 25%.
 
-Setup (`src/test/security/setup.ts`):
-- Reads `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` from env (CI secrets; not committed).
-- Creates two throwaway auth users (`userA`, `userB`) via service-role admin API in `beforeAll`, deletes them in `afterAll`.
-- Exposes `anonClientAs(user)` helper returning an anon-key client signed in as that user.
+**Victory/defeat screen** — new `BattleResultModal` showing winner portrait, XP gained, coin/shard rewards, items dropped, streak counter, and "Continue / Choose Reward" CTAs. Replaces current inline log finish.
 
-Test files:
-- `gameState.rls.test.ts` — userB cannot SELECT/UPDATE userA's `game_state`; direct `position` update is rejected; `shards` increase is rejected; baseline INSERT enforced.
-- `arenaRuns.rls.test.ts` — userB cannot read userA's `arena_runs` or `battles`; only service_role can INSERT/UPDATE.
-- `rewards.rls.test.ts` — calling `grant_battle_rewards` as authenticated fails; calling `apply_dice_roll`/`buy_dice_pack` as the wrong user only affects the caller's row.
-- `pvp.rls.test.ts` — defense team rows readable by all auth users (intentional), but updatable only by owner.
+**Special move cinematic** — when `special` fires, briefly: dim background (300ms), zoom attacker portrait to 1.4x, flash signature name in large display font, then resume. Implement as `<AnimatePresence>` overlay inside `BattleArena`.
 
-Add `test:security` script to `package.json` that runs `vitest run src/test/security/`.
+---
 
-### 4. Extend CI security linting
+### 3. Rewards & progression
 
-Update `.github/workflows/security-lint.yml`:
+**Monster XP / level-up** — new table `monster_progress (user_id, monster_id, xp, level)`. Award XP on battle win (50 base × wave). Level-up thresholds: `100 * level^1.5`. Boost `base_*` stats by 5% per level when building combatant.
 
-- Keep existing `scripts/security-lint.mjs` checks.
-- Add a step that runs `supabase db lint` (via `supabase` CLI in the workflow) against the migrations and fails on any `ERROR`-level finding. Warnings (e.g. anonymous-access notices) are logged but not failing — documented in the workflow comments.
-- Add a step that runs the new `npm run test:security` suite against a Cloud test instance using repository secrets.
-- Add a guard step: greps new migrations under `supabase/migrations/` for `CREATE TABLE public.` lines without an accompanying `GRANT` in the same file, fails the build if found.
-- Update `mem://security/ci.md` documenting which checks gate merges and how to triage failures.
+**Better loot tables** — modify `arena-action` rewards block:
+- Coins/shards scale per wave (already partial)
+- Boss waves (every 5) guarantee 1 card drop of epic+
+- Add `items` drops (potion/bomb) at low odds
 
-### Technical details
+**Streak bonuses** — track `win_streak` on `arena_runs`. Multiplier: `min(5, 1 + streak * 0.2)` applied to coin/shard payout. Reset on defeat. Show streak chip in HUD.
 
-Migration SQL pattern for step 1:
+**Post-battle choice** — already partially scaffolded (`status: "choosing"`, `choose` op). Extend choices from {heal, buff, skip} to 3 randomized cards from: heal-50%, atk-buff, def-buff, gain-potion, gain-bomb, gain-rare-card. UI: 3-card picker modal.
+
+---
+
+### 4. Schema changes
 
 ```sql
-REVOKE EXECUTE ON FUNCTION public.<name>(<args>) FROM PUBLIC, anon, authenticated;
-GRANT  EXECUTE ON FUNCTION public.<name>(<args>) TO service_role;
+-- monster XP/level
+CREATE TABLE public.monster_progress (
+  id uuid PK, user_id uuid, monster_id text,
+  xp int default 0, level int default 1,
+  UNIQUE(user_id, monster_id)
+);
+-- RLS: user reads own, service writes
+-- GRANT select to authenticated, all to service_role
+
+-- arena_runs additions
+ALTER TABLE public.arena_runs
+  ADD COLUMN win_streak int NOT NULL default 0,
+  ADD COLUMN items jsonb NOT NULL default '[]'::jsonb,
+  ADD COLUMN pending_choices jsonb;
+
+-- monster_stats_def additions
+ALTER TABLE public.monster_stats_def
+  ADD COLUMN element text NOT NULL default 'neutral';
 ```
 
-Vitest service-role usage stays out of the browser bundle — files live under `src/test/security/` and are excluded from the app build by the existing `vitest.config.ts` `include` glob (`src/**/*.{test,spec}.{ts,tsx}`) being test-only. Service-role key is only injected via CI env, never via `.env` or `import.meta.env`.
+Seed elements for existing monsters via `insert` tool after migration approval.
 
-No changes to existing user-facing flows; no UI changes.
+---
+
+### 5. Files touched
+
+- `supabase/functions/_shared/combat.ts` — status, elements, combos, items, XP grant
+- `supabase/functions/arena-action/index.ts` — items op, streak, loot tables, monster XP write
+- `src/lib/combat.ts` — mirror new fields
+- `src/components/BattleArena.tsx` — shake, flash, cinematic, combo counter, status icons, item bar
+- `src/components/BattleResultModal.tsx` *(new)* — victory/defeat screen
+- `src/components/BattleChoiceModal.tsx` *(new)* — 3-card post-battle picker (replaces inline choose UI)
+- `src/hooks/useArena.ts` — `useItem` action
+- `src/pages/Arena.tsx` — wire result + choice modals, show streak chip
+- `src/data/monsters.ts` — element annotations
+
+---
+
+### 6. Out of scope (Phase 2)
+
+- Damage formula re-balance / wave curve tuning
+- New modes (boss raids, daily challenges)
+- Existing bug sweep
+- PvP integration of new mechanics (PvP keeps current rules for now)
+
+---
+
+### 7. Risks
+
+- Combat module changes affect PvP via shared file. Mitigation: PvP edge function pins old behavior by passing `useNewMechanics: false` until Phase 2.
+- Test suite (`arenaRuns.rls.test.ts`, `pvp.rls.test.ts`) may need updates for new columns. Will adjust.
