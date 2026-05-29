@@ -122,7 +122,7 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
       className="relative w-full max-w-2xl mx-auto rounded-2xl border-4 border-wood-dark bg-gradient-to-b from-[#1a0f2e] via-[#2d1b4e] to-[#0d0824] shadow-chunky overflow-hidden"
     >
       {waveLabel && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full bg-wood-dark border-2 border-gold text-gold font-display text-xs tracking-wider flex items-center gap-2">
+        <div className="relative z-20 mx-auto mt-2 w-fit px-3 py-1 rounded-full bg-wood-dark border-2 border-gold text-gold font-display text-xs tracking-wider flex items-center gap-2">
           <span>{waveLabel}</span>
           {(winStreak ?? 0) > 0 && (
             <span className="text-[10px] text-orange-300">🔥 {winStreak}</span>
@@ -177,19 +177,19 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
       </AnimatePresence>
 
       {/* Arena floor gradient + glow */}
-      <div className="relative h-72 overflow-hidden">
+      <div className="relative h-52 sm:h-72 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,hsl(280_80%_30%/0.6),transparent_70%)]" />
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-amber-900/40 to-transparent" />
 
         {/* Defender (top-right) */}
         <motion.div
-          className="absolute right-4 top-6"
+          className="absolute right-3 top-2 sm:right-4 sm:top-6"
           animate={lastEvent?.side === "defender" && lastEvent.action !== "defend"
             ? { x: [-8, 0], rotate: [-2, 0] }
             : { x: 0, rotate: 0 }}
           transition={{ duration: 0.25 }}
         >
-          <Monster3D src={monsterImage(def.monster_id)} size={140} compact />
+          <Monster3D src={monsterImage(def.monster_id)} size={100} compact />
           <div className="text-center font-display text-xs text-cream mt-1 flex items-center justify-center gap-1">
             <span>{ELEMENT_EMOJI[def.element ?? "neutral"]}</span>
             <span>{def.name} Lv.{def.level}</span>
@@ -199,13 +199,13 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
 
         {/* Attacker (bottom-left) */}
         <motion.div
-          className="absolute left-4 bottom-2"
+          className="absolute left-3 bottom-1 sm:left-4 sm:bottom-2"
           animate={lastEvent?.side === "attacker" && lastEvent.action !== "defend"
             ? { x: [8, 0], rotate: [2, 0] }
             : { x: 0, rotate: 0 }}
           transition={{ duration: 0.25 }}
         >
-          <Monster3D src={monsterImage(atk.monster_id)} size={140} compact />
+          <Monster3D src={monsterImage(atk.monster_id)} size={100} compact />
           <div className="text-center font-display text-xs text-cream mt-1 flex items-center justify-center gap-1">
             <span>{ELEMENT_EMOJI[atk.element ?? "neutral"]}</span>
             <span>{atk.name} Lv.{atk.level}</span>
@@ -256,7 +256,7 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
       {/* Battle log */}
       <div
         ref={logRef}
-        className="mx-4 mt-2 h-20 overflow-y-auto rounded bg-black/40 border border-wood-dark p-2 text-[11px] font-body text-cream/90 space-y-0.5"
+        className="mx-4 mt-2 h-14 sm:h-20 overflow-y-auto rounded bg-black/40 border border-wood-dark p-2 text-[11px] font-body text-cream/90 space-y-0.5"
       >
         {battle.log.map((e, i) => (
           <div key={i} className={
