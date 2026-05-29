@@ -12,16 +12,16 @@ interface GameTabsProps {
   countdowns?: Partial<Record<Tab, string>>;
 }
 
-const tabs: { id: Tab; label: string; emoji: string }[] = [
-  { id: "board", label: "Play", emoji: "🎲" },
-  { id: "season", label: "Event", emoji: "🌟" },
-  { id: "monster", label: "Pet", emoji: "👾" },
-  { id: "cards", label: "Cards", emoji: "🃏" },
-  { id: "shop", label: "Shop", emoji: "🛒" },
-  { id: "specials", label: "Deals", emoji: "🎁" },
-  { id: "collection", label: "Team", emoji: "📦" },
-  { id: "spin", label: "Spin", emoji: "🎰" },
-  { id: "account", label: "Account", emoji: "👤" },
+const tabs: { id: Tab; label: string; emoji: string; tip: string }[] = [
+  { id: "board",      label: "Play",    emoji: "🎲", tip: "Roll dice and move across the island board." },
+  { id: "season",     label: "Event",   emoji: "🌟", tip: "Current limited-time event, battle pass, and mini-games." },
+  { id: "monster",    label: "Pet",     emoji: "👾", tip: "View, feed, and level up your active monster." },
+  { id: "cards",      label: "Cards",   emoji: "🃏", tip: "Your card album — complete sets to earn rewards." },
+  { id: "shop",       label: "Shop",    emoji: "🛒", tip: "Buy coins, gems, dice bundles, and the Season Pass." },
+  { id: "specials",   label: "Deals",   emoji: "🎁", tip: "Daily deals, limited bundles, and starter packs." },
+  { id: "collection", label: "Team",    emoji: "📦", tip: "Pick your battle team and manage unlocked monsters." },
+  { id: "spin",       label: "Spin",    emoji: "🎰", tip: "Spin the prize wheel for free coins, dice, and cards." },
+  { id: "account",    label: "Account", emoji: "👤", tip: "Account, settings, sign in / out, and progress." },
 ];
 
 export function GameTabs({ active, onTabChange, variant = "bar", newTabs, countdowns }: GameTabsProps) {
@@ -39,6 +39,8 @@ export function GameTabs({ active, onTabChange, variant = "bar", newTabs, countd
               aria-selected={isActive}
               aria-controls={`panel-${tab.id}`}
               onClick={() => onTabChange(tab.id)}
+              title={tab.tip}
+              aria-label={`${tab.label} — ${tab.tip}`}
               className={`relative icon-tile-gold w-12 h-12 flex flex-col items-center justify-center text-[10px] font-display leading-none transition-transform active:translate-y-0.5 ${
                 isActive ? "ring-4 ring-candy-red/70 scale-105" : ""
               }`}
@@ -70,6 +72,8 @@ export function GameTabs({ active, onTabChange, variant = "bar", newTabs, countd
             aria-selected={active === tab.id}
             aria-controls={`panel-${tab.id}`}
             onClick={() => onTabChange(tab.id)}
+            title={tab.tip}
+            aria-label={`${tab.label} — ${tab.tip}`}
             className={`relative px-2.5 py-1.5 rounded-full text-[11px] font-display tracking-wide transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
               active === tab.id ? "text-wood-dark" : "text-cream/80 hover:text-cream"
             }`}

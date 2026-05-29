@@ -43,6 +43,7 @@ export function TopHud({
           value={gems}
           onAdd={onAddGems}
           ariaLabel={`${gems.toLocaleString()} gems`}
+          tip="Gems — premium currency for special packs and revives."
         />
         <Counter
           icon={<Coins size={14} className="text-yellow-300" fill="currentColor" />}
@@ -50,19 +51,22 @@ export function TopHud({
           onAdd={onAddCoins}
           ariaLabel={`${coins.toLocaleString()} coins`}
           wide
+          tip="Coins — earned from rolls and battles. Spend on builds and items."
         />
-        <KeySlots count={keys} onAdd={onAddKeys} />
+        <KeySlots count={keys} onAdd={onAddKeys} tip="Key shards — collect 3 to unlock the next island." />
         <Counter
           icon={<Star size={14} className="text-yellow-300" fill="currentColor" />}
           value={stars}
           onAdd={onAddStars}
           ariaLabel={`${stars.toLocaleString()} stars`}
+          tip="Stars — season currency. Climb the season pass to claim rewards."
         />
         <Counter
           icon={<Sparkles size={14} className="text-cyan-300" fill="currentColor" />}
           value={shards}
           onAdd={onAddShards}
           ariaLabel={`${shards.toLocaleString()} shards`}
+          tip="Shards — spend at the Summon Altar to unlock new monsters."
         />
       </div>
 
@@ -115,13 +119,14 @@ export function TopHud({
 }
 
 function Counter({
-  icon, value, onAdd, ariaLabel, wide,
-}: { icon: React.ReactNode; value: number; onAdd?: () => void; ariaLabel: string; wide?: boolean }) {
+  icon, value, onAdd, ariaLabel, wide, tip,
+}: { icon: React.ReactNode; value: number; onAdd?: () => void; ariaLabel: string; wide?: boolean; tip?: string }) {
   return (
     <div
       className={`pill-counter flex items-center gap-1 pl-1.5 pr-0.5 py-0.5 ${wide ? "min-w-[88px] sm:min-w-[110px]" : "min-w-[64px] sm:min-w-[78px]"}`}
       role="status"
       aria-label={ariaLabel}
+      title={tip ?? ariaLabel}
     >
       <span className="shrink-0 w-5 h-5 rounded-full bg-black/30 flex items-center justify-center" aria-hidden="true">
         {icon}
@@ -131,7 +136,8 @@ function Counter({
       </span>
       <button
         onClick={onAdd}
-        aria-label="Add"
+        aria-label={`Add — ${tip ?? ariaLabel}`}
+        title={tip ? `Get more — ${tip}` : "Get more"}
         className="add-stub w-5 h-5 flex items-center justify-center"
       >
         <Plus size={12} strokeWidth={3} />
@@ -140,13 +146,14 @@ function Counter({
   );
 }
 
-function KeySlots({ count, onAdd }: { count: number; onAdd?: () => void }) {
+function KeySlots({ count, onAdd, tip }: { count: number; onAdd?: () => void; tip?: string }) {
   const slots = [0, 1, 2];
   return (
     <button
       onClick={onAdd}
       className="pill-counter flex items-center gap-1 px-1.5 py-1"
-      aria-label={`${count} of 3 key shards`}
+      aria-label={`${count} of 3 key shards${tip ? ` — ${tip}` : ""}`}
+      title={tip ?? `${count} of 3 key shards`}
     >
       {slots.map((i) => {
         const filled = i < count;
