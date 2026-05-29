@@ -202,11 +202,19 @@ Deno.serve(async (req) => {
 
     // ====== ABANDON ======
     if (op === "abandon") {
+      const finalWave = Math.max(run.best_wave, run.wave - 1);
       await admin.from("arena_runs").update({
         status: "ended", ended_at: new Date().toISOString(),
-        best_wave: Math.max(run.best_wave, run.wave - 1),
+        best_wave: finalWave,
       }).eq("id", run.id);
       await grantRewards(admin, userId, run.coins_earned, run.shards_earned, run.wave * 10);
+      if (finalWave > 0) {
+        await admin.rpc("record_arena_run_score", {
+          p_user_id: userId,
+          p_wave: finalWave,
+          p_monster_id: run.monster_id,
+        }).catch((e: unknown) => console.error("record score failed", e));
+      }
       return json({ ended: true, run });
     }
 
