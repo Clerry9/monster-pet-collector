@@ -30,6 +30,9 @@ export default function Arena() {
   useEffect(() => {
     if (!user || isGuest) return;
     (async () => {
+      // Make sure a game_state row exists for freshly-signed-up users so
+      // the roster (unlocked_monsters) actually populates.
+      await (supabase as any).rpc("bootstrap_game_state");
       const { data: gs } = await supabase.from("game_state")
         .select("unlocked_monsters,active_monster").eq("user_id", user.id).maybeSingle();
       if (gs) {
