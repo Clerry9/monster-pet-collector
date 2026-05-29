@@ -1,65 +1,74 @@
-# Global Arena Leaderboard
+# Power-Ups Feature Plan
 
-Add a competitive global ranking for arena runs, with weekly seasons that reset every Monday 00:00 UTC and pay out coins/shards to top finishers when a new season starts.
+Rail changes are already done (Arena + PvP added to left rail; gap tightened). This plan covers the new Power-Ups system.
 
-## What players see
+## What you'll get
 
-- A new **Leaderboard** tab on the Arena page (alongside the gladiator picker / current run).
-- **Top 100** global ranking for the current week: rank, display name, best monster icon, best wave reached, total runs.
-- The current user is always shown with their rank highlighted (even if outside the top 100, pinned at the bottom: "You — rank #347, wave 12").
-- A countdown to season reset ("Resets in 3d 14h").
-- A small "Last season winners" strip at the top with top 3 names + their reward.
-- After a reset, if the user placed in a reward tier, a one-time **Season Reward** modal appears on next Arena visit ("You finished #7 last week — +500 coins, +50 shards").
+A unified "Boosts" system with 9 items split across three contexts. Each boost stacks in your inventory and is consumed when used.
 
-## Reward tiers (per weekly season)
+**Arena Boosts** (used at run start)
+- Iron Skin — +25% starting HP
+- War Cry — +20% ATK for the whole run
+- Phoenix Feather — auto-revive once at 1 HP
+- Shard Doubler — 2x shards from this run
 
-- Rank 1: 5,000 coins + 500 shards
-- Rank 2–3: 2,500 coins + 250 shards
-- Rank 4–10: 1,000 coins + 100 shards
-- Rank 11–50: 300 coins + 30 shards
-- Rank 51–100: 100 coins + 10 shards
+**PvP Boosts** (used on next attack)
+- First Strike — guaranteed first turn
+- Lucky Crit — +30% crit chance this match
+- Aegis Shield — block first incoming hit
 
-Rewards are granted automatically the first time any player loads the Arena page after the season has rolled over.
+**Board Boosts** (used on next roll)
+- Coin Rush — 2x coin rewards for next 5 rolls
+- Energy Tonic — instant full energy refill
 
-## How ranking works
+## Pricing
 
-- Each arena run already has a `best_wave`. We aggregate the user's **highest `best_wave` reached during the current season window** as their score.
-- Tiebreaker: earliest timestamp at which that wave was first achieved (rewards consistency, not spam).
+- Single use: 250–800 coins depending on power
+- **Starter Boost Bundle** (real money): 12 boosts (mix of all 9 types) for $4.99 — ~40% discount vs coins
+- **Big Boost Bundle** (real money): 30 boosts for $9.99 — ~55% discount
 
-## Technical changes
+## Where to buy
 
-### Database (one migration)
+- **Shop tab**: New "Boosts" section above existing dice packs
+- **Pre-battle modal**: Quick-buy strip shown when entering Arena or PvP (only relevant boosts shown)
+- Board boosts: small icon row above the dice roller
 
-1. **`arena_seasons`** — `id text PK` (e.g. `2026-W22`), `starts_at`, `ends_at`, `created_at`. Public read.
-2. **`arena_season_scores`** — `season_id`, `user_id`, `best_wave`, `best_monster_id`, `runs_count`, `first_reached_at`, `updated_at`. Unique on `(season_id, user_id)`. Public read for top-N display, no direct writes.
-3. **`arena_season_rewards`** — `season_id`, `user_id`, `rank`, `coins`, `shards`, `granted_at`, `claimed_at`. User can read own rows.
-4. Standard `GRANT` blocks + RLS (auth read where appropriate, service-role writes).
+## Technical plan
 
-### RPCs / functions (security definer)
+### Database
+New migration adds:
+- `power_ups_def` (id, kind: arena|pvp|board, name, description, effect_json, coin_price, sort_order) — admin/public read
+- `user_power_ups` (user_id, power_up_id, quantity) — RLS: users read own; service_role writes
+- Seed 9 power-ups via insert tool
 
-- `current_arena_season()` → returns `arena_seasons` row, creating the current ISO-week row on demand.
-- `get_arena_leaderboard(_limit int)` → joins `arena_season_scores` + `profiles`, returns top N with display_name + level for the active season.
-- `get_my_arena_rank()` → returns the caller's current rank, score, runs_count.
-- `roll_arena_season()` → if the active season has ended: snapshot top 100 into `arena_season_rewards`, credit each winner via `grant_battle_rewards` semantics (coins/shards only), create the next season row. Idempotent (guarded by unique season id + status flag).
-- `claim_pending_arena_rewards()` → returns and marks `claimed_at` on any unclaimed reward rows for the caller (used to drive the one-time modal).
+### Edge functions
+- `power-up-purchase` — atomically debits coins from `game_state` and increments `user_power_ups` (server-validated price)
+- `power-up-consume` — decrements quantity; called by `arena-action` (op:"start") and `pvp-match` to apply effects server-side
+- Extend `payments-webhook` to grant bundle contents on `boost_bundle_starter` / `boost_bundle_big` Stripe products
+- Add two Stripe products via payments tool
 
-### Edge function update
+### Combat integration
+- `arena-action` start op accepts `power_ups: string[]`, applies effects to initial `ArenaRun` (hp/atk/revive/shard multiplier flag stored in `items` jsonb)
+- `pvp-match` accepts pre-match boost; applies to attacker's first turn
+- Board boosts apply client-side via existing `useGameState` (coin rush flag, energy refill)
 
-`supabase/functions/arena-action/index.ts`:
-- After a run ends (any path that sets `arena_runs.status = 'ended'`), upsert into `arena_season_scores` for the current season: if `new_best_wave > existing.best_wave`, update score + `first_reached_at = now()` + `best_monster_id`. Always bump `runs_count`.
-- Call `roll_arena_season()` at the start of `arena-action` so the rollover happens lazily on traffic (no cron needed).
+### UI components
+- `src/data/powerUps.ts` — typed catalog mirroring DB
+- `src/hooks/usePowerUps.ts` — fetch inventory, purchase, consume
+- `src/components/PowerUpShop.tsx` — Shop tab section + reusable card grid
+- `src/components/PreBattleBoostBar.tsx` — pre-battle picker for Arena/PvP
+- Wire into existing `SpecialPacks`/Shop tab, `Arena.tsx`, `PvP.tsx`
 
-### Frontend
+### Files touched (estimate)
+- 1 migration + 1 data insert
+- 2 new edge functions, 1 webhook edit
+- 4 new client files, ~5 edited (Arena.tsx, PvP.tsx, Shop/SpecialPacks, useGameState, arena-action)
 
-- **New file** `src/components/ArenaLeaderboard.tsx` — fetches `get_arena_leaderboard` + `get_my_arena_rank`, renders the list with rank medals (gold/silver/bronze for top 3), reward tier hint per row, reset countdown.
-- **New file** `src/components/ArenaSeasonRewardModal.tsx` — shown when `claim_pending_arena_rewards` returns rows. Confetti + rank + payout summary.
-- **Edit** `src/pages/Arena.tsx`:
-  - Replace the existing "Your Best Runs" personal mini-list with a tab toggle: **Play** | **Leaderboard**.
-  - On mount, call `claim_pending_arena_rewards`; if rows returned, show `ArenaSeasonRewardModal`.
-- **Edit** `src/hooks/useArena.ts` — no logic change, but expose a `refreshLeaderboard()` callback used by the page after a run ends.
+## Order of work
+1. Migration + seed + Stripe products
+2. Edge functions (purchase + consume + webhook)
+3. Client hook + Shop section
+4. Pre-battle modal + Arena/PvP wiring
+5. Board boost integration
 
-### No changes to
-
-- Combat math, choice cards, monster XP, existing arena run flow, or any other game mode.
-- Existing `arena_runs` / `battles` schema (we only read `best_wave` for aggregation; nothing is removed).
-
+Approve and I'll build it.

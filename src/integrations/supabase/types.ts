@@ -644,6 +644,45 @@ export type Database = {
         }
         Relationships: []
       }
+      power_ups_def: {
+        Row: {
+          coin_price: number
+          created_at: string
+          description: string
+          effect_json: Json
+          emoji: string
+          enabled: boolean
+          id: string
+          kind: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          coin_price?: number
+          created_at?: string
+          description: string
+          effect_json?: Json
+          emoji?: string
+          enabled?: boolean
+          id: string
+          kind: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          coin_price?: number
+          created_at?: string
+          description?: string
+          effect_json?: Json
+          emoji?: string
+          enabled?: boolean
+          id?: string
+          kind?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1003,6 +1042,38 @@ export type Database = {
           },
         ]
       }
+      user_power_ups: {
+        Row: {
+          id: string
+          power_up_id: string
+          quantity: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          power_up_id: string
+          quantity?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          power_up_id?: string
+          quantity?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_power_ups_power_up_id_fkey"
+            columns: ["power_up_id"]
+            isOneToOne: false
+            referencedRelation: "power_ups_def"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1341,6 +1412,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      consume_power_up: {
+        Args: { p_power_up_id: string }
+        Returns: {
+          id: string
+          power_up_id: string
+          quantity: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_power_ups"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       current_arena_season: {
         Args: never
         Returns: {
@@ -1571,6 +1658,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      grant_power_up: {
+        Args: { p_power_up_id: string; p_quantity: number; p_user_id: string }
+        Returns: {
+          id: string
+          power_up_id: string
+          quantity: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_power_ups"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
@@ -1581,6 +1684,22 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      purchase_power_up: {
+        Args: { p_power_up_id: string; p_quantity?: number }
+        Returns: {
+          id: string
+          power_up_id: string
+          quantity: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_power_ups"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       record_arena_run_score: {
         Args: { p_monster_id: string; p_user_id: string; p_wave: number }
