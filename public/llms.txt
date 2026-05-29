@@ -1,4 +1,4 @@
-# Monster Pet Collection
+# Monster Pet Collector
 
 > A free-to-play browser game where you collect, train and battle 3D monsters across themed islands. Earn coins, unlock cards, and build the ultimate creature collection.
 
