@@ -24,22 +24,11 @@ export default function Arena() {
   const [chosen, setChosen] = useState<string | null>(null);
   const [tab, setTab] = useState<"play" | "leaderboard">("play");
   const [pendingRewards, setPendingRewards] = useState<SeasonRewardRow[] | null>(null);
-
-  // Guests are blocked from game_state by RLS, so unlocked_monsters is
-  // empty and run progress can't persist. Show the account gate before
-  // any of the arena UI tries to load.
-  if (user?.is_anonymous) {
-    return (
-      <GuestAccountGate
-        feature="the Gladiator Arena"
-        description="Arena runs save your wave, items, and season ranking — guest accounts can't sync any of that. Create or link an account to start a run."
-      />
-    );
-  }
+  const isGuest = !!user?.is_anonymous;
 
   // Load unlocked roster
   useEffect(() => {
-    if (!user) return;
+    if (!user || isGuest) return;
     (async () => {
       const { data: gs } = await supabase.from("game_state")
         .select("unlocked_monsters,active_monster").eq("user_id", user.id).maybeSingle();
@@ -48,18 +37,18 @@ export default function Arena() {
         setChosen(gs.active_monster ?? "gobby");
       }
     })();
-  }, [user]);
+  }, [user, isGuest]);
 
   // Claim any pending season rewards on mount
   useEffect(() => {
-    if (!user) return;
+    if (!user || isGuest) return;
     (async () => {
       const { data } = await supabase.rpc("claim_pending_arena_rewards");
       if (data && Array.isArray(data) && data.length > 0) {
         setPendingRewards(data as SeasonRewardRow[]);
       }
     })();
-  }, [user]);
+  }, [user, isGuest]);
 
   // If we hydrated an in-progress run, exit picking mode
   useEffect(() => {
@@ -74,6 +63,18 @@ export default function Arena() {
   };
 
   const endedThisTurn = arena.lastResult?.ended;
+
+  // Guests are blocked from game_state by RLS, so unlocked_monsters is
+  // empty and run progress can't persist. Gate after hooks so hook order
+  // stays stable across sign-in/sign-out.
+  if (isGuest) {
+    return (
+      <GuestAccountGate
+        feature="the Gladiator Arena"
+        description="Arena runs save your wave, items, and season ranking — guest accounts can't sync any of that. Create or link an account to start a run."
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a0f2e] via-[#2d1b4e] to-[#0d0824] text-cream font-body">
