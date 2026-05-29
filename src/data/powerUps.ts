@@ -15,7 +15,7 @@ export interface PowerUpDef {
 export const POWER_UPS: PowerUpDef[] = [
   // Arena
   { id: "arena_iron_skin",  kind: "arena", name: "Iron Skin",       description: "+25% max HP for your next Arena run.",         emoji: "🛡️", coinPrice: 400 },
-  { id: "arena_war_cry",    kind: "arena", name: "War Cry",         "+20% attack for your next Arena run." as unknown as string, emoji: "⚔️", coinPrice: 500 } as unknown as PowerUpDef,
+  { id: "arena_war_cry",    kind: "arena", name: "War Cry",         description: "+20% attack for your next Arena run.",          emoji: "⚔️", coinPrice: 500 },
   { id: "arena_phoenix",    kind: "arena", name: "Phoenix Feather", description: "Start your Arena run with 3 extra potions.",    emoji: "🔥", coinPrice: 800 },
   { id: "arena_shard_2x",   kind: "arena", name: "Bomb Crate",      description: "Start your Arena run with 3 extra bombs.",      emoji: "💣", coinPrice: 600 },
   // PvP (preview — purchasable, stockpiled, takes full effect in a future update)
