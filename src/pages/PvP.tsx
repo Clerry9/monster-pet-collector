@@ -9,6 +9,7 @@ import { MONSTERS } from "@/data/monsters";
 import { ArrowLeft, Crown, Swords, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import type { TurnEvent } from "@/lib/combat";
+import { GuestAccountGate } from "@/components/GuestAccountGate";
 
 interface DefenseTeam {
   user_id: string;
@@ -52,6 +53,19 @@ export default function PvP() {
   const [level, setLevel] = useState(1);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<MatchResult | null>(null);
+
+  // Anonymous/guest accounts can't read game_state (RLS blocks
+  // is_anonymous=true), so the roster, level, and defense team would all
+  // come back empty and the page silently breaks. Gate PvP behind a real
+  // account instead of degrading the UI.
+  if (user?.is_anonymous) {
+    return (
+      <GuestAccountGate
+        feature="PvP"
+        description="PvP needs a saved roster, rating, and rewards across sessions — guest accounts can't sync those. Create or link an account to enter the arena."
+      />
+    );
+  }
 
   const refresh = async () => {
     if (!user) return;
