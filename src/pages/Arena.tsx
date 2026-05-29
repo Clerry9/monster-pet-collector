@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { MONSTERS } from "@/data/monsters";
 import { Monster3D } from "@/components/Monster3D";
 import { Trophy, Swords, ArrowLeft } from "lucide-react";
+import { GuestAccountGate } from "@/components/GuestAccountGate";
 
 export default function Arena() {
   const { user } = useAuth();
@@ -23,6 +24,18 @@ export default function Arena() {
   const [chosen, setChosen] = useState<string | null>(null);
   const [tab, setTab] = useState<"play" | "leaderboard">("play");
   const [pendingRewards, setPendingRewards] = useState<SeasonRewardRow[] | null>(null);
+
+  // Guests are blocked from game_state by RLS, so unlocked_monsters is
+  // empty and run progress can't persist. Show the account gate before
+  // any of the arena UI tries to load.
+  if (user?.is_anonymous) {
+    return (
+      <GuestAccountGate
+        feature="the Gladiator Arena"
+        description="Arena runs save your wave, items, and season ranking — guest accounts can't sync any of that. Create or link an account to start a run."
+      />
+    );
+  }
 
   // Load unlocked roster
   useEffect(() => {
