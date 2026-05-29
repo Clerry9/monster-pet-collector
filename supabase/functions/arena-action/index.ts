@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
     const op: Op = body.op;
 
     // Lazy season rollover on traffic
-    await admin.rpc("roll_arena_season").catch(() => {});
+    try { await admin.rpc("roll_arena_season"); } catch (_) { /* ignore */ }
 
     // Load combat stat catalog (small, ~9 rows)
     const { data: stats, error: statsErr } = await admin
@@ -209,11 +209,13 @@ Deno.serve(async (req) => {
       }).eq("id", run.id);
       await grantRewards(admin, userId, run.coins_earned, run.shards_earned, run.wave * 10);
       if (finalWave > 0) {
-        await admin.rpc("record_arena_run_score", {
-          p_user_id: userId,
-          p_wave: finalWave,
-          p_monster_id: run.monster_id,
-        }).catch((e: unknown) => console.error("record score failed", e));
+        try {
+          await admin.rpc("record_arena_run_score", {
+            p_user_id: userId,
+            p_wave: finalWave,
+            p_monster_id: run.monster_id,
+          });
+        } catch (e) { console.error("record score failed", e); }
       }
       return json({ ended: true, run });
     }
