@@ -70,8 +70,8 @@ export function useArena() {
     }
   }, []);
 
-  const start = useCallback((monster_id: string, level: number) =>
-    handle({ op: "start", monster_id, level }), [handle]);
+  const start = useCallback((monster_id: string, level: number, power_ups: string[] = []) =>
+    handle({ op: "start", monster_id, level, power_ups }), [handle]);
   const turn = useCallback((action: Action) =>
     handle({ op: "turn", action }), [handle]);
   const choose = useCallback((choiceId: string) =>
