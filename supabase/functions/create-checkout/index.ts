@@ -62,20 +62,39 @@ Deno.serve(async (req) => {
       userId, // always wins
     };
 
-    // Validate successUrl is same-origin to prevent open-redirect abuse
-    // via attacker-crafted checkout sessions.
-    const allowedOrigin = new URL(req.url).origin;
+    // Validate successUrl against an allow-list of real app origins.
+    // NOTE: req.url is the edge-function host (supabase.co), NOT the app —
+    // using it as the fallback redirects users to a Functions 404
+    // ("requested path is invalid") when they hit back from Stripe.
+    const ALLOWED_ORIGINS = new Set<string>([
+      "https://monsterpetcol.com",
+      "https://www.monsterpetcol.com",
+      "https://creature-collection-crafter.lovable.app",
+      "https://id-preview--e925fb75-03fc-4263-80d5-abbe0769e5dd.lovable.app",
+      "http://localhost:5173",
+      "http://localhost:8080",
+    ]);
+    const isAllowedOrigin = (origin: string | null) => {
+      if (!origin) return false;
+      if (ALLOWED_ORIGINS.has(origin)) return true;
+      // Permit Lovable preview subdomains for this project.
+      return /^https:\/\/[a-z0-9-]+\.lovable\.app$/.test(origin)
+        || /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/.test(origin);
+    };
+    const requestOrigin = req.headers.get("origin") ?? req.headers.get("referer");
+    const originHost = (() => {
+      try { return requestOrigin ? new URL(requestOrigin).origin : null; } catch { return null; }
+    })();
+    const fallbackOrigin = isAllowedOrigin(originHost)
+      ? originHost!
+      : "https://monsterpetcol.com";
     const isSafeUrl = (u?: string) => {
       if (!u) return false;
-      try {
-        return new URL(u).origin === allowedOrigin;
-      } catch {
-        return false;
-      }
+      try { return isAllowedOrigin(new URL(u).origin); } catch { return false; }
     };
     const safeSuccessUrl = isSafeUrl(successUrl)
       ? successUrl!
-      : `${allowedOrigin}/?checkout=success`;
+      : `${fallbackOrigin}/?checkout=success`;
     const safeCancelUrl = safeSuccessUrl.replace("checkout=success", "checkout=canceled");
 
     const session = await stripe.checkout.sessions.create({
