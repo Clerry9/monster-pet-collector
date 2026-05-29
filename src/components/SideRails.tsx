@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Gift, RefreshCw, Trophy, Gamepad2, Star, Dices } from "lucide-react";
+import { Sparkles, Gift, RefreshCw, Trophy, Gamepad2, Star, Dices, Swords, Crosshair } from "lucide-react";
 import { formatTimeRemaining } from "@/data/seasons";
 import {
   Popover,
@@ -35,6 +35,8 @@ interface Props {
   onOpenCollection: () => void;
   onOpenCards: () => void;
   onOpenRoulette: () => void;
+  onOpenArena?: () => void;
+  onOpenPvp?: () => void;
   /** Total shards held — drives the SHARDS rail counter. */
   shards?: number;
   /** Opens the Monster Collection (summon altar) tab. */
@@ -49,12 +51,16 @@ export function SideRails({
   onOpenSeason, onOpenSpin, onOpenDaily, onOpenSpecials, onOpenCollection, onOpenCards,
   onOpenRoulette,
   rouletteCooldownMs,
+  onOpenArena,
+  onOpenPvp,
   shards = 0, onOpenShards,
   onLearnMore,
 }: Props) {
   const luckyReady = !rouletteCooldownMs || rouletteCooldownMs <= 0;
   const left: RailItem[] = [
     { id: "season", icon: <Star size={18} />, label: "EVENT", countdownMs: msRemaining, onClick: onOpenSeason, hot: newEvent, tip: "Limited-time event with a battle pass and exclusive monsters. Countdown shows when a new season starts." },
+    ...(onOpenArena ? [{ id: "arena", icon: <Swords size={18} />, label: "ARENA", onClick: onOpenArena, tip: "Endless solo battle gauntlet — climb waves, earn shards & coins, chase the season leaderboard." } as RailItem] : []),
+    ...(onOpenPvp ? [{ id: "pvp", icon: <Crosshair size={18} />, label: "PVP", onClick: onOpenPvp, tip: "Battle other players' defense teams. Set your own defender and climb the ranked ladder." } as RailItem] : []),
     { id: "specials", icon: <Sparkles size={18} />, label: "SHOP", onClick: onOpenSpecials, tip: "Buy dice bundles, special packs, and the Season Pass. Best deals live here." },
     { id: "cards", icon: <Gamepad2 size={18} />, label: "CARDS", onClick: onOpenCards, tip: "Browse every card you've drawn and see how close each set is to completion." },
   ];
@@ -98,11 +104,11 @@ function Rail({ items, side, onLearnMore }: { items: RailItem[]; side: "left" | 
   const [openId, setOpenId] = useState<string | null>(null);
   return (
     <div
-      className={`flex flex-col gap-2.5 fixed ${side === "left" ? "left-1" : "right-1"} z-10`}
+      className={`flex flex-col gap-1 fixed ${side === "left" ? "left-1" : "right-1"} z-10`}
       style={{
         top: "calc(env(safe-area-inset-top, 0px) + 110px)",
         bottom: "calc(env(safe-area-inset-bottom, 0px) + 160px)",
-        justifyContent: "space-around",
+        justifyContent: "flex-start",
       }}
       role="toolbar"
       aria-label={`${side === "left" ? "Left" : "Right"} side navigation`}

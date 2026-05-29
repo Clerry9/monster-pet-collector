@@ -1214,6 +1214,8 @@ const Index = () => {
                     onOpenCollection={() => setTab("collection")}
                     onOpenCards={() => setTab("cards")}
                     onOpenRoulette={() => setLuckyOpen(true)}
+                    onOpenArena={() => navigate("/arena")}
+                    onOpenPvp={() => navigate("/pvp")}
                     shards={bonusInv.shards}
                     onOpenShards={() => setTab("collection")}
                     rouletteCooldownMs={luckyCooldown.freeAvailable ? 0 : luckyCooldown.remainingMs}
