@@ -733,8 +733,8 @@ const Index = () => {
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-3 py-4 overflow-hidden">
       <SEO
-        title="Monster Pet Collection — Collect and level up 3D monsters"
-        description="Play Monster Pet Collection in your browser. Collect, train and battle 3D monsters across themed islands, earn coins, unlock cards, and complete daily missions."
+        title="Monster Pet Collector — Collect and level up 3D monsters"
+        description="Play Monster Pet Collector in your browser. Collect, train and battle 3D monsters across themed islands, earn coins, unlock cards, and complete daily missions."
         path="/"
       />
       <Helmet>
@@ -744,7 +744,7 @@ const Index = () => {
           mainEntity: [
             {
               "@type": "Question",
-              name: "What is the goal of Monster Pet Collection?",
+              name: "What is the goal of Monster Pet Collector?",
               acceptedAnswer: {
                 "@type": "Answer",
                 text: "Collect cards and evolve monsters to climb the levels. Each level unlocks new tile bonuses and bigger payouts, all the way to the Celestial Plane where every reward is doubled.",
@@ -784,7 +784,7 @@ const Index = () => {
             },
             {
               "@type": "Question",
-              name: "Is Monster Pet Collection free to play?",
+              name: "Is Monster Pet Collector free to play?",
               acceptedAnswer: {
                 "@type": "Answer",
                 text: "Yes — the game is free to play in your browser. Optional purchases include dice bundles, special packs, and the Season Pass for faster progression and exclusive cosmetics.",

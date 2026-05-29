@@ -27,7 +27,7 @@ export function SplashScreen() {
       {visible && (
         <motion.div
           role="status"
-          aria-label="Loading Monster Pet Collection"
+          aria-label="Loading Monster Pet Collector"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
@@ -37,7 +37,7 @@ export function SplashScreen() {
         >
           <motion.img
             src="/app-icon.png"
-            alt="Monster Pet Collection"
+            alt="Monster Pet Collector"
             initial={{ scale: 0.5, opacity: 0, rotate: -8 }}
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
             transition={{ type: "spring", damping: 12, stiffness: 140 }}
