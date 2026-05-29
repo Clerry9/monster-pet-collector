@@ -9,6 +9,11 @@ import {
 } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+// Lucky Roulette is reserved for a 3-day limited-time event. Flip to `true`
+// (or wire to a season flag) to bring the rail button + modal back during
+// the event window. See also Index.tsx where tutorial steps are filtered.
+const LUCKY_ROULETTE_EVENT_ENABLED = false;
+
 interface RailItem {
   id: string;
   icon: React.ReactNode;
@@ -62,17 +67,19 @@ export function SideRails({
       onClick: onOpenShards ?? onOpenCollection,
       tip: "Your summoning shards. Tap to open the Monster Collection and spend them at the Summon Altar.",
     },
-    {
-      id: "roulette",
-      icon: <Dices size={18} />,
-      label: "LUCK",
-      onClick: onOpenRoulette,
-      hot: luckyReady,
-      countdownMs: luckyReady ? undefined : rouletteCooldownMs,
-      tip: luckyReady
-        ? "Lucky Roulette! Free spin ready — pick a wedge and win coins, rolls, cards, season XP, or island prizes."
-        : "Lucky Roulette. Next free spin in the timer below; or pay 100 🪙 for an extra spin anytime.",
-    },
+    ...(LUCKY_ROULETTE_EVENT_ENABLED
+      ? [{
+          id: "roulette",
+          icon: <Dices size={18} />,
+          label: "LUCK",
+          onClick: onOpenRoulette,
+          hot: luckyReady,
+          countdownMs: luckyReady ? undefined : rouletteCooldownMs,
+          tip: luckyReady
+            ? "Lucky Roulette! Free spin ready — pick a wedge and win coins, rolls, cards, season XP, or island prizes."
+            : "Lucky Roulette. Next free spin in the timer below; or pay 100 🪙 for an extra spin anytime.",
+        } as RailItem]
+      : []),
     { id: "daily", icon: <Gift size={18} />, label: "DAILY", onClick: onOpenDaily, tip: "Claim a free reward every 24 hours. Streaks pay more — don't miss a day!" },
     { id: "spin", icon: <RefreshCw size={18} />, label: "SPIN", onClick: onOpenSpin, tip: "Spin the prize wheel for free dice, coins, and rare cards. Refills on a timer." },
     { id: "collection", icon: <Trophy size={18} />, label: "MONST", onClick: onOpenCollection, tip: "Your monster album — see who you own, who's evolving, and who's still hiding." },
