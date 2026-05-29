@@ -139,6 +139,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const op: Op = body.op;
 
+    // Lazy season rollover on traffic
+    await admin.rpc("roll_arena_season").catch(() => {});
+
     // Load combat stat catalog (small, ~9 rows)
     const { data: stats, error: statsErr } = await admin
       .from("monster_stats_def")
@@ -418,6 +421,16 @@ async function postRound(
   if (ended && rewardSummary) {
     await grantRewards(admin, userId, rewardSummary.coins, rewardSummary.shards, rewardSummary.xp);
   }
+    if (ended) {
+      const finalWave = Math.max(run.best_wave, run.wave - 1);
+      if (finalWave > 0) {
+        await admin.rpc("record_arena_run_score", {
+          p_user_id: userId,
+          p_wave: finalWave,
+          p_monster_id: run.monster_id,
+        }).catch((e: unknown) => console.error("record score failed", e));
+      }
+    }
   return { updatedRun, ended };
 }
 
