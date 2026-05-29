@@ -24,6 +24,7 @@ import { DiceShop } from "@/components/DiceShop";
 import { CosmeticStore } from "@/components/CosmeticStore";
 import { GameTabs } from "@/components/GameTabs";
 import { SideRails } from "@/components/SideRails";
+import { PowerUpShop } from "@/components/PowerUpShop";
 import { useLuckyRouletteCooldown } from "@/hooks/useLuckyRouletteCooldown";
 import { DailyReward } from "@/components/DailyReward";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
