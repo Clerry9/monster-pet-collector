@@ -140,6 +140,96 @@ export type Database = {
         }
         Relationships: []
       }
+      arena_season_rewards: {
+        Row: {
+          claimed_at: string | null
+          coins: number
+          granted_at: string
+          id: string
+          rank: number
+          season_id: string
+          shards: number
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          coins?: number
+          granted_at?: string
+          id?: string
+          rank: number
+          season_id: string
+          shards?: number
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string | null
+          coins?: number
+          granted_at?: string
+          id?: string
+          rank?: number
+          season_id?: string
+          shards?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      arena_season_scores: {
+        Row: {
+          best_monster_id: string | null
+          best_wave: number
+          first_reached_at: string
+          id: string
+          runs_count: number
+          season_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          best_monster_id?: string | null
+          best_wave?: number
+          first_reached_at?: string
+          id?: string
+          runs_count?: number
+          season_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          best_monster_id?: string | null
+          best_wave?: number
+          first_reached_at?: string
+          id?: string
+          runs_count?: number
+          season_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      arena_seasons: {
+        Row: {
+          created_at: string
+          ends_at: string
+          id: string
+          rolled_over: boolean
+          starts_at: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          id: string
+          rolled_over?: boolean
+          starts_at: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          id?: string
+          rolled_over?: boolean
+          starts_at?: string
+        }
+        Relationships: []
+      }
       battles: {
         Row: {
           arena_run_id: string | null
@@ -939,6 +1029,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _arena_season_window: {
+        Args: { p_now: string }
+        Returns: {
+          ends_at: string
+          season_id: string
+          starts_at: string
+        }[]
+      }
       add_island_stars: {
         Args: { p_amount: number }
         Returns: {
@@ -1157,6 +1255,15 @@ export type Database = {
           reward_kind: string
         }[]
       }
+      claim_pending_arena_rewards: {
+        Args: never
+        Returns: {
+          coins: number
+          rank: number
+          season_id: string
+          shards: number
+        }[]
+      }
       claim_roulette_spin: {
         Args: { p_spin_id: string }
         Returns: {
@@ -1234,6 +1341,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      current_arena_season: {
+        Args: never
+        Returns: {
+          created_at: string
+          ends_at: string
+          id: string
+          rolled_over: boolean
+          starts_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "arena_seasons"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       equip_cosmetic: {
         Args: { p_cosmetic_id: string }
         Returns: {
@@ -1278,12 +1401,35 @@ export type Database = {
           today_count: number
         }[]
       }
+      get_arena_leaderboard: {
+        Args: { _limit?: number }
+        Returns: {
+          best_monster_id: string
+          best_wave: number
+          display_name: string
+          first_reached_at: string
+          level: number
+          rank: number
+          runs_count: number
+          user_id: string
+        }[]
+      }
       get_leaderboard_profiles: {
         Args: { _user_ids: string[] }
         Returns: {
           display_name: string
           level: number
           user_id: string
+        }[]
+      }
+      get_my_arena_rank: {
+        Args: never
+        Returns: {
+          best_wave: number
+          ends_at: string
+          rank: number
+          runs_count: number
+          season_id: string
         }[]
       }
       get_or_roll_daily_missions: {
@@ -1436,6 +1582,25 @@ export type Database = {
         }
         Returns: boolean
       }
+      record_arena_run_score: {
+        Args: { p_monster_id: string; p_user_id: string; p_wave: number }
+        Returns: {
+          best_monster_id: string | null
+          best_wave: number
+          first_reached_at: string
+          id: string
+          runs_count: number
+          season_id: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "arena_season_scores"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       record_monster_tap: {
         Args: { p_amount: number; p_monster_id: string }
         Returns: {
@@ -1544,6 +1709,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      roll_arena_season: { Args: never; Returns: undefined }
       set_active_dice_tier: {
         Args: { p_tier_id: string }
         Returns: {

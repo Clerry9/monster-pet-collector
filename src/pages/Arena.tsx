@@ -7,6 +7,8 @@ import { useArena } from "@/hooks/useArena";
 import { BattleArena } from "@/components/BattleArena";
 import { BattleResultModal } from "@/components/BattleResultModal";
 import { BattleChoiceModal } from "@/components/BattleChoiceModal";
+import { ArenaLeaderboard } from "@/components/ArenaLeaderboard";
+import { ArenaSeasonRewardModal, type SeasonRewardRow } from "@/components/ArenaSeasonRewardModal";
 import type { RunChoiceCard, RunItem } from "@/lib/combat";
 import { Button } from "@/components/ui/button";
 import { MONSTERS } from "@/data/monsters";
@@ -19,9 +21,10 @@ export default function Arena() {
   const [unlocked, setUnlocked] = useState<string[]>([]);
   const [picking, setPicking] = useState(true);
   const [chosen, setChosen] = useState<string | null>(null);
-  const [leaderboard, setLeaderboard] = useState<Array<{ monster_id: string; best_wave: number }>>([]);
+  const [tab, setTab] = useState<"play" | "leaderboard">("play");
+  const [pendingRewards, setPendingRewards] = useState<SeasonRewardRow[] | null>(null);
 
-  // Load unlocked roster + best wave
+  // Load unlocked roster
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -31,12 +34,19 @@ export default function Arena() {
         setUnlocked(gs.unlocked_monsters ?? ["gobby"]);
         setChosen(gs.active_monster ?? "gobby");
       }
-      const { data: top } = await supabase.from("arena_runs")
-        .select("monster_id,best_wave").eq("user_id", user.id).eq("status", "ended")
-        .order("best_wave", { ascending: false }).limit(5);
-      if (top) setLeaderboard(top);
     })();
-  }, [user, arena.lastResult?.ended]);
+  }, [user]);
+
+  // Claim any pending season rewards on mount
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase.rpc("claim_pending_arena_rewards");
+      if (data && Array.isArray(data) && data.length > 0) {
+        setPendingRewards(data as SeasonRewardRow[]);
+      }
+    })();
+  }, [user]);
 
   // If we hydrated an in-progress run, exit picking mode
   useEffect(() => {
@@ -47,6 +57,7 @@ export default function Arena() {
     if (!chosen) return;
     await arena.start(chosen, 1);
     setPicking(false);
+    setTab("play");
   };
 
   const endedThisTurn = arena.lastResult?.ended;
@@ -72,6 +83,29 @@ export default function Arena() {
         )}
 
         {picking && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setTab("play")}
+              className={`flex-1 py-2 rounded-md font-display text-sm border-2 transition-all ${
+                tab === "play" ? "border-gold bg-gold/20 text-gold" : "border-wood-dark bg-black/30 text-cream/70"
+              }`}
+            >
+              ⚔️ Play
+            </button>
+            <button
+              onClick={() => setTab("leaderboard")}
+              className={`flex-1 py-2 rounded-md font-display text-sm border-2 transition-all ${
+                tab === "leaderboard" ? "border-gold bg-gold/20 text-gold" : "border-wood-dark bg-black/30 text-cream/70"
+              }`}
+            >
+              🏆 Leaderboard
+            </button>
+          </div>
+        )}
+
+        {picking && tab === "leaderboard" && <ArenaLeaderboard />}
+
+        {picking && tab === "play" && (
           <motion.section
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl border-4 border-wood-dark bg-wood/40 p-4 shadow-chunky"
@@ -110,22 +144,6 @@ export default function Arena() {
             >
               {arena.loading ? "Entering Arena..." : "⚔️ Enter the Colosseum"}
             </Button>
-
-            {leaderboard.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-wood-dark">
-                <h3 className="font-display text-xs text-gold flex items-center gap-1 mb-2">
-                  <Trophy size={12} /> Your Best Runs
-                </h3>
-                <ul className="text-xs space-y-1">
-                  {leaderboard.map((r, i) => (
-                    <li key={i} className="flex justify-between text-cream/80">
-                      <span>{MONSTERS.find((m) => m.id === r.monster_id)?.name ?? r.monster_id}</span>
-                      <span className="font-display text-gold">Wave {r.best_wave}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </motion.section>
         )}
 
@@ -184,6 +202,16 @@ export default function Arena() {
             )}
           </>
         )}
+
+        <AnimatePresence>
+          {pendingRewards && (
+            <ArenaSeasonRewardModal
+              key="season-rewards"
+              rewards={pendingRewards}
+              onClose={() => setPendingRewards(null)}
+            />
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );
