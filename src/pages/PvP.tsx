@@ -68,6 +68,10 @@ export default function PvP() {
   useEffect(() => {
     if (!user || isGuest) return;
     (async () => {
+      // Ensure a game_state row exists for fresh accounts (e.g. just signed
+      // up from /auth). Without this, unlocked_monsters is empty and no
+      // monster tiles render, so "Set defense team" stays disabled.
+      await (supabase as any).rpc("bootstrap_game_state");
       const { data: gs } = await supabase.from("game_state")
         .select("unlocked_monsters,level,active_monster").eq("user_id", user.id).maybeSingle();
       if (gs) {
