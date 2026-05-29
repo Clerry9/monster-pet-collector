@@ -65,6 +65,71 @@ const ROULETTE_SPIN_MAP: Record<string, { packId: string; spins: number }> = {
   roulette_spins_25_price: { packId: "roulette_spins_25", spins: 25 },
 };
 
+/** Power-up bundles — grant a fixed mix of boosts on completed payment.
+ *  Must stay in sync with power_ups_def seed and PowerUpShop UI. */
+const POWER_UP_BUNDLE_MAP: Record<string, { packId: string; grants: { id: string; qty: number }[] }> = {
+  boost_bundle_starter: {
+    packId: "boost_bundle_starter",
+    grants: [
+      { id: "arena_iron_skin",    qty: 1 },
+      { id: "arena_war_cry",      qty: 1 },
+      { id: "arena_phoenix",      qty: 1 },
+      { id: "arena_shard_2x",     qty: 1 },
+      { id: "pvp_first_strike",   qty: 1 },
+      { id: "pvp_lucky_crit",     qty: 1 },
+      { id: "pvp_aegis",          qty: 2 },
+      { id: "board_coin_rush",    qty: 2 },
+      { id: "board_energy_tonic", qty: 2 },
+    ], // 12 total
+  },
+  boost_bundle_big: {
+    packId: "boost_bundle_big",
+    grants: [
+      { id: "arena_iron_skin",    qty: 3 },
+      { id: "arena_war_cry",      qty: 3 },
+      { id: "arena_phoenix",      qty: 2 },
+      { id: "arena_shard_2x",     qty: 2 },
+      { id: "pvp_first_strike",   qty: 3 },
+      { id: "pvp_lucky_crit",     qty: 3 },
+      { id: "pvp_aegis",          qty: 4 },
+      { id: "board_coin_rush",    qty: 5 },
+      { id: "board_energy_tonic", qty: 5 },
+    ], // 30 total
+  },
+};
+
+async function grantPowerUpBundle(userId: string, priceId: string, transactionId: string, environment: string) {
+  const entry = POWER_UP_BUNDLE_MAP[priceId];
+  if (!entry) return false;
+  for (const g of entry.grants) {
+    const { error } = await supabase.rpc('grant_power_up', {
+      p_user_id: userId,
+      p_power_up_id: g.id,
+      p_quantity: g.qty,
+    });
+    if (error) console.error('grant_power_up failed for', g.id, error);
+  }
+  console.log(JSON.stringify({
+    event: 'pack_fulfilled',
+    userId,
+    packId: entry.packId,
+    totalBoosts: entry.grants.reduce((n, g) => n + g.qty, 0),
+  }));
+  try {
+    await supabase.from('pack_analytics').insert({
+      user_id: userId,
+      pack_id: entry.packId,
+      price_id: priceId,
+      stripe_transaction_id: transactionId,
+      event: 'pack_fulfilled',
+      environment,
+    });
+  } catch (e) {
+    console.error('pack_analytics insert (boost bundle) threw:', e);
+  }
+  return true;
+}
+
 async function grantRouletteSpins(userId: string, priceId: string, transactionId: string, environment: string) {
   const entry = ROULETTE_SPIN_MAP[priceId];
   if (!entry) return false;
@@ -251,6 +316,10 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
 
   if (ROULETTE_SPIN_MAP[priceExternalId]) {
     await grantRouletteSpins(userId, priceExternalId, session.id, env);
+  }
+
+  if (POWER_UP_BUNDLE_MAP[priceExternalId]) {
+    await grantPowerUpBundle(userId, priceExternalId, session.id, env);
   }
 
   // Season pass one-time purchases (tier prices count here too)

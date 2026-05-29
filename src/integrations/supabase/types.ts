@@ -2153,6 +2153,42 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      use_energy_tonic: {
+        Args: never
+        Returns: {
+          active_dice_tier: string
+          active_monster: string
+          bet_multiplier: number
+          cards_collected: number
+          coins: number
+          collected_cards: string[]
+          created_at: string
+          energy: number
+          energy_updated_at: string
+          equipped_cosmetics: Json
+          id: string
+          island_stars: number
+          last_spin_at: string | null
+          level: number
+          monster_taps: Json
+          pending_card_flips: number
+          position: number
+          rolls: number
+          shards: number
+          total_steps: number
+          unlocked_dice_tiers: string[]
+          unlocked_monsters: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "game_state"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

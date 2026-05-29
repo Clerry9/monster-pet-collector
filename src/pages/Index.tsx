@@ -24,6 +24,7 @@ import { DiceShop } from "@/components/DiceShop";
 import { CosmeticStore } from "@/components/CosmeticStore";
 import { GameTabs } from "@/components/GameTabs";
 import { SideRails } from "@/components/SideRails";
+import { PowerUpShop } from "@/components/PowerUpShop";
 import { useLuckyRouletteCooldown } from "@/hooks/useLuckyRouletteCooldown";
 import { DailyReward } from "@/components/DailyReward";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
@@ -1290,6 +1291,7 @@ const Index = () => {
               exit={{ opacity: 0, x: 50 }}
               className="w-full space-y-3"
             >
+              <PowerUpShop />
               <div className="panel-wood p-3 flex flex-col items-center gap-2">
                 <div className="font-display text-sm text-cream-light text-center">
                   📺 FREE COINS — watch a short ad

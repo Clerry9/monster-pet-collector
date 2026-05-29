@@ -174,7 +174,42 @@ Deno.serve(async (req) => {
       }).eq("user_id", userId).in("status", ["active", "choosing"]);
 
       const monsterLevelBonus = (await getMonsterLevel(monsterId)) - 1;
-      const c = buildCombatant(base, level, base.monster_id, 0, undefined, monsterLevelBonus);
+
+      // ----- Power-ups: consume + collect effects -----
+      const requestedBoosts: string[] = Array.isArray(body.power_ups)
+        ? body.power_ups.filter((s: unknown) => typeof s === "string").slice(0, 4)
+        : [];
+      let hpPctBonus = 0;
+      let atkBuffStart = 0;
+      const bonusItems: RunItem[] = [];
+      for (const id of requestedBoosts) {
+        // Service-role RPC bypasses RLS for verified, atomic decrement.
+        const { data: consumed, error: cErr } = await admin.rpc("grant_power_up", {
+          p_user_id: userId,
+          p_power_up_id: id,
+          p_quantity: -1,
+        });
+        if (cErr || !consumed) { console.warn("boost consume failed", id, cErr); continue; }
+        switch (id) {
+          case "arena_iron_skin":  hpPctBonus += 0.25; break;
+          case "arena_war_cry":    atkBuffStart += 20; break;
+          case "arena_phoenix":    bonusItems.push({ id: "potion", count: 3 }); break;
+          case "arena_shard_2x":   bonusItems.push({ id: "bomb",   count: 3 }); break;
+        }
+      }
+
+      const c = buildCombatant(base, level, base.monster_id, atkBuffStart, undefined, monsterLevelBonus);
+      if (hpPctBonus > 0) {
+        c.max_hp = Math.round(c.max_hp * (1 + hpPctBonus));
+        c.hp = c.max_hp;
+      }
+      const startItems: RunItem[] = [{ id: "potion", count: 1 }];
+      for (const b of bonusItems) {
+        const idx = startItems.findIndex((i) => i.id === b.id);
+        if (idx >= 0) startItems[idx].count += b.count;
+        else startItems.push(b);
+      }
+
       const { data: run, error: runErr } = await admin.from("arena_runs").insert({
         user_id: userId,
         monster_id: monsterId,
@@ -185,7 +220,8 @@ Deno.serve(async (req) => {
         wave: 1,
         status: "active",
         win_streak: 0,
-        items: [{ id: "potion", count: 1 }] as RunItem[],
+        atk_buff_pct: atkBuffStart,
+        items: startItems,
         pending_choices: null,
       }).select().single();
       if (runErr || !run) throw runErr ?? new Error("run insert failed");

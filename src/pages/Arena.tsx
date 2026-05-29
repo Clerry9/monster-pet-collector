@@ -15,6 +15,7 @@ import { MONSTERS } from "@/data/monsters";
 import { Monster3D } from "@/components/Monster3D";
 import { Trophy, Swords, ArrowLeft } from "lucide-react";
 import { GuestAccountGate } from "@/components/GuestAccountGate";
+import { PreBattleBoostBar } from "@/components/PreBattleBoostBar";
 
 export default function Arena() {
   const { user } = useAuth();
@@ -24,6 +25,7 @@ export default function Arena() {
   const [chosen, setChosen] = useState<string | null>(null);
   const [tab, setTab] = useState<"play" | "leaderboard">("play");
   const [pendingRewards, setPendingRewards] = useState<SeasonRewardRow[] | null>(null);
+  const [selectedBoosts, setSelectedBoosts] = useState<string[]>([]);
   const isGuest = !!user?.is_anonymous;
 
   // Load unlocked roster
@@ -60,7 +62,8 @@ export default function Arena() {
 
   const startRun = async () => {
     if (!chosen) return;
-    await arena.start(chosen, 1);
+    await arena.start(chosen, 1, selectedBoosts);
+    setSelectedBoosts([]);
     setPicking(false);
     setTab("play");
   };
@@ -152,6 +155,10 @@ export default function Arena() {
                   }`}>{m.rarity}</div>
                 </button>
               ))}
+            </div>
+
+            <div className="mb-3">
+              <PreBattleBoostBar kind="arena" max={2} onChange={setSelectedBoosts} />
             </div>
 
             <Button
