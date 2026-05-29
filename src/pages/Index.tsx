@@ -440,7 +440,12 @@ const Index = () => {
       body: "Stuck? Tap here for the full rulebook or to replay this tutorial. You're all set — go roll your first dice!",
       emoji: "❓",
     },
-  ];
+  ].filter((s) =>
+    // Lucky Roulette is reserved for a 3-day event (see SideRails). Hide its
+    // tutorial steps while the rail button is hidden so the tour doesn't try
+    // to highlight elements that aren't on screen.
+    !(s.selector?.includes("roulette"))
+  );
 
   // Map a side-rail id to the matching tutorial step index so the
   // hover-card "Show me in tutorial" button can deep-link into the tour.
