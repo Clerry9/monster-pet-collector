@@ -1290,6 +1290,7 @@ const Index = () => {
               exit={{ opacity: 0, x: 50 }}
               className="w-full space-y-3"
             >
+              <PowerUpShop />
               <div className="panel-wood p-3 flex flex-col items-center gap-2">
                 <div className="font-display text-sm text-cream-light text-center">
                   📺 FREE COINS — watch a short ad
