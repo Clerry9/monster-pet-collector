@@ -67,6 +67,10 @@ export interface Combatant {
   freeze_turns: number;
   shield_turns: number;
   combo_count: number;
+  /** Flat bonus added to the 0.12 base crit chance for this combatant's attacks. */
+  crit_bonus_pct?: number;
+  /** When true, the next incoming attack is fully absorbed (single use). */
+  absorb_next_hit?: boolean;
 }
 
 export function deriveStats(base: BaseStats, level: number, monsterLevelBonus = 0): {
@@ -115,6 +119,8 @@ export function buildCombatant(
     freeze_turns: 0,
     shield_turns: 0,
     combo_count: 0,
+    crit_bonus_pct: 0,
+    absorb_next_hit: false,
   };
 }
 
