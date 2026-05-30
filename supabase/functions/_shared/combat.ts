@@ -67,6 +67,10 @@ export interface Combatant {
   freeze_turns: number;
   shield_turns: number;
   combo_count: number;
+  /** Flat bonus added to the 0.12 base crit chance for this combatant's attacks. */
+  crit_bonus_pct?: number;
+  /** When true, the next incoming attack is fully absorbed (single use). */
+  absorb_next_hit?: boolean;
 }
 
 export function deriveStats(base: BaseStats, level: number, monsterLevelBonus = 0): {
@@ -115,6 +119,8 @@ export function buildCombatant(
     freeze_turns: 0,
     shield_turns: 0,
     combo_count: 0,
+    crit_bonus_pct: 0,
+    absorb_next_hit: false,
   };
 }
 
@@ -220,12 +226,18 @@ function applyAction(
       const hit = damageFormula(self.atk * (1 + self.attack_buff_pct / 100), enemy.def, 0.8 * elMult, 0);
       let taken = enemy.defending ? Math.round(hit * 0.5) : hit;
       if (enemy.shield_turns > 0) taken = Math.round(taken * 0.4);
+      if (enemy.absorb_next_hit) {
+        taken = 0;
+        enemy.absorb_next_hit = false;
+      }
       enemy.hp = Math.max(0, enemy.hp - taken);
       const stun = i === 1 && Math.random() < 0.3;
       if (stun) enemy.stun_turns = Math.max(enemy.stun_turns, 1);
       events.push({
         side, action: "special", damage: taken, stun, elementMult: elMult,
-        text: `${self.name} unleashes ${self.signature_name} (hit ${i + 1}) for ${taken}!`,
+        text: taken === 0
+          ? `${enemy.name}'s Aegis Shield absorbs ${self.signature_name} (hit ${i + 1})!`
+          : `${self.name} unleashes ${self.signature_name} (hit ${i + 1}) for ${taken}!`,
       });
       if (enemy.hp === 0) break;
     }
@@ -233,10 +245,17 @@ function applyAction(
   }
 
   dmg = damageFormula(self.atk * (1 + self.attack_buff_pct / 100), enemy.def, mult * elMult, ignoreDef);
-  const crit = Math.random() < 0.12;
+  const critChance = 0.12 + (self.crit_bonus_pct ?? 0);
+  const crit = Math.random() < critChance;
   if (crit) dmg = Math.round(dmg * 1.5);
   let taken = enemy.defending ? Math.round(dmg * 0.5) : dmg;
   if (enemy.shield_turns > 0) taken = Math.round(taken * 0.4);
+  let absorbed = false;
+  if (enemy.absorb_next_hit) {
+    taken = 0;
+    enemy.absorb_next_hit = false;
+    absorbed = true;
+  }
   enemy.hp = Math.max(0, enemy.hp - taken);
 
   // Status effects from specials
@@ -266,7 +285,9 @@ function applyAction(
     burn: isSpecial && self.rarity === "common",
     freeze: isSpecial && self.rarity === "epic",
     poison: isSpecial && self.rarity === "legendary",
-    text: isSpecial
+    text: absorbed
+      ? `${enemy.name}'s Aegis Shield absorbs ${self.name}'s strike!`
+      : isSpecial
       ? `${self.name} unleashes ${self.signature_name} for ${taken}${crit ? " CRIT!" : "!"}${elMult > 1 ? " (super effective!)" : elMult < 1 ? " (not very effective)" : ""}`
       : `${self.name}${isCombo ? " combo finisher" : " attacks"} for ${taken}${crit ? " CRIT!" : "."}${elMult > 1 ? " ★" : ""}`,
   });
@@ -276,6 +297,10 @@ function applyAction(
     const bonus = damageFormula(self.atk * (1 + self.attack_buff_pct / 100), enemy.def, 0.7 * elMult, 0);
     let bTaken = enemy.defending ? Math.round(bonus * 0.5) : bonus;
     if (enemy.shield_turns > 0) bTaken = Math.round(bTaken * 0.4);
+    if (enemy.absorb_next_hit) {
+      bTaken = 0;
+      enemy.absorb_next_hit = false;
+    }
     enemy.hp = Math.max(0, enemy.hp - bTaken);
     events.push({
       side, action: "attack", damage: bTaken, combo: 3, elementMult: elMult,

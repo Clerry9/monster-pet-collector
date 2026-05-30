@@ -121,6 +121,26 @@ Deno.serve(async (req) => {
       if (!myBase) return json({ error: "your monster stats missing" }, 500);
       const mine = buildCombatant(myBase, myTeam.monster_level, myBase.monster_id);
 
+      // ----- Power-ups: validate, consume, apply effects -----
+      const ALLOWED_PVP_BOOSTS = new Set(["pvp_first_strike", "pvp_lucky_crit", "pvp_aegis"]);
+      const requestedBoostsRaw: unknown = body.power_ups;
+      const requestedBoosts: string[] = Array.isArray(requestedBoostsRaw)
+        ? Array.from(new Set(
+            requestedBoostsRaw
+              .filter((s): s is string => typeof s === "string" && ALLOWED_PVP_BOOSTS.has(s))
+          )).slice(0, 2)
+        : [];
+      const appliedBoosts: string[] = [];
+      for (const id of requestedBoosts) {
+        const { data: ok, error: cErr } = await admin.rpc("grant_power_up", {
+          p_user_id: userId,
+          p_power_up_id: id,
+          p_quantity: -1,
+        });
+        if (cErr || !ok) { console.warn("pvp boost consume failed", id, cErr); continue; }
+        appliedBoosts.push(id);
+      }
+
       let theirs: Combatant;
       let opponentUserId: string | null = null;
       let opponentLabel: string;
@@ -142,6 +162,22 @@ Deno.serve(async (req) => {
       const log: TurnEvent[] = [
         { side: "attacker", action: "attack", text: `PvP: ${mine.name} vs ${theirs.name}!` },
       ];
+      for (const id of appliedBoosts) {
+        if (id === "pvp_first_strike") {
+          // Opponent's first action is skipped (consumes 1 stun turn).
+          theirs.stun_turns = Math.max(theirs.stun_turns, 1);
+          log.push({ side: "attacker", action: "defend",
+            text: `⚡ First Strike! ${mine.name} moves before ${theirs.name} can react.` });
+        } else if (id === "pvp_lucky_crit") {
+          mine.crit_bonus_pct = (mine.crit_bonus_pct ?? 0) + 0.30;
+          log.push({ side: "attacker", action: "defend",
+            text: `🎯 Lucky Crit! ${mine.name}'s crit chance surges.` });
+        } else if (id === "pvp_aegis") {
+          mine.absorb_next_hit = true;
+          log.push({ side: "attacker", action: "defend",
+            text: `🛡️ Aegis Shield! ${mine.name} will absorb the next incoming hit.` });
+        }
+      }
       let round = 0;
       while (mine.hp > 0 && theirs.hp > 0 && round < 40) {
         const myAct = aiPick(mine, 5); // virtual wave 5 — moderate aggressiveness
