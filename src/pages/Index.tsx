@@ -58,8 +58,6 @@ import { AuthStatusBadge } from "@/components/AuthStatusBadge";
 import { AdRewardMenu, AdRewardLauncher } from "@/components/AdRewardMenu";
 import { AnimatedBackdrop } from "@/components/effects/AnimatedBackdrop";
 import { Trophy, Target } from "lucide-react";
-import { Swords } from "lucide-react";
-import { Link as RouterLink } from "react-router-dom";
 import { DailyMissionsModal } from "@/components/DailyMissions";
 import { useDailyMissions } from "@/hooks/useDailyMissions";
 import { RewardCelebration, type CelebrationKind } from "@/components/RewardCelebration";
