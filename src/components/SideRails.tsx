@@ -106,7 +106,7 @@ function Rail({ items, side, onLearnMore }: { items: RailItem[]; side: "left" | 
     <div
       className={`flex flex-col gap-1 fixed ${side === "left" ? "left-1" : "right-1"} z-10`}
       style={{
-        top: "calc(env(safe-area-inset-top, 0px) + 110px)",
+        top: "calc(env(safe-area-inset-top, 0px) + 170px)",
         bottom: "calc(env(safe-area-inset-bottom, 0px) + 160px)",
         justifyContent: "flex-start",
       }}
