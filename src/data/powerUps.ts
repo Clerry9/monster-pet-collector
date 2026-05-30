@@ -19,9 +19,9 @@ export const POWER_UPS: PowerUpDef[] = [
   { id: "arena_phoenix",    kind: "arena", name: "Phoenix Feather", description: "Start your Arena run with 3 extra potions.",    emoji: "🔥", coinPrice: 800 },
   { id: "arena_shard_2x",   kind: "arena", name: "Bomb Crate",      description: "Start your Arena run with 3 extra bombs.",      emoji: "💣", coinPrice: 600 },
   // PvP (preview — purchasable, stockpiled, takes full effect in a future update)
-  { id: "pvp_first_strike", kind: "pvp", name: "First Strike", description: "Guaranteed first turn in your next PvP match.",  emoji: "⚡", coinPrice: 300, preview: true },
-  { id: "pvp_lucky_crit",   kind: "pvp", name: "Lucky Crit",   description: "+30% crit chance for your next PvP match.",      emoji: "🎯", coinPrice: 400, preview: true },
-  { id: "pvp_aegis",        kind: "pvp", name: "Aegis Shield", description: "Block the first incoming hit in your next PvP.", emoji: "🛡️", coinPrice: 500, preview: true },
+  { id: "pvp_first_strike", kind: "pvp", name: "First Strike", description: "Skip your rival's first action in your next PvP match.", emoji: "⚡", coinPrice: 300 },
+  { id: "pvp_lucky_crit",   kind: "pvp", name: "Lucky Crit",   description: "+30% crit chance for your next PvP match.",              emoji: "🎯", coinPrice: 400 },
+  { id: "pvp_aegis",        kind: "pvp", name: "Aegis Shield", description: "Absorb the first incoming hit in your next PvP.",       emoji: "🛡️", coinPrice: 500 },
   // Board
   { id: "board_coin_rush",   kind: "board", name: "Coin Rush",    description: "2x coin rewards for your next 5 rolls.", emoji: "🪙", coinPrice: 250, preview: true },
   { id: "board_energy_tonic",kind: "board", name: "Energy Tonic", description: "Instantly refill +100 energy.",          emoji: "🧪", coinPrice: 300 },
