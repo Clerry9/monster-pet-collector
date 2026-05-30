@@ -10,6 +10,7 @@ import { ArrowLeft, Crown, Swords, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import type { TurnEvent } from "@/lib/combat";
 import { GuestAccountGate } from "@/components/GuestAccountGate";
+import { PreBattleBoostBar } from "@/components/PreBattleBoostBar";
 
 interface DefenseTeam {
   user_id: string;
@@ -53,6 +54,7 @@ export default function PvP() {
   const [level, setLevel] = useState(1);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<MatchResult | null>(null);
+  const [boosts, setBoosts] = useState<string[]>([]);
   const isGuest = !!user?.is_anonymous;
 
   const refresh = async () => {
@@ -113,9 +115,10 @@ export default function PvP() {
     setLoading(true);
     setResult(null);
     try {
-      const r = await call({ op: "match" }) as MatchResult;
+      const r = await call({ op: "match", power_ups: boosts }) as MatchResult;
       setResult(r);
       toast.success(r.iWon ? `Victory! +${r.rewards.shards} shards` : "Defeated…");
+      setBoosts([]);
       await refresh();
     } catch (e) {
       toast.error((e as Error).message);
@@ -191,6 +194,9 @@ export default function PvP() {
           <p className="text-[11px] text-cream/60 mb-3">
             Matched to a rival within ±15% power. Win 5–15 shards, lose 2.
           </p>
+          <div className="mb-3">
+            <PreBattleBoostBar kind="pvp" max={2} onChange={setBoosts} />
+          </div>
           <Button
             onClick={findMatch}
             disabled={loading || !status?.team || (status?.today_count ?? 0) >= (status?.daily_cap ?? 10)}
