@@ -840,15 +840,6 @@ const Index = () => {
           >
             {menuOpen ? <XIcon size={18} /> : <Menu size={18} />}
           </button>
-          <button
-            onClick={handleReplayTutorial}
-            className="fixed top-2 right-14 z-50 icon-tile-gold w-10 h-10 flex flex-col items-center justify-center shadow-chunky"
-            aria-label="Replay tutorial"
-            title="Replay tutorial"
-          >
-            <GraduationCap size={16} />
-            <span className="text-[7px] font-display leading-none mt-0.5">TOUR</span>
-          </button>
         </>
       )}
 
@@ -903,6 +894,14 @@ const Index = () => {
               aria-label="How to play"
             >
               <HelpCircle size={16} />
+            </button>
+            <button
+              onClick={() => { setMenuOpen(false); handleReplayTutorial(); }}
+              className="icon-tile-gold w-9 h-9 flex items-center justify-center"
+              title="Replay tour"
+              aria-label="Replay tour"
+            >
+              <GraduationCap size={16} />
             </button>
             <button
               onClick={() => setSettingsOpen(true)}

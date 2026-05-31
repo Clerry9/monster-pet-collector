@@ -48,7 +48,9 @@ function AuthRoute() {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) return null;
-  if (user) {
+  // Guests (anonymous users) MUST be allowed onto /auth so they can upgrade
+  // their account. Only block fully-signed-in users from seeing the page.
+  if (user && !user.is_anonymous) {
     const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
     return <Navigate to={from && from !== "/auth" ? from : "/"} replace />;
   }

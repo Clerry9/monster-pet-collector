@@ -1,6 +1,11 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Cpu, Box, Volume2, GraduationCap, Camera, RotateCcw, Play, Sparkles, Gamepad2, Search, Accessibility, Bell } from "lucide-react";
+import { X, Cpu, Box, Volume2, GraduationCap, Camera, RotateCcw, Play, Sparkles, Gamepad2, Search, Accessibility, Bell, UserCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { validateDisplayName } from "@/lib/profanity";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { getLowPowerMode, setLowPowerMode, subscribeLowPower, type LowPowerMode } from "@/lib/lowPower";
 import {
   getVolume, setVolume, getMasterEnabled, setMasterEnabled,
@@ -59,6 +64,49 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
   const [a11y, setA11y] = useState<A11yPrefs>(() => getA11yPrefs());
   useEffect(() => subscribeA11yPrefs((p) => setA11y(p)), []);
 
+  // --- Display name editor ---
+  const { user } = useAuth();
+  const [displayName, setDisplayName] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [savingName, setSavingName] = useState(false);
+
+  useEffect(() => {
+    if (!open || !user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!cancelled) setDisplayName(data?.display_name ?? "");
+    })();
+    return () => { cancelled = true; };
+  }, [open, user]);
+
+  const saveName = async () => {
+    if (!user) return;
+    const err = validateDisplayName(displayName);
+    setNameError(err);
+    if (err) return;
+    setSavingName(true);
+    try {
+      const clean = displayName.trim();
+      const { error } = await supabase
+        .from("profiles")
+        .upsert({ user_id: user.id, display_name: clean }, { onConflict: "user_id" });
+      if (error) throw error;
+      if (user.is_anonymous) {
+        await supabase.auth.updateUser({ data: { guest_name: clean } });
+      }
+      toast.success("Name updated");
+    } catch (e) {
+      toast.error((e as Error).message || "Could not save name");
+    } finally {
+      setSavingName(false);
+    }
+  };
+
   const selectMode = (m: LowPowerMode) => { setLowPowerMode(m); setMode(m); };
 
   return (
@@ -92,6 +140,34 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
                 <X size={16} />
               </button>
             </div>
+
+            {/* --- Display name --- */}
+            <section aria-labelledby="name-heading" className="space-y-2 mb-6">
+              <div className="flex items-center gap-2 text-sm font-bold" id="name-heading">
+                <UserCircle size={14} /> Display name
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Shown on leaderboards and in PvP. 3–20 characters. No explicit names.
+              </p>
+              <Input
+                value={displayName}
+                onChange={(e) => { setDisplayName(e.target.value); setNameError(null); }}
+                maxLength={20}
+                placeholder="Your name"
+                aria-invalid={!!nameError}
+              />
+              {nameError && (
+                <p className="text-xs text-destructive font-body">{nameError}</p>
+              )}
+              <Button
+                onClick={saveName}
+                disabled={savingName || !user}
+                className="w-full"
+                variant="outline"
+              >
+                {savingName ? "Saving…" : "Save name"}
+              </Button>
+            </section>
 
             {/* --- Sound effects --- */}
             <section aria-labelledby="sfx-heading" className="space-y-3 mb-6">
