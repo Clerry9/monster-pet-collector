@@ -896,6 +896,14 @@ const Index = () => {
               <HelpCircle size={16} />
             </button>
             <button
+              onClick={() => { setMenuOpen(false); handleReplayTutorial(); }}
+              className="icon-tile-gold w-9 h-9 flex items-center justify-center"
+              title="Replay tour"
+              aria-label="Replay tour"
+            >
+              <GraduationCap size={16} />
+            </button>
+            <button
               onClick={() => setSettingsOpen(true)}
               className="icon-tile-gold w-9 h-9 flex items-center justify-center"
               title="Settings"
