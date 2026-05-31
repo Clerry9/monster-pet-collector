@@ -223,7 +223,8 @@ export default function AuthPage() {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
+              name={isLogin ? "email" : "new-email"}
+              autoComplete={isLogin ? "username" : "off"}
               aria-invalid={!!fieldErrors.email}
               className="pl-10 bg-card border-border text-foreground"
             />
@@ -238,6 +239,7 @@ export default function AuthPage() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              name={isLogin ? "password" : "new-password"}
               autoComplete={isLogin ? "current-password" : "new-password"}
               aria-invalid={!!fieldErrors.password}
               className="pl-10 bg-card border-border text-foreground"

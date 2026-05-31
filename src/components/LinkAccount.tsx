@@ -68,6 +68,8 @@ export function LinkAccount({ open, onClose }: LinkAccountProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              name="new-email"
+              autoComplete="off"
               className="pl-10 bg-background border-border text-foreground"
             />
           </div>
@@ -80,6 +82,8 @@ export function LinkAccount({ open, onClose }: LinkAccountProps) {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
+              name="new-password"
+              autoComplete="new-password"
               className="pl-10 bg-background border-border text-foreground"
             />
           </div>
