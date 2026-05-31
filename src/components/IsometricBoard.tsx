@@ -625,6 +625,14 @@ function Tile({ tile, position, isActive, index, playerPosition, theme, forceVis
   const hasFoliage = tile.type !== "skull";
   const foliageCount = hasFoliage ? (tile.type === "star" || tile.type === "chest" ? 2 : 1) : 0;
 
+  // Dark-themed levels get a halo of matching color around the island's outer edge
+  // so the silhouette reads cleanly against the dark background.
+  const isDarkTheme = theme.material === "obsidian" || theme.material === "bone" || theme.material === "void";
+  const isLava = theme.material === "obsidian";
+  // Lava platforms use a dark-red top with an orange rim glow.
+  const lavaTopColor = "#5B0F0F";
+  const lavaTopEmissive = "#F97316";
+
   const structureMat = (
     <meshStandardMaterial
       color={theme.structureDark}
@@ -669,15 +677,47 @@ function Tile({ tile, position, isActive, index, playerPosition, theme, forceVis
       <mesh position={[0, 0.48, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[0.6, 0.58, 0.1, 10]} />
         <meshStandardMaterial
-          color={isActive ? theme.grassLight : theme.grassDark}
-          emissive={isActive ? accent : theme.emissive}
-          emissiveIntensity={isActive ? 0.4 : theme.emissiveIntensity * 0.15}
+          color={isLava ? lavaTopColor : (isActive ? theme.grassLight : theme.grassDark)}
+          emissive={isLava ? lavaTopEmissive : (isActive ? accent : theme.emissive)}
+          emissiveIntensity={isLava ? (isActive ? 0.85 : 0.55) : (isActive ? 0.4 : theme.emissiveIntensity * 0.15)}
           roughness={Math.max(0.3, theme.roughness)}
           metalness={theme.metalness * 0.5}
           transparent={!isNearby}
           opacity={isNearby ? 1 : 0.3}
         />
       </mesh>
+
+      {/* Outer-edge halo on dark-themed levels (and a stronger orange halo on lava) */}
+      {isNearby && (isDarkTheme || isLava) && (
+        <>
+          <mesh position={[0, 0.18, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.78, 1.05, 48]} />
+            <meshBasicMaterial
+              color={isLava ? "#F97316" : theme.emissive}
+              transparent
+              opacity={isLava ? 0.55 : 0.4}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+          <mesh position={[0, 0.16, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[1.05, 1.45, 48]} />
+            <meshBasicMaterial
+              color={isLava ? "#FB923C" : theme.ringColor}
+              transparent
+              opacity={isLava ? 0.3 : 0.2}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+          <pointLight
+            position={[0, 0.35, 0]}
+            intensity={isLava ? 1.2 : 0.7}
+            color={isLava ? "#F97316" : theme.emissive}
+            distance={2.4}
+          />
+        </>
+      )}
 
       {/* Accent ring */}
       {isNearby && (
