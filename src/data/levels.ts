@@ -54,9 +54,9 @@ const BASE_THEMES: Omit<LevelTheme, "id" | "xpRequired">[] = [
     accentColor: "45 93% 47%",
   },
   {
-    name: "Void Realm", emoji: "🌌",
-    bgGradient: "from-slate-900/30 to-zinc-900/20",
-    tileBonus: "All rewards +50%, skulls +25% penalty",
+    name: "Outer Space", emoji: "🚀",
+    bgGradient: "from-indigo-950/40 to-purple-950/30",
+    tileBonus: "Zero-gravity boost: all rewards +50%, skulls +25% penalty",
     tileModifier: (t, v) => t === "skull" ? Math.round(v * 1.25) : Math.round(v * 1.5),
     accentColor: "0 0% 80%",
   },
