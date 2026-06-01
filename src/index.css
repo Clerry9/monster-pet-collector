@@ -384,4 +384,82 @@ html[data-contrast="high"] *:focus-visible {
   .shadow-glow {
     box-shadow: 0 0 22px -4px hsl(var(--primary) / 0.55), 0 4px 12px -2px hsl(var(--accent) / 0.35);
   }
+
+  /* ===== Shared typography tokens =====
+     Use these instead of hand-rolled text-[Xpx]/font-bold combinations so
+     labels, badges and stat numbers stay perfectly aligned everywhere and
+     scale uniformly with the user's font-size preference. */
+  .text-stat-num {
+    font-family: var(--font-body);
+    font-weight: 800;
+    font-size: 0.95rem;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    color: hsl(var(--foreground));
+  }
+  .text-stat-label {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.7rem;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+  .text-card-title {
+    font-family: var(--font-body);
+    font-weight: 800;
+    font-size: 0.95rem;
+    line-height: 1.15;
+    color: hsl(var(--foreground));
+  }
+  .badge-rarity {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-weight: 800;
+    font-size: 0.7rem;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.55rem;
+    border-radius: 9999px;
+  }
+
+  /* WCAG-friendly minimum tap target — apply to icon buttons & stat rows. */
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .tap-row {
+    min-height: 44px;
+  }
+
+  /* ===== Monster card flip (3D) ===== */
+  .card-flip-perspective {
+    perspective: 1000px;
+  }
+  .card-flip-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+  }
+  .card-flip-inner.is-flipped {
+    transform: rotateY(180deg);
+  }
+  .card-flip-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .card-flip-face.is-back {
+    transform: rotateY(180deg);
+  }
+  html[data-reduced-motion="true"] .card-flip-inner {
+    transition: none;
+  }
 }
