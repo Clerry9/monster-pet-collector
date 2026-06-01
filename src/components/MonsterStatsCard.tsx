@@ -18,7 +18,7 @@ export function MonsterStatsCard({ stats, compact, className = "" }: Props) {
   ];
   return (
     <div
-      className={`grid grid-cols-4 gap-1 ${compact ? "text-[9px]" : "text-[11px]"} font-body ${className}`}
+      className={`grid grid-cols-4 gap-1 ${compact ? "text-xs" : "text-sm"} font-body ${className}`}
       role="list"
       aria-label="Monster stats"
     >
