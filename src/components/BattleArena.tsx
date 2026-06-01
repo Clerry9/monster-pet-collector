@@ -34,21 +34,26 @@ function StatBlock({ label, name, level, hp, a, d, s, tone }: { label: string; n
   const accent = tone === "you" ? "border-emerald-400/60 bg-emerald-500/10" : "border-candy-red/60 bg-candy-red/10";
   const titleColor = tone === "you" ? "text-emerald-300" : "text-candy-red";
   return (
-    <div className={`rounded-lg border-2 ${accent} px-3 py-2`} aria-label={`${label} ${name} stats`}>
-      <div className="flex items-center justify-between text-xs font-display">
-        <span className={titleColor}>{label}</span>
-        <span className="text-cream/80 truncate ml-1">{name} Lv.{level}</span>
+    <div className={`min-w-0 rounded-lg border-2 ${accent} px-2 py-2 sm:px-3`} aria-label={`${label} ${name} stats`}>
+      <div className="flex items-center justify-between gap-1 text-xs font-display min-w-0">
+        <span className={`${titleColor} shrink-0`}>{label}</span>
+        <span className="text-cream/90 truncate ml-1 min-w-0">{name} Lv.{level}</span>
       </div>
-      <div className="mt-2 grid grid-cols-4 gap-2 text-xs font-body">
+      <div className="mt-2 grid grid-cols-4 gap-1 sm:gap-2 text-xs font-body">
         {[
           ["❤️", hp, "HP"],
           ["⚔️", a, "ATK"],
           ["🛡️", d, "DEF"],
           ["💨", s, "SPD"],
         ].map(([e, v, k]) => (
-          <div key={String(k)} className="flex flex-col items-center rounded bg-black/30 px-1 py-1" title={String(k)}>
-            <span aria-hidden="true">{e as string}</span>
-            <span className="tabular-nums font-bold text-cream">{v as number}</span>
+          <div
+            key={String(k)}
+            className="flex flex-col items-center justify-center rounded bg-black/40 px-1 py-1 min-w-0"
+            title={String(k)}
+          >
+            <span aria-hidden="true" className="leading-none">{e as string}</span>
+            <span className="text-stat-num !text-cream">{v as number}</span>
+            <span className="sr-only">{String(k)}</span>
           </div>
         ))}
       </div>
@@ -157,20 +162,20 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
       )}
 
       {/* Pre-fight stat readout — visible at battle start and remains as a quick reference */}
-      <div className="relative z-20 mx-3 mt-2 grid grid-cols-2 gap-2 text-cream">
+      <div className="relative z-20 mx-2 sm:mx-3 mt-2 grid grid-cols-2 gap-2 text-cream">
         <StatBlock label="YOU" name={atk.name} level={atk.level} hp={atk.max_hp} a={atk.atk} d={atk.def} s={atk.spd} tone="you" />
         <StatBlock label="ENEMY" name={def.name} level={def.level} hp={def.max_hp} a={def.atk} d={def.def} s={def.spd} tone="enemy" />
       </div>
 
       {/* Compact team total summary (HP/ATK/DEF/SPD) */}
-      <div className="relative z-20 mx-3 mt-2 grid grid-cols-2 gap-2 text-cream text-xs font-display">
-        <div className="rounded-md border border-emerald-400/40 bg-emerald-500/5 px-2 py-1.5 flex items-center justify-between">
-          <span className="text-emerald-300">TEAM</span>
-          <span className="tabular-nums">❤️ {atk.max_hp} ⚔️ {atk.atk} 🛡️ {atk.def} 💨 {atk.spd}</span>
+      <div className="relative z-20 mx-2 sm:mx-3 mt-2 grid grid-cols-2 gap-2 text-cream text-[11px] sm:text-xs font-display">
+        <div className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2 py-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 min-w-0">
+          <span className="text-emerald-300 shrink-0">TEAM</span>
+          <span className="tabular-nums truncate">❤️{atk.max_hp} ⚔️{atk.atk} 🛡️{atk.def} 💨{atk.spd}</span>
         </div>
-        <div className="rounded-md border border-candy-red/40 bg-candy-red/5 px-2 py-1.5 flex items-center justify-between">
-          <span className="text-candy-red">OPP.</span>
-          <span className="tabular-nums">❤️ {def.max_hp} ⚔️ {def.atk} 🛡️ {def.def} 💨 {def.spd}</span>
+        <div className="rounded-md border border-candy-red/40 bg-candy-red/10 px-2 py-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 min-w-0">
+          <span className="text-candy-red shrink-0">OPP.</span>
+          <span className="tabular-nums truncate">❤️{def.max_hp} ⚔️{def.atk} 🛡️{def.def} 💨{def.spd}</span>
         </div>
       </div>
 
@@ -317,12 +322,12 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
       </div>
 
       {/* Action buttons */}
-      <div className="grid grid-cols-3 gap-2 p-4">
+      <div className="grid grid-cols-3 gap-2 p-3 sm:p-4">
         <Button
           variant="default"
           disabled={loading || ended}
           onClick={() => onAction("attack")}
-          className="font-display"
+          className="font-display tap-target text-sm sm:text-base"
         >
           ⚔️ Attack{combo >= 2 ? " ✦" : ""}
         </Button>
@@ -330,7 +335,7 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
           variant="secondary"
           disabled={loading || ended}
           onClick={() => onAction("defend")}
-          className="font-display"
+          className="font-display tap-target text-sm sm:text-base"
         >
           🛡️ Defend
         </Button>
@@ -338,7 +343,7 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
           variant={canSpecial ? "default" : "outline"}
           disabled={loading || ended || !canSpecial}
           onClick={() => onAction("special")}
-          className="font-display"
+          className="font-display tap-target text-sm sm:text-base"
           title={atk.signature_name}
         >
           {canSpecial ? "✨ Special" : `CD ${battle.attacker_special_cd}`}
@@ -356,11 +361,12 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
                 key={it.id}
                 onClick={() => onUseItem(it.id)}
                 disabled={loading || ended}
-                className="relative flex items-center gap-1 px-2 py-1 rounded-lg bg-black/40 border border-gold/40 text-cream text-xs hover:bg-black/60 hover:border-gold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="tap-target relative inline-flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-black/40 border border-gold/60 text-cream text-sm hover:bg-black/60 hover:border-gold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 title={meta.label}
+                aria-label={`${meta.label}, ${it.count} remaining`}
               >
                 <span className="text-base">{meta.emoji}</span>
-                <span className="font-display text-[10px]">×{it.count}</span>
+                <span className="font-display text-xs">×{it.count}</span>
               </button>
             );
           })}
