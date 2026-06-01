@@ -39,14 +39,14 @@ export function TopHud({
       {/* Top counter strip */}
       <div className="flex items-center justify-between gap-1 flex-wrap">
         <Counter
-          icon={<Gem size={14} className="text-fuchsia-300" fill="currentColor" />}
+          icon={<Gem size={18} className="text-fuchsia-300" fill="currentColor" />}
           value={gems}
           onAdd={onAddGems}
           ariaLabel={`${gems.toLocaleString()} gems`}
           tip="Gems — premium currency for special packs and revives."
         />
         <Counter
-          icon={<Coins size={14} className="text-yellow-300" fill="currentColor" />}
+          icon={<Coins size={18} className="text-yellow-300" fill="currentColor" />}
           value={coins}
           onAdd={onAddCoins}
           ariaLabel={`${coins.toLocaleString()} coins`}
@@ -55,14 +55,14 @@ export function TopHud({
         />
         <KeySlots count={keys} onAdd={onAddKeys} tip="Key shards — collect 3 to unlock the next island." />
         <Counter
-          icon={<Star size={14} className="text-yellow-300" fill="currentColor" />}
+          icon={<Star size={18} className="text-yellow-300" fill="currentColor" />}
           value={stars}
           onAdd={onAddStars}
           ariaLabel={`${stars.toLocaleString()} stars`}
           tip="Stars — season currency. Climb the season pass to claim rewards."
         />
         <Counter
-          icon={<Sparkles size={14} className="text-cyan-300" fill="currentColor" />}
+          icon={<Sparkles size={18} className="text-cyan-300" fill="currentColor" />}
           value={shards}
           onAdd={onAddShards}
           ariaLabel={`${shards.toLocaleString()} shards`}
