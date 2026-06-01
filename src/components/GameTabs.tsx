@@ -41,7 +41,7 @@ export function GameTabs({ active, onTabChange, variant = "bar", newTabs, countd
               onClick={() => onTabChange(tab.id)}
               title={tab.tip}
               aria-label={`${tab.label} — ${tab.tip}`}
-              className={`relative icon-tile-gold w-12 h-12 flex flex-col items-center justify-center text-[10px] font-display leading-none transition-transform active:translate-y-0.5 ${
+              className={`relative icon-tile-gold w-12 h-12 flex flex-col items-center justify-center text-xs font-display leading-none transition-transform active:translate-y-0.5 ${
                 isActive ? "ring-4 ring-candy-red/70 scale-105" : ""
               }`}
             >
@@ -74,7 +74,7 @@ export function GameTabs({ active, onTabChange, variant = "bar", newTabs, countd
             onClick={() => onTabChange(tab.id)}
             title={tab.tip}
             aria-label={`${tab.label} — ${tab.tip}`}
-            className={`relative px-2.5 py-1.5 rounded-full text-[11px] font-display tracking-wide transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+            className={`relative px-2.5 py-1.5 rounded-full text-sm font-display tracking-wide transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
               active === tab.id ? "text-wood-dark" : "text-cream/80 hover:text-cream"
             }`}
           >
@@ -104,7 +104,7 @@ function NewBadge() {
       initial={{ scale: 0 }}
       animate={{ scale: [0, 1.2, 1] }}
       transition={{ duration: 0.4 }}
-      className="absolute -top-1.5 -right-1.5 z-20 px-1.5 py-[1px] rounded-full bg-candy-red text-cream text-[8px] font-display tracking-wider border border-cream shadow-md pointer-events-none"
+      className="absolute -top-1.5 -right-1.5 z-20 px-1.5 py-[1px] rounded-full bg-candy-red text-cream text-[11px] font-display tracking-wider border border-cream shadow-md pointer-events-none"
       aria-label="New"
     >
       NEW
@@ -117,7 +117,7 @@ function CountdownPill({ label }: { label: string }) {
     <motion.span
       initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
-      className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 px-1.5 py-[1px] rounded-full bg-wood-dark text-gold text-[8px] font-display tracking-wider border border-gold/60 shadow-md pointer-events-none whitespace-nowrap"
+      className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20 px-1.5 py-[1px] rounded-full bg-wood-dark text-gold text-[11px] font-display tracking-wider border border-gold/60 shadow-md pointer-events-none whitespace-nowrap"
       aria-label={`Time remaining: ${label}`}
     >
       ⏱ {label}

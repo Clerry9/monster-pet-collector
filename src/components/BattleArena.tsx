@@ -74,8 +74,8 @@ function StatusIcons({ c }: { c: { burn_turns?: number; poison_turns?: number; b
     <div className="flex gap-0.5 justify-center mt-0.5">
       {items.map(([e, n, k]) =>
         (n ?? 0) > 0 ? (
-          <span key={k} title={`${k} (${n})`} className="text-[10px] leading-none">
-            {e}<span className="text-cream/60 text-[8px]">{n}</span>
+          <span key={k} title={`${k} (${n})`} className="text-xs leading-none">
+            {e}<span className="text-cream/60 text-[11px]">{n}</span>
           </span>
         ) : null,
       )}
@@ -88,7 +88,7 @@ function HpBar({ current, max, side }: { current: number; max: number; side: "at
   const lowHp = pct < 30;
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between text-[10px] font-display text-cream mb-1">
+      <div className="flex items-center justify-between text-xs font-display text-cream mb-1">
         <span className="opacity-80">{side === "attacker" ? "YOU" : "ENEMY"}</span>
         <span className={lowHp ? "text-candy-red animate-pulse" : ""}>
           {current} / {max}
@@ -156,7 +156,7 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
         <div className="relative z-20 mx-auto mt-2 w-fit px-3 py-1 rounded-full bg-wood-dark border-2 border-gold text-gold font-display text-xs tracking-wider flex items-center gap-2">
           <span>{waveLabel}</span>
           {(winStreak ?? 0) > 0 && (
-            <span className="text-[10px] text-orange-300">🔥 {winStreak}</span>
+            <span className="text-xs text-orange-300">🔥 {winStreak}</span>
           )}
         </div>
       )}
@@ -168,7 +168,7 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
       </div>
 
       {/* Compact team total summary (HP/ATK/DEF/SPD) */}
-      <div className="relative z-20 mx-2 sm:mx-3 mt-2 grid grid-cols-2 gap-2 text-cream text-[11px] sm:text-xs font-display">
+      <div className="relative z-20 mx-2 sm:mx-3 mt-2 grid grid-cols-2 gap-2 text-cream text-sm sm:text-base font-display">
         <div className="rounded-md border border-emerald-400/40 bg-emerald-500/10 px-2 py-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 min-w-0">
           <span className="text-emerald-300 shrink-0">TEAM</span>
           <span className="tabular-nums truncate">❤️{atk.max_hp} ⚔️{atk.atk} 🛡️{atk.def} 💨{atk.spd}</span>
@@ -293,7 +293,7 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
 
       {/* Combo meter */}
       {combo > 0 && !ended && (
-        <div className="px-4 pt-1 flex items-center gap-1 text-[10px] font-display text-amber-300">
+        <div className="px-4 pt-1 flex items-center gap-1 text-xs font-display text-amber-300">
           <span>COMBO</span>
           {[1, 2, 3].map((n) => (
             <span key={n} className={`h-1.5 flex-1 rounded ${n <= combo ? "bg-amber-300" : "bg-amber-300/15"}`} />
@@ -305,7 +305,7 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
       {/* Battle log */}
       <div
         ref={logRef}
-        className="mx-4 mt-2 h-14 sm:h-20 overflow-y-auto rounded bg-black/40 border border-wood-dark p-2 text-[11px] font-body text-cream/90 space-y-0.5"
+        className="mx-4 mt-2 h-14 sm:h-20 overflow-y-auto rounded bg-black/40 border border-wood-dark p-2 text-sm font-body text-cream/90 space-y-0.5"
       >
         {battle.log.map((e, i) => (
           <div key={i} className={
@@ -353,7 +353,7 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
       {/* Item bar */}
       {items && items.length > 0 && onUseItem && (
         <div className="px-4 pb-3 flex items-center gap-2 border-t border-wood-dark/50 pt-2">
-          <span className="text-[10px] font-display text-cream/60 mr-1">ITEMS</span>
+          <span className="text-xs font-display text-cream/60 mr-1">ITEMS</span>
           {items.filter((it) => it.count > 0).map((it) => {
             const meta = ITEM_META[it.id];
             return (

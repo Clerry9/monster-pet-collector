@@ -32,21 +32,21 @@ export function TopHud({
   return (
     <div className="w-full flex flex-col gap-1.5" role="region" aria-label="Player resources">
       {guestName && (
-        <div className="self-start ml-1 px-2 py-0.5 rounded-full bg-black/45 border border-cream-light/30 text-[10px] font-display text-cream-light tracking-wide truncate max-w-[60%]" aria-label={`Guest name ${guestName}`}>
+        <div className="self-start ml-1 px-2 py-0.5 rounded-full bg-black/45 border border-cream-light/30 text-xs font-display text-cream-light tracking-wide truncate max-w-[60%]" aria-label={`Guest name ${guestName}`}>
           👤 {guestName}
         </div>
       )}
       {/* Top counter strip */}
       <div className="flex items-center justify-between gap-1 flex-wrap">
         <Counter
-          icon={<Gem size={14} className="text-fuchsia-300" fill="currentColor" />}
+          icon={<Gem size={18} className="text-fuchsia-300" fill="currentColor" />}
           value={gems}
           onAdd={onAddGems}
           ariaLabel={`${gems.toLocaleString()} gems`}
           tip="Gems — premium currency for special packs and revives."
         />
         <Counter
-          icon={<Coins size={14} className="text-yellow-300" fill="currentColor" />}
+          icon={<Coins size={18} className="text-yellow-300" fill="currentColor" />}
           value={coins}
           onAdd={onAddCoins}
           ariaLabel={`${coins.toLocaleString()} coins`}
@@ -55,14 +55,14 @@ export function TopHud({
         />
         <KeySlots count={keys} onAdd={onAddKeys} tip="Key shards — collect 3 to unlock the next island." />
         <Counter
-          icon={<Star size={14} className="text-yellow-300" fill="currentColor" />}
+          icon={<Star size={18} className="text-yellow-300" fill="currentColor" />}
           value={stars}
           onAdd={onAddStars}
           ariaLabel={`${stars.toLocaleString()} stars`}
           tip="Stars — season currency. Climb the season pass to claim rewards."
         />
         <Counter
-          icon={<Sparkles size={14} className="text-cyan-300" fill="currentColor" />}
+          icon={<Sparkles size={18} className="text-cyan-300" fill="currentColor" />}
           value={shards}
           onAdd={onAddShards}
           ariaLabel={`${shards.toLocaleString()} shards`}
@@ -80,11 +80,11 @@ export function TopHud({
         aria-label={`Level ${current.id} ${current.name}, ${xpInLevel} of ${xpNeeded} XP`}
       >
         {/* Paw / level badge */}
-        <div className="shrink-0 w-7 h-7 rounded-full bg-gradient-to-b from-rose-400 to-rose-700 border-2 border-wood-dark flex items-center justify-center shadow-chunky-sm">
-          <PawPrint size={14} className="text-cream-light" />
+        <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-b from-rose-400 to-rose-700 border-2 border-wood-dark flex items-center justify-center shadow-chunky-sm">
+          <PawPrint size={18} className="text-cream-light" />
         </div>
 
-        <div className="flex-1 h-3 rounded-full bg-black/40 overflow-hidden border border-black/40">
+        <div className="flex-1 h-3.5 rounded-full bg-black/40 overflow-hidden border border-black/40">
           <motion.div
             className="h-full pill-xp-fill rounded-full"
             initial={{ width: 0 }}
@@ -94,20 +94,20 @@ export function TopHud({
         </div>
 
         {/* "891 / 1.400" centered text */}
-        <span className="absolute left-1/2 -translate-x-1/2 text-[11px] font-display text-cream-light pointer-events-none drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]">
+        <span className="absolute left-1/2 -translate-x-1/2 text-sm font-display text-cream-light pointer-events-none drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]">
           {xpInLevel.toLocaleString()} / {xpNeeded.toLocaleString()}
         </span>
 
         {/* Flame multiplier on right */}
         <div className="shrink-0 relative">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-b from-amber-300 via-orange-500 to-red-600 border-2 border-wood-dark flex items-center justify-center shadow-chunky-sm">
-            <Flame size={16} className="text-cream-light" fill="currentColor" />
+          <div className="w-9 h-9 rounded-full bg-gradient-to-b from-amber-300 via-orange-500 to-red-600 border-2 border-wood-dark flex items-center justify-center shadow-chunky-sm">
+            <Flame size={18} className="text-cream-light" fill="currentColor" />
           </div>
-          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-display bg-wood-dark text-cream-light px-1 rounded-full border border-cream-light/60 leading-none py-[1px]">
+          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[11px] font-display bg-wood-dark text-cream-light px-1 rounded-full border border-cream-light/60 leading-none py-[1px]">
             ×{betMultiplier}
           </span>
           <span
-            className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-display text-cream-light/90 leading-none whitespace-nowrap drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]"
+            className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[11px] font-display text-cream-light/90 leading-none whitespace-nowrap drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]"
             aria-label={`Each roll costs ${energyCostForBet(betMultiplier)} energy`}
           >
             −{energyCostForBet(betMultiplier)}⚡
@@ -123,24 +123,24 @@ function Counter({
 }: { icon: React.ReactNode; value: number; onAdd?: () => void; ariaLabel: string; wide?: boolean; tip?: string }) {
   return (
     <div
-      className={`pill-counter flex items-center gap-1 pl-1.5 pr-0.5 py-0.5 ${wide ? "min-w-[88px] sm:min-w-[110px]" : "min-w-[64px] sm:min-w-[78px]"}`}
+      className={`pill-counter flex items-center gap-1 pl-1.5 pr-0.5 py-0.5 ${wide ? "min-w-[96px] sm:min-w-[120px]" : "min-w-[72px] sm:min-w-[90px]"}`}
       role="status"
       aria-label={ariaLabel}
       title={tip ?? ariaLabel}
     >
-      <span className="shrink-0 w-5 h-5 rounded-full bg-black/30 flex items-center justify-center" aria-hidden="true">
+      <span className="shrink-0 w-6 h-6 rounded-full bg-black/30 flex items-center justify-center" aria-hidden="true">
         {icon}
       </span>
-      <span className="flex-1 text-[12px] font-display tracking-wide text-cream-light text-right truncate">
+      <span className="flex-1 text-sm font-display tracking-wide text-cream-light text-right truncate">
         {formatCompact(value)}
       </span>
       <button
         onClick={onAdd}
         aria-label={`Add — ${tip ?? ariaLabel}`}
         title={tip ? `Get more — ${tip}` : "Get more"}
-        className="add-stub w-5 h-5 flex items-center justify-center"
+        className="add-stub w-6 h-6 flex items-center justify-center"
       >
-        <Plus size={12} strokeWidth={3} />
+        <Plus size={16} strokeWidth={3} />
       </button>
     </div>
   );
@@ -160,14 +160,14 @@ function KeySlots({ count, onAdd, tip }: { count: number; onAdd?: () => void; ti
         return (
           <span
             key={i}
-            className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
+            className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${
               filled
                 ? "bg-gradient-to-b from-yellow-300 to-amber-600 border-amber-900"
                 : "bg-black/40 border-black/60"
             }`}
             aria-hidden="true"
           >
-            <Key size={10} className={filled ? "text-amber-900" : "text-cream-light/30"} />
+            <Key size={14} className={filled ? "text-amber-900" : "text-cream-light/30"} />
           </span>
         );
       })}

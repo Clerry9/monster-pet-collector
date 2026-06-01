@@ -36,10 +36,10 @@ export function RewardedAdButton({ playerLevel, onReward, className = "", compac
         disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
       aria-label={label}
     >
-      {ad.loading ? <Loader2 size={14} className="animate-spin" /> : <Tv size={14} />}
+      {ad.loading ? <Loader2 size={18} className="animate-spin" /> : <Tv size={18} />}
       <span>{label}</span>
       {ad.dailyLeft > 0 && !ad.loading && (
-        <span className="text-[10px] opacity-80">({ad.dailyLeft} left today)</span>
+        <span className="text-xs opacity-80">({ad.dailyLeft} left today)</span>
       )}
     </motion.button>
   );
