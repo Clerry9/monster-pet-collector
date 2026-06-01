@@ -37,17 +37,20 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
   const upg = upgrades.get(monster.id);
   const xp = monsterTaps[monster.id] ?? 0;
   const stats = getMonsterStats(monster, xp, upg);
+  const [pendingStat, setPendingStat] = useState<StatKey | null>(null);
 
-  const handleBuy = (stat: StatKey) => {
+  const confirmBuy = (stat: StatKey) => {
     const cost = upgradeCost(stat, upg[stat]);
     if (coins < cost) {
       toast.error("Not enough coins", {
         description: `${STAT_META[stat].label} upgrade needs 🪙 ${cost}.`,
       });
+      setPendingStat(null);
       return;
     }
     addCoins(-cost);
     upgrades.apply(monster.id, stat);
+    setPendingStat(null);
     toast.success(`${monster.name} ${STAT_META[stat].label} +${STAT_META[stat].perLevel}!`);
   };
 
@@ -128,25 +131,59 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
             const cost = upgradeCost(s, upg[s]);
             const can = coins >= cost;
             const meta = STAT_META[s];
+            const isPending = pendingStat === s;
+            const nextValue = stats[s] + meta.perLevel;
             return (
-              <div key={s} className="flex items-center gap-2 rounded-lg border-2 border-border bg-background/30 p-2">
-                <span className="text-xl" aria-hidden="true">{meta.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="font-display text-xs text-foreground">
-                    {meta.label} <span className="text-muted-foreground">+{meta.perLevel}</span>
+              <div
+                key={s}
+                className={`rounded-lg border-2 p-2 transition-colors ${
+                  isPending ? "border-primary bg-primary/10" : "border-border bg-background/30"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xl" aria-hidden="true">{meta.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-display text-xs text-foreground">
+                      {meta.label} <span className="text-muted-foreground">Lv. {upg[s]}</span>
+                    </div>
+                    <div className="text-[10px] tabular-nums">
+                      <span className="text-foreground font-bold">{stats[s]}</span>
+                      <span className="text-muted-foreground"> → </span>
+                      <span className="text-primary font-bold">{nextValue}</span>
+                      <span className="text-accent ml-1">(+{meta.perLevel})</span>
+                    </div>
                   </div>
-                  <div className="text-[10px] text-muted-foreground">
-                    Lv. {upg[s]} · current {stats[s]}
-                  </div>
+                  {!isPending ? (
+                    <button
+                      onClick={() => setPendingStat(s)}
+                      disabled={!can}
+                      className="shrink-0 px-2.5 py-1 rounded-full font-display text-[11px] bg-accent text-accent-foreground disabled:opacity-40 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-primary"
+                      aria-label={`Preview ${meta.label} upgrade for ${cost} coins`}
+                    >
+                      🪙 {cost}
+                    </button>
+                  ) : null}
                 </div>
-                <button
-                  onClick={() => handleBuy(s)}
-                  disabled={!can}
-                  className="shrink-0 px-2.5 py-1 rounded-full font-display text-[11px] bg-accent text-accent-foreground disabled:opacity-40 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-primary"
-                  aria-label={`Upgrade ${meta.label} for ${cost} coins`}
-                >
-                  🪙 {cost}
-                </button>
+                {isPending && (
+                  <div className="mt-2 flex items-center gap-2 border-t border-border pt-2">
+                    <div className="flex-1 text-[10px] text-muted-foreground">
+                      Confirm: spend 🪙 {cost.toLocaleString()} → balance 🪙 {(coins - cost).toLocaleString()}
+                    </div>
+                    <button
+                      onClick={() => setPendingStat(null)}
+                      className="px-2 py-1 rounded-full font-display text-[10px] bg-muted text-muted-foreground hover:brightness-110"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => confirmBuy(s)}
+                      disabled={!can}
+                      className="px-2.5 py-1 rounded-full font-display text-[10px] bg-primary text-primary-foreground disabled:opacity-40 hover:brightness-110"
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
