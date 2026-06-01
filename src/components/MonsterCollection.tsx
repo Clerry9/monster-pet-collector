@@ -8,6 +8,9 @@ import { CoinRewardGallery } from "./CoinRewardGallery";
 import { useBonusInventory } from "@/hooks/useBonusInventory";
 import { SUMMON_COST, MERGE_COPIES_REQUIRED, type SummonRarity } from "@/lib/summon";
 import { toast } from "sonner";
+import { MonsterStatsShop } from "./MonsterStatsShop";
+import { MonsterStatsCard } from "./MonsterStatsCard";
+import { getMonsterStats, useMonsterUpgrades } from "@/lib/monsterStats";
 
 interface Props {
   unlockedMonsters: string[];
@@ -18,6 +21,8 @@ interface Props {
   onUnlock: (id: string) => void;
   /** Free unlock used by the summon flow when a brand-new monster is summoned. */
   onGrantMonster?: (id: string) => void;
+  /** Spend or grant coins (negative to spend). Required for the Upgrades tab. */
+  addCoins?: (amount: number) => void;
 }
 
 const rarityColors: Record<string, string> = {
@@ -34,9 +39,10 @@ const rarityBadge: Record<string, string> = {
   legendary: "bg-accent/20 text-accent",
 };
 
-export function MonsterCollection({ unlockedMonsters, activeMonster, coins, monsterTaps, onSelect, onUnlock, onGrantMonster }: Props) {
+export function MonsterCollection({ unlockedMonsters, activeMonster, coins, monsterTaps, onSelect, onUnlock, onGrantMonster, addCoins }: Props) {
   const isUnlocked = (m: Monster) => unlockedMonsters.includes(m.id);
   const inv = useBonusInventory();
+  const upgrades = useMonsterUpgrades();
   const [summoned, setSummoned] = useState<Monster | null>(null);
 
   const handleSummon = (rarity: SummonRarity) => {
@@ -86,6 +92,7 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
       <Tabs defaultValue="monsters" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="monsters">Monsters</TabsTrigger>
+          <TabsTrigger value="upgrades">Upgrades</TabsTrigger>
           <TabsTrigger value="rewards">Rewards</TabsTrigger>
         </TabsList>
         <TabsContent value="monsters">
@@ -277,6 +284,13 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rarityBadge[m.rarity]}`}>
                 {m.rarity}
               </span>
+              {unlocked && (
+                <MonsterStatsCard
+                  stats={getMonsterStats(m, taps, upgrades.get(m.id))}
+                  compact
+                  className="mt-1 w-full"
+                />
+              )}
               {unlocked && (copies > 0 || mergeLevel > 0) && (
                 <div className="flex flex-col items-center gap-0.5 mt-0.5 w-full">
                   <span className="text-[9px] font-body text-cyan-400 tabular-nums">
@@ -335,6 +349,21 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
           </ul>
         </section>
       )}
+        </TabsContent>
+        <TabsContent value="upgrades">
+          {addCoins ? (
+            <MonsterStatsShop
+              unlockedMonsters={unlockedMonsters}
+              activeMonster={activeMonster}
+              coins={coins}
+              monsterTaps={monsterTaps}
+              addCoins={addCoins}
+            />
+          ) : (
+            <div className="rounded-lg border-2 border-border bg-card/50 p-4 text-center text-sm text-muted-foreground">
+              Upgrades unavailable here.
+            </div>
+          )}
         </TabsContent>
         <TabsContent value="rewards">
           <CoinRewardGallery />
