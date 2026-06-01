@@ -170,7 +170,7 @@ export function migrateBackup(parsed: AnyBackup): { data: BackupV2; fromVersion:
   if (cur.version !== EXPORT_VERSION || !cur.upgrades || !Array.isArray(cur.history)) {
     throw new Error("Migration produced an invalid backup");
   }
-  return { data: cur as BackupV2, fromVersion };
+  return { data: cur as unknown as BackupV2, fromVersion };
 }
 
 export function useMonsterUpgrades() {
