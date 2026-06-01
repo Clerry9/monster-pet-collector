@@ -74,8 +74,8 @@ function StatusIcons({ c }: { c: { burn_turns?: number; poison_turns?: number; b
     <div className="flex gap-0.5 justify-center mt-0.5">
       {items.map(([e, n, k]) =>
         (n ?? 0) > 0 ? (
-          <span key={k} title={`${k} (${n})`} className="text-[10px] leading-none">
-            {e}<span className="text-cream/60 text-[8px]">{n}</span>
+          <span key={k} title={`${k} (${n})`} className="text-xs leading-none">
+            {e}<span className="text-cream/60 text-[11px]">{n}</span>
           </span>
         ) : null,
       )}
@@ -88,7 +88,7 @@ function HpBar({ current, max, side }: { current: number; max: number; side: "at
   const lowHp = pct < 30;
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between text-[10px] font-display text-cream mb-1">
+      <div className="flex items-center justify-between text-xs font-display text-cream mb-1">
         <span className="opacity-80">{side === "attacker" ? "YOU" : "ENEMY"}</span>
         <span className={lowHp ? "text-candy-red animate-pulse" : ""}>
           {current} / {max}

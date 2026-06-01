@@ -130,13 +130,13 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
       <header className="flex items-end justify-between gap-2">
         <div>
           <h3 className="font-display text-2xl text-foreground text-glow-purple">Stat Forge</h3>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Spend 🪙 coins earned from island progress to permanently boost your monsters.
           </p>
         </div>
         <div className="text-right">
           <div className="font-display text-lg text-accent leading-none">🪙 {coins.toLocaleString()}</div>
-          <div className="text-[10px] text-muted-foreground">your coins</div>
+          <div className="text-xs text-muted-foreground">your coins</div>
         </div>
       </header>
 
@@ -145,7 +145,7 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
         <button
           onClick={handleUndo}
           disabled={!lastEntry}
-          className="px-2.5 py-1 rounded-full font-display text-[11px] bg-secondary text-secondary-foreground disabled:opacity-40 hover:brightness-110"
+          className="px-2.5 py-1 rounded-full font-display text-sm bg-secondary text-secondary-foreground disabled:opacity-40 hover:brightness-110"
           aria-label="Undo last Stat Forge upgrade"
           title={lastEntry ? `Undo ${STAT_META[lastEntry.stat].label} on ${MONSTERS.find((m) => m.id === lastEntry.monsterId)?.name}` : "No upgrades to undo"}
         >
@@ -153,13 +153,13 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
         </button>
         <button
           onClick={handleExport}
-          className="px-2.5 py-1 rounded-full font-display text-[11px] bg-card border-2 border-border text-foreground hover:bg-muted"
+          className="px-2.5 py-1 rounded-full font-display text-sm bg-card border-2 border-border text-foreground hover:bg-muted"
         >
           ⬇ Export backup
         </button>
         <button
           onClick={() => fileRef.current?.click()}
-          className="px-2.5 py-1 rounded-full font-display text-[11px] bg-card border-2 border-border text-foreground hover:bg-muted"
+          className="px-2.5 py-1 rounded-full font-display text-sm bg-card border-2 border-border text-foreground hover:bg-muted"
         >
           ⬆ Import backup
         </button>
@@ -238,10 +238,10 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
                 <div className="flex items-center gap-3">
                   <span className="text-2xl" aria-hidden="true">{meta.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="font-display text-sm text-foreground">
+                    <div className="font-display text-base text-foreground">
                       {meta.label} <span className="text-muted-foreground">Lv. {upg[s]}</span>
                     </div>
-                    <div className="text-xs tabular-nums">
+                    <div className="text-sm tabular-nums">
                       <span className="text-foreground font-bold">{stats[s]}</span>
                       <span className="text-muted-foreground"> → </span>
                       <span className="text-primary font-bold">{nextValue}</span>
@@ -252,7 +252,7 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
                     <button
                       onClick={() => setPendingStat(s)}
                       disabled={!can}
-                      className="shrink-0 px-3 py-1.5 rounded-full font-display text-xs bg-accent text-accent-foreground disabled:opacity-40 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-primary"
+                      className="shrink-0 px-3 py-1.5 rounded-full font-display text-sm bg-accent text-accent-foreground disabled:opacity-40 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-primary"
                       aria-label={`Preview ${meta.label} upgrade for ${cost} coins`}
                     >
                       🪙 {cost}
@@ -261,19 +261,19 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
                 </div>
                 {isPending && (
                   <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
-                    <div className="flex-1 text-xs text-muted-foreground">
+                    <div className="flex-1 text-sm text-muted-foreground">
                       Confirm: spend 🪙 {cost.toLocaleString()} → balance 🪙 {(coins - cost).toLocaleString()}
                     </div>
                     <button
                       onClick={() => setPendingStat(null)}
-                      className="px-3 py-1.5 rounded-full font-display text-xs bg-muted text-muted-foreground hover:brightness-110"
+                      className="px-3 py-1.5 rounded-full font-display text-sm bg-muted text-muted-foreground hover:brightness-110"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={() => confirmBuy(s)}
                       disabled={!can}
-                      className="px-3 py-1.5 rounded-full font-display text-xs bg-primary text-primary-foreground disabled:opacity-40 hover:brightness-110"
+                      className="px-3 py-1.5 rounded-full font-display text-sm bg-primary text-primary-foreground disabled:opacity-40 hover:brightness-110"
                     >
                       Confirm
                     </button>
@@ -288,7 +288,7 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
         <div className="mt-3 border-t border-border pt-2">
           <button
             onClick={() => setShowHistory((v) => !v)}
-            className="text-[11px] font-display text-primary underline focus-visible:outline-2 focus-visible:outline-primary"
+            className="text-sm font-display text-primary underline focus-visible:outline-2 focus-visible:outline-primary"
             aria-expanded={showHistory}
           >
             {showHistory ? "Hide" : "Show"} upgrade history ({monsterHistory.length})
@@ -296,16 +296,16 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
           {showHistory && (
             <div className="mt-2 max-h-40 overflow-y-auto rounded-md bg-background/40 border border-border">
               {monsterHistory.length === 0 ? (
-                <div className="p-2 text-[11px] text-muted-foreground">No upgrades yet for {monster.name}.</div>
+                <div className="p-2 text-sm text-muted-foreground">No upgrades yet for {monster.name}.</div>
               ) : (
-                <ul className="divide-y divide-border text-[11px] font-body">
+                <ul className="divide-y divide-border text-sm font-body">
                   {monsterHistory.map((h) => (
                     <li key={h.id} className="flex items-center gap-2 px-2 py-1">
                       <span aria-hidden="true">{STAT_META[h.stat].emoji}</span>
                       <span className="font-bold text-foreground">{STAT_META[h.stat].label}</span>
                       <span className="text-muted-foreground">→ Lv. {h.level}</span>
                       <span className="ml-auto tabular-nums text-accent">🪙 {h.cost.toLocaleString()}</span>
-                      <span className="tabular-nums text-muted-foreground text-[10px]">
+                      <span className="tabular-nums text-muted-foreground text-xs">
                         {new Date(h.at).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })}
                       </span>
                     </li>

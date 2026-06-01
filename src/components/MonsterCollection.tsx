@@ -103,10 +103,10 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
       <section className="mb-4 rounded-xl border-2 border-primary/50 bg-gradient-to-b from-card to-card/40 p-3" aria-label="Summon altar">
         <header className="mb-2 flex items-center justify-between">
           <h4 className="font-display text-base text-foreground flex items-center gap-1.5">
-            <Sparkles size={16} className="text-cyan-400" />
+            <Sparkles size={18} className="text-cyan-400" />
             Summon Altar
           </h4>
-          <span className="text-[11px] font-body text-muted-foreground">
+          <span className="text-sm font-body text-muted-foreground">
             💠 {inv.shards.toLocaleString()} shards
           </span>
         </header>
@@ -119,7 +119,7 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
                 key={r}
                 onClick={() => handleSummon(r)}
                 disabled={!can}
-                className={`flex flex-col items-center gap-0.5 rounded-lg border-2 p-2 text-[10px] font-bold uppercase transition-all focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40 disabled:cursor-not-allowed ${rarityColors[r] ?? "border-border"} ${can ? "hover:scale-105 active:scale-95 bg-card" : "bg-card/50"}`}
+                className={`flex flex-col items-center gap-0.5 rounded-lg border-2 p-2 text-xs font-bold uppercase transition-all focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40 disabled:cursor-not-allowed ${rarityColors[r] ?? "border-border"} ${can ? "hover:scale-105 active:scale-95 bg-card" : "bg-card/50"}`}
                 aria-label={`Summon a random ${r} monster for ${cost} shards`}
               >
                 <span className={`px-1.5 py-0.5 rounded-full ${rarityBadge[r]}`}>{r}</span>
@@ -143,7 +143,7 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
               </div>
               <div className="flex-1">
                 <div className="font-display text-sm text-foreground">You summoned {summoned.name}!</div>
-                <div className="text-[10px] text-muted-foreground">{summoned.rarity} · starts at Level 0</div>
+                <div className="text-xs text-muted-foreground">{summoned.rarity} · starts at Level 0</div>
               </div>
             </motion.div>
           )}
@@ -156,7 +156,7 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
         </h3>
         <div className="text-right">
           <div className="font-display text-lg text-accent leading-none">{overallPct}%</div>
-          <div className="text-[10px] text-muted-foreground font-body">
+          <div className="text-xs text-muted-foreground font-body">
             {totalOwned} / {MONSTERS.length} owned
           </div>
         </div>
@@ -166,7 +166,7 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
         <div className="mb-2 h-2 w-full overflow-hidden rounded-full bg-muted">
           <div className="h-full bg-primary transition-all" style={{ width: `${overallPct}%` }} aria-hidden />
         </div>
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-body text-muted-foreground">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm font-body text-muted-foreground">
           {rarityCounts.map((rc) => (
             <span key={rc.rarity} className="capitalize">
               <span className={`mr-1 inline-block h-2 w-2 rounded-full ${rarityBadge[rc.rarity].split(" ")[0]}`} aria-hidden />
@@ -176,7 +176,7 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
           <button
             type="button"
             onClick={() => setShowChecklist((v) => !v)}
-            className="ml-auto text-[11px] underline text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="ml-auto text-sm underline text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             aria-expanded={showChecklist}
           >
             {showChecklist ? "Hide checklist" : "Show checklist"}
@@ -205,13 +205,13 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
                     aria-hidden="true"
                   />
                 </div>
-                <span className="text-[11px] font-bold text-accent tabular-nums">
+                <span className="text-sm font-bold text-accent tabular-nums">
                   {pct}%
                 </span>
               </div>
             </header>
             {owned === 0 && (
-              <p className="mb-2 text-[11px] text-muted-foreground italic">
+              <p className="mb-2 text-sm text-muted-foreground italic">
                 No {biome.name} monsters yet — save up {cheapest} 🪙 to unlock your first.
               </p>
             )}
@@ -323,7 +323,7 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
                   <div className="flex items-center gap-2 flex-wrap justify-center">
                     {unlocked && (
                       <span className="flex items-center gap-0.5 text-stat-label text-secondary normal-case">
-                        <Sparkles size={12} aria-hidden="true" />
+                        <Sparkles size={16} aria-hidden="true" />
                         Lv.{evo.level}
                       </span>
                     )}
@@ -373,7 +373,7 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
                           className="tap-target inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full bg-primary text-primary-foreground text-sm font-bold cursor-pointer hover:brightness-110"
                           aria-label={`Merge 3 ${m.name} copies to level up`}
                         >
-                          <Combine size={14} /> Merge
+                          <Combine size={18} /> Merge
                         </span>
                       )}
                     </div>
@@ -431,7 +431,7 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
                   <span className={`font-body ${unlocked ? "text-foreground" : "text-muted-foreground"}`}>
                     {unlocked ? m.name : "???"}
                   </span>
-                  <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${rarityBadge[m.rarity]}`}>
+                  <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full ${rarityBadge[m.rarity]}`}>
                     {m.rarity}
                   </span>
                 </li>
