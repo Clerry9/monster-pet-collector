@@ -30,6 +30,32 @@ function monsterImage(id: string): string {
   return MONSTERS.find((m) => m.id === id)?.image ?? MONSTERS[0].image;
 }
 
+function StatBlock({ label, name, level, hp, a, d, s, tone }: { label: string; name: string; level: number; hp: number; a: number; d: number; s: number; tone: "you" | "enemy" }) {
+  const accent = tone === "you" ? "border-emerald-400/60 bg-emerald-500/10" : "border-candy-red/60 bg-candy-red/10";
+  const titleColor = tone === "you" ? "text-emerald-300" : "text-candy-red";
+  return (
+    <div className={`rounded-lg border-2 ${accent} px-2 py-1.5`} aria-label={`${label} ${name} stats`}>
+      <div className="flex items-center justify-between text-[10px] font-display">
+        <span className={titleColor}>{label}</span>
+        <span className="text-cream/80 truncate ml-1">{name} Lv.{level}</span>
+      </div>
+      <div className="mt-1 grid grid-cols-4 gap-1 text-[10px] font-body">
+        {[
+          ["❤️", hp, "HP"],
+          ["⚔️", a, "ATK"],
+          ["🛡️", d, "DEF"],
+          ["💨", s, "SPD"],
+        ].map(([e, v, k]) => (
+          <div key={String(k)} className="flex flex-col items-center rounded bg-black/30 px-1 py-0.5" title={String(k)}>
+            <span aria-hidden="true">{e as string}</span>
+            <span className="tabular-nums font-bold text-cream">{v as number}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function StatusIcons({ c }: { c: { burn_turns?: number; poison_turns?: number; bleed_turns?: number; stun_turns?: number; freeze_turns?: number; shield_turns?: number } }) {
   const items: Array<[string, number | undefined, string]> = [
     ["🔥", c.burn_turns, "burn"],
