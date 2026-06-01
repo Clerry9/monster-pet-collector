@@ -25,6 +25,7 @@ export function LandingRewardPopup({ reward, onDone }: Props) {
   const onDoneRef = useRef(onDone);
   useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
   const handledRef = useRef<typeof reward>(null);
+  const fireRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (!reward) { handledRef.current = null; return; }
     if (handledRef.current === reward) return;
@@ -51,7 +52,6 @@ export function LandingRewardPopup({ reward, onDone }: Props) {
       fireRef.current = null;
     };
   }, [reward]);
-  const fireRef = useRef<(() => void) | null>(null);
 
   const bad = reward?.tone === "bad";
 
