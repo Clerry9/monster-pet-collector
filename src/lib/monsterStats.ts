@@ -12,7 +12,20 @@ export interface StatUpgrade {
 
 export interface MonsterStats extends StatUpgrade {}
 
+export interface UpgradeHistoryEntry {
+  id: string;
+  monsterId: string;
+  stat: StatKey;
+  /** Level reached after this purchase (1-indexed). */
+  level: number;
+  cost: number;
+  /** Epoch ms. */
+  at: number;
+}
+
 const STORAGE_KEY = "monsterStatUpgrades_v1";
+const HISTORY_KEY = "monsterStatUpgradesHistory_v1";
+const EXPORT_VERSION = 1;
 
 const RARITY_BASE: Record<Monster["rarity"], MonsterStats> = {
   common:    { hp: 100, atk: 15, def: 10, spd: 10 },
@@ -64,12 +77,27 @@ function writeStore(data: Record<string, StatUpgrade>) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
 }
 
+function readHistory(): UpgradeHistoryEntry[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as UpgradeHistoryEntry[]) : [];
+  } catch { return []; }
+}
+
+function writeHistory(data: UpgradeHistoryEntry[]) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(data)); } catch { /* ignore */ }
+}
+
 export function useMonsterUpgrades() {
   const [store, setStore] = useState<Record<string, StatUpgrade>>(() => readStore());
+  const [history, setHistory] = useState<UpgradeHistoryEntry[]>(() => readHistory());
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) setStore(readStore());
+      if (e.key === HISTORY_KEY) setHistory(readHistory());
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
@@ -79,16 +107,80 @@ export function useMonsterUpgrades() {
     return store[monsterId] ?? { ...EMPTY };
   }, [store]);
 
-  const apply = useCallback((monsterId: string, stat: StatKey) => {
+  const apply = useCallback((monsterId: string, stat: StatKey, cost: number) => {
+    let newLevel = 0;
     setStore((prev) => {
       const cur = prev[monsterId] ?? { ...EMPTY };
-      const next = { ...prev, [monsterId]: { ...cur, [stat]: cur[stat] + 1 } };
+      newLevel = cur[stat] + 1;
+      const next = { ...prev, [monsterId]: { ...cur, [stat]: newLevel } };
       writeStore(next);
+      return next;
+    });
+    setHistory((prev) => {
+      const entry: UpgradeHistoryEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        monsterId, stat, level: newLevel, cost, at: Date.now(),
+      };
+      const next = [...prev, entry];
+      writeHistory(next);
       return next;
     });
   }, []);
 
-  return { get, apply };
+  /**
+   * Revert the most recent upgrade across all monsters. Returns the entry
+   * that was undone (so the caller can refund coins) or null if none exists.
+   */
+  const undoLast = useCallback((): UpgradeHistoryEntry | null => {
+    const current = readHistory();
+    if (current.length === 0) return null;
+    const last = current[current.length - 1];
+    const remaining = current.slice(0, -1);
+    writeHistory(remaining);
+    setHistory(remaining);
+    setStore((prev) => {
+      const cur = prev[last.monsterId] ?? { ...EMPTY };
+      const nextVal = Math.max(0, cur[last.stat] - 1);
+      const next = { ...prev, [last.monsterId]: { ...cur, [last.stat]: nextVal } };
+      writeStore(next);
+      return next;
+    });
+    return last;
+  }, []);
+
+  const historyFor = useCallback(
+    (monsterId: string) => history.filter((h) => h.monsterId === monsterId).slice().reverse(),
+    [history],
+  );
+
+  const exportData = useCallback((): string => {
+    return JSON.stringify({
+      version: EXPORT_VERSION,
+      exportedAt: new Date().toISOString(),
+      upgrades: readStore(),
+      history: readHistory(),
+    }, null, 2);
+  }, []);
+
+  const importData = useCallback((raw: string): { ok: true } | { ok: false; error: string } => {
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || !parsed.upgrades) {
+        return { ok: false, error: "Invalid backup file" };
+      }
+      const upgrades = parsed.upgrades as Record<string, StatUpgrade>;
+      const hist: UpgradeHistoryEntry[] = Array.isArray(parsed.history) ? parsed.history : [];
+      writeStore(upgrades);
+      writeHistory(hist);
+      setStore(upgrades);
+      setHistory(hist);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "Parse error" };
+    }
+  }, []);
+
+  return { get, apply, history, historyFor, undoLast, exportData, importData };
 }
 
 export { EMPTY as EMPTY_UPGRADE };
