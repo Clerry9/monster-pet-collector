@@ -212,7 +212,7 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
                 No {biome.name} monsters yet — save up {cheapest} 🪙 to unlock your first.
               </p>
             )}
-            <div className="grid grid-cols-3 gap-3" role="list">
+            <div className="grid grid-cols-2 gap-4" role="list">
               {inBiome.map((m) => {
           const unlocked = isUnlocked(m);
           const active = m.id === activeMonster;
@@ -259,29 +259,29 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
                 </div>
               )}
               {unlocked ? (
-                <div className="w-16 h-16">
-                  <Monster3D src={m.image} size={64} compact />
+                <div className="w-24 h-24">
+                  <Monster3D src={m.image} size={96} compact />
                 </div>
               ) : (
                 <img
                   src={m.image}
                   alt=""
-                  width={64}
-                  height={64}
+                  width={96}
+                  height={96}
                   loading="lazy"
-                  className="w-16 h-16 object-contain grayscale brightness-0 opacity-30"
+                  className="w-24 h-24 object-contain grayscale brightness-0 opacity-30"
                 />
               )}
-              <span className="text-xs font-bold font-body text-foreground">
+              <span className="text-sm font-bold font-body text-foreground">
                 {unlocked ? evo.name : "???"}
               </span>
               {unlocked && (
-                <div className="flex items-center gap-0.5 text-[9px] text-secondary">
-                  <Sparkles size={9} aria-hidden="true" />
+                <div className="flex items-center gap-0.5 text-xs text-secondary">
+                  <Sparkles size={12} aria-hidden="true" />
                   <span>Lv.{evo.level}</span>
                 </div>
               )}
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rarityBadge[m.rarity]}`}>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${rarityBadge[m.rarity]}`}>
                 {m.rarity}
               </span>
               {unlocked && (
@@ -292,8 +292,8 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
                 />
               )}
               {unlocked && (copies > 0 || mergeLevel > 0) && (
-                <div className="flex flex-col items-center gap-0.5 mt-0.5 w-full">
-                  <span className="text-[9px] font-body text-cyan-400 tabular-nums">
+                <div className="flex flex-col items-center gap-0.5 mt-1 w-full">
+                  <span className="text-xs font-body text-cyan-400 tabular-nums">
                     +{mergeLevel} · ×{copies}
                   </span>
                   {canMerge && (
@@ -307,10 +307,10 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
                           handleMerge(m.id, m.name);
                         }
                       }}
-                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold cursor-pointer hover:brightness-110"
+                      className="flex items-center gap-0.5 px-2 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold cursor-pointer hover:brightness-110"
                       aria-label={`Merge 3 ${m.name} copies to level up`}
                     >
-                      <Combine size={9} /> Merge
+                      <Combine size={12} /> Merge
                     </span>
                   )}
                 </div>
