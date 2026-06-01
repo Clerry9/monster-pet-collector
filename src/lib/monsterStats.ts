@@ -21,11 +21,13 @@ export interface UpgradeHistoryEntry {
   cost: number;
   /** Epoch ms. */
   at: number;
+  /** True when the entry was synthesized during a backup migration. */
+  legacy?: boolean;
 }
 
 const STORAGE_KEY = "monsterStatUpgrades_v1";
 const HISTORY_KEY = "monsterStatUpgradesHistory_v1";
-const EXPORT_VERSION = 1;
+export const EXPORT_VERSION = 2;
 
 const RARITY_BASE: Record<Monster["rarity"], MonsterStats> = {
   common:    { hp: 100, atk: 15, def: 10, spd: 10 },
@@ -88,6 +90,87 @@ function readHistory(): UpgradeHistoryEntry[] {
 
 function writeHistory(data: UpgradeHistoryEntry[]) {
   try { localStorage.setItem(HISTORY_KEY, JSON.stringify(data)); } catch { /* ignore */ }
+}
+
+// ---------------------------------------------------------------------------
+// Backup versioning + migrations
+// ---------------------------------------------------------------------------
+
+const STAT_KEYS: StatKey[] = ["hp", "atk", "def", "spd"];
+
+export interface BackupV2 {
+  version: 2;
+  exportedAt: string;
+  upgrades: Record<string, StatUpgrade>;
+  history: UpgradeHistoryEntry[];
+}
+
+export type AnyBackup = { version?: number; [k: string]: unknown };
+
+function sanitizeUpgrade(raw: unknown): StatUpgrade {
+  const out: StatUpgrade = { ...EMPTY };
+  if (raw && typeof raw === "object") {
+    for (const k of STAT_KEYS) {
+      const v = (raw as Record<string, unknown>)[k];
+      if (typeof v === "number" && Number.isFinite(v) && v >= 0) {
+        out[k] = Math.floor(v);
+      }
+    }
+  }
+  return out;
+}
+
+function sanitizeUpgrades(raw: unknown): Record<string, StatUpgrade> {
+  const out: Record<string, StatUpgrade> = {};
+  if (raw && typeof raw === "object") {
+    for (const [id, val] of Object.entries(raw as Record<string, unknown>)) {
+      out[id] = sanitizeUpgrade(val);
+    }
+  }
+  return out;
+}
+
+/** Sequential migrations keyed by source version. */
+const migrations: Record<number, (b: AnyBackup) => AnyBackup> = {
+  1: (b) => {
+    const upgrades = sanitizeUpgrades(b.upgrades);
+    const rawHistory = Array.isArray(b.history) ? (b.history as UpgradeHistoryEntry[]) : [];
+    const history: UpgradeHistoryEntry[] = rawHistory.length
+      ? rawHistory
+      : Object.entries(upgrades).flatMap(([monsterId, upg]) =>
+          STAT_KEYS.flatMap((stat) =>
+            Array.from({ length: upg[stat] }, (_, i) => ({
+              id: `legacy-${monsterId}-${stat}-${i + 1}`,
+              monsterId, stat, level: i + 1, cost: 0, at: 0, legacy: true,
+            })),
+          ),
+        );
+    return {
+      version: 2,
+      exportedAt: typeof b.exportedAt === "string" ? b.exportedAt : new Date().toISOString(),
+      upgrades,
+      history,
+    };
+  },
+};
+
+export function migrateBackup(parsed: AnyBackup): { data: BackupV2; fromVersion: number } {
+  const fromVersion = typeof parsed.version === "number" ? parsed.version : 1;
+  if (fromVersion > EXPORT_VERSION) {
+    throw new Error(`Backup created by a newer app version (v${fromVersion}).`);
+  }
+  let cur: AnyBackup = { ...parsed, version: fromVersion };
+  let v = fromVersion;
+  while (v < EXPORT_VERSION) {
+    const step = migrations[v];
+    if (!step) throw new Error(`Missing migration from v${v}`);
+    cur = step(cur);
+    v = typeof cur.version === "number" ? cur.version : v + 1;
+  }
+  if (cur.version !== EXPORT_VERSION || !cur.upgrades || !Array.isArray(cur.history)) {
+    throw new Error("Migration produced an invalid backup");
+  }
+  return { data: cur as unknown as BackupV2, fromVersion };
 }
 
 export function useMonsterUpgrades() {
@@ -154,27 +237,31 @@ export function useMonsterUpgrades() {
   );
 
   const exportData = useCallback((): string => {
-    return JSON.stringify({
+    const payload: BackupV2 = {
       version: EXPORT_VERSION,
       exportedAt: new Date().toISOString(),
       upgrades: readStore(),
       history: readHistory(),
-    }, null, 2);
+    };
+    return JSON.stringify(payload, null, 2);
   }, []);
 
-  const importData = useCallback((raw: string): { ok: true } | { ok: false; error: string } => {
+  const importData = useCallback((raw: string):
+    | { ok: true; migratedFrom?: number }
+    | { ok: false; error: string } => {
     try {
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== "object" || !parsed.upgrades) {
         return { ok: false, error: "Invalid backup file" };
       }
-      const upgrades = parsed.upgrades as Record<string, StatUpgrade>;
-      const hist: UpgradeHistoryEntry[] = Array.isArray(parsed.history) ? parsed.history : [];
-      writeStore(upgrades);
-      writeHistory(hist);
-      setStore(upgrades);
-      setHistory(hist);
-      return { ok: true };
+      const { data, fromVersion } = migrateBackup(parsed as AnyBackup);
+      writeStore(data.upgrades);
+      writeHistory(data.history);
+      setStore(data.upgrades);
+      setHistory(data.history);
+      return fromVersion < EXPORT_VERSION
+        ? { ok: true, migratedFrom: fromVersion }
+        : { ok: true };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : "Parse error" };
     }
