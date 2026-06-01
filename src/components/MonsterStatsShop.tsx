@@ -102,8 +102,11 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
     const reader = new FileReader();
     reader.onload = () => {
       const res = upgrades.importData(String(reader.result ?? ""));
-      if (res.ok) toast.success("Backup restored");
-      else toast.error("Import failed", { description: res.error });
+      if (res.ok) {
+        toast.success("Backup restored");
+      } else {
+        toast.error("Import failed", { description: res.error });
+      }
     };
     reader.readAsText(file);
   };
