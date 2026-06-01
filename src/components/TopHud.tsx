@@ -123,24 +123,24 @@ function Counter({
 }: { icon: React.ReactNode; value: number; onAdd?: () => void; ariaLabel: string; wide?: boolean; tip?: string }) {
   return (
     <div
-      className={`pill-counter flex items-center gap-1 pl-1.5 pr-0.5 py-0.5 ${wide ? "min-w-[88px] sm:min-w-[110px]" : "min-w-[64px] sm:min-w-[78px]"}`}
+      className={`pill-counter flex items-center gap-1 pl-1.5 pr-0.5 py-0.5 ${wide ? "min-w-[96px] sm:min-w-[120px]" : "min-w-[72px] sm:min-w-[90px]"}`}
       role="status"
       aria-label={ariaLabel}
       title={tip ?? ariaLabel}
     >
-      <span className="shrink-0 w-5 h-5 rounded-full bg-black/30 flex items-center justify-center" aria-hidden="true">
+      <span className="shrink-0 w-6 h-6 rounded-full bg-black/30 flex items-center justify-center" aria-hidden="true">
         {icon}
       </span>
-      <span className="flex-1 text-[12px] font-display tracking-wide text-cream-light text-right truncate">
+      <span className="flex-1 text-sm font-display tracking-wide text-cream-light text-right truncate">
         {formatCompact(value)}
       </span>
       <button
         onClick={onAdd}
         aria-label={`Add — ${tip ?? ariaLabel}`}
         title={tip ? `Get more — ${tip}` : "Get more"}
-        className="add-stub w-5 h-5 flex items-center justify-center"
+        className="add-stub w-6 h-6 flex items-center justify-center"
       >
-        <Plus size={12} strokeWidth={3} />
+        <Plus size={16} strokeWidth={3} />
       </button>
     </div>
   );
