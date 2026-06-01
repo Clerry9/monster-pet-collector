@@ -34,19 +34,19 @@ function StatBlock({ label, name, level, hp, a, d, s, tone }: { label: string; n
   const accent = tone === "you" ? "border-emerald-400/60 bg-emerald-500/10" : "border-candy-red/60 bg-candy-red/10";
   const titleColor = tone === "you" ? "text-emerald-300" : "text-candy-red";
   return (
-    <div className={`rounded-lg border-2 ${accent} px-2 py-1.5`} aria-label={`${label} ${name} stats`}>
-      <div className="flex items-center justify-between text-[10px] font-display">
+    <div className={`rounded-lg border-2 ${accent} px-3 py-2`} aria-label={`${label} ${name} stats`}>
+      <div className="flex items-center justify-between text-xs font-display">
         <span className={titleColor}>{label}</span>
         <span className="text-cream/80 truncate ml-1">{name} Lv.{level}</span>
       </div>
-      <div className="mt-1 grid grid-cols-4 gap-1 text-[10px] font-body">
+      <div className="mt-2 grid grid-cols-4 gap-2 text-xs font-body">
         {[
           ["❤️", hp, "HP"],
           ["⚔️", a, "ATK"],
           ["🛡️", d, "DEF"],
           ["💨", s, "SPD"],
         ].map(([e, v, k]) => (
-          <div key={String(k)} className="flex flex-col items-center rounded bg-black/30 px-1 py-0.5" title={String(k)}>
+          <div key={String(k)} className="flex flex-col items-center rounded bg-black/30 px-1 py-1" title={String(k)}>
             <span aria-hidden="true">{e as string}</span>
             <span className="tabular-nums font-bold text-cream">{v as number}</span>
           </div>
@@ -163,12 +163,12 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
       </div>
 
       {/* Compact team total summary (HP/ATK/DEF/SPD) */}
-      <div className="relative z-20 mx-3 mt-1 grid grid-cols-2 gap-2 text-cream text-[10px] font-display">
-        <div className="rounded-md border border-emerald-400/40 bg-emerald-500/5 px-2 py-1 flex items-center justify-between">
+      <div className="relative z-20 mx-3 mt-2 grid grid-cols-2 gap-2 text-cream text-xs font-display">
+        <div className="rounded-md border border-emerald-400/40 bg-emerald-500/5 px-2 py-1.5 flex items-center justify-between">
           <span className="text-emerald-300">TEAM</span>
           <span className="tabular-nums">❤️ {atk.max_hp} ⚔️ {atk.atk} 🛡️ {atk.def} 💨 {atk.spd}</span>
         </div>
-        <div className="rounded-md border border-candy-red/40 bg-candy-red/5 px-2 py-1 flex items-center justify-between">
+        <div className="rounded-md border border-candy-red/40 bg-candy-red/5 px-2 py-1.5 flex items-center justify-between">
           <span className="text-candy-red">OPP.</span>
           <span className="tabular-nums">❤️ {def.max_hp} ⚔️ {def.atk} 🛡️ {def.def} 💨 {def.spd}</span>
         </div>

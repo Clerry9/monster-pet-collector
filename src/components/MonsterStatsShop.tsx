@@ -173,23 +173,23 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
       </div>
 
       {/* Monster picker */}
-      <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Pick a monster">
+      <div className="flex gap-3 overflow-x-auto pb-1" role="tablist" aria-label="Pick a monster">
         {ownedMonsters.map((m) => (
           <button
             key={m.id}
             role="tab"
             aria-selected={m.id === selectedId}
             onClick={() => setSelectedId(m.id)}
-            className={`shrink-0 flex flex-col items-center gap-0.5 rounded-xl border-2 p-2 transition-all focus-visible:outline-2 focus-visible:outline-primary ${
+            className={`shrink-0 flex flex-col items-center gap-1 rounded-xl border-2 p-2 transition-all focus-visible:outline-2 focus-visible:outline-primary ${
               m.id === selectedId
                 ? "border-primary bg-primary/15 scale-105"
                 : "border-border bg-card hover:border-primary/50"
             }`}
           >
-            <div className="w-12 h-12">
-              <Monster3D src={m.image} size={48} compact />
+            <div className="w-16 h-16">
+              <Monster3D src={m.image} size={64} compact />
             </div>
-            <span className="text-[10px] font-body text-foreground truncate max-w-[56px]">{m.name}</span>
+            <span className="text-xs font-body text-foreground truncate max-w-[72px]">{m.name}</span>
           </button>
         ))}
       </div>
@@ -199,20 +199,20 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
         key={monster.id}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border-2 border-primary/50 bg-card/70 p-4"
+        className="rounded-2xl border-2 border-primary/50 bg-card/70 p-5"
       >
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-20 h-20 shrink-0">
-            <Monster3D src={monster.image} size={80} compact />
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-28 h-28 shrink-0">
+            <Monster3D src={monster.image} size={112} compact />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-display text-lg text-foreground truncate">{monster.name}</div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            <div className="font-display text-xl text-foreground truncate">{monster.name}</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">
               {monster.rarity}
             </div>
-            <div className="mt-1 grid grid-cols-4 gap-1 text-[11px] font-body">
+            <div className="mt-2 grid grid-cols-4 gap-2 text-sm font-body">
               {STATS.map((s) => (
-                <div key={s} className="flex flex-col items-center rounded-md bg-background/40 px-1 py-0.5">
+                <div key={s} className="flex flex-col items-center rounded-md bg-background/40 px-1 py-1">
                   <span aria-hidden="true">{STAT_META[s].emoji}</span>
                   <span className="tabular-nums font-bold text-foreground">{stats[s]}</span>
                 </div>
@@ -221,7 +221,7 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {STATS.map((s) => {
             const cost = upgradeCost(s, upg[s]);
             const can = coins >= cost;
@@ -231,17 +231,17 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
             return (
               <div
                 key={s}
-                className={`rounded-lg border-2 p-2 transition-colors ${
+                className={`rounded-lg border-2 p-3 transition-colors ${
                   isPending ? "border-primary bg-primary/10" : "border-border bg-background/30"
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-xl" aria-hidden="true">{meta.emoji}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl" aria-hidden="true">{meta.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="font-display text-xs text-foreground">
+                    <div className="font-display text-sm text-foreground">
                       {meta.label} <span className="text-muted-foreground">Lv. {upg[s]}</span>
                     </div>
-                    <div className="text-[10px] tabular-nums">
+                    <div className="text-xs tabular-nums">
                       <span className="text-foreground font-bold">{stats[s]}</span>
                       <span className="text-muted-foreground"> → </span>
                       <span className="text-primary font-bold">{nextValue}</span>
@@ -252,7 +252,7 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
                     <button
                       onClick={() => setPendingStat(s)}
                       disabled={!can}
-                      className="shrink-0 px-2.5 py-1 rounded-full font-display text-[11px] bg-accent text-accent-foreground disabled:opacity-40 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-primary"
+                      className="shrink-0 px-3 py-1.5 rounded-full font-display text-xs bg-accent text-accent-foreground disabled:opacity-40 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-primary"
                       aria-label={`Preview ${meta.label} upgrade for ${cost} coins`}
                     >
                       🪙 {cost}
@@ -260,20 +260,20 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
                   ) : null}
                 </div>
                 {isPending && (
-                  <div className="mt-2 flex items-center gap-2 border-t border-border pt-2">
-                    <div className="flex-1 text-[10px] text-muted-foreground">
+                  <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
+                    <div className="flex-1 text-xs text-muted-foreground">
                       Confirm: spend 🪙 {cost.toLocaleString()} → balance 🪙 {(coins - cost).toLocaleString()}
                     </div>
                     <button
                       onClick={() => setPendingStat(null)}
-                      className="px-2 py-1 rounded-full font-display text-[10px] bg-muted text-muted-foreground hover:brightness-110"
+                      className="px-3 py-1.5 rounded-full font-display text-xs bg-muted text-muted-foreground hover:brightness-110"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={() => confirmBuy(s)}
                       disabled={!can}
-                      className="px-2.5 py-1 rounded-full font-display text-[10px] bg-primary text-primary-foreground disabled:opacity-40 hover:brightness-110"
+                      className="px-3 py-1.5 rounded-full font-display text-xs bg-primary text-primary-foreground disabled:opacity-40 hover:brightness-110"
                     >
                       Confirm
                     </button>
