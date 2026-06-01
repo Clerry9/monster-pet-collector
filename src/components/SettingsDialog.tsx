@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Cpu, Box, Volume2, GraduationCap, Camera, RotateCcw, Play, Sparkles, Gamepad2, Search, Accessibility, Bell, UserCircle } from "lucide-react";
+import { X, Cpu, Box, Volume2, GraduationCap, Camera, RotateCcw, Play, Sparkles, Gamepad2, Search, Accessibility, Bell, UserCircle, Type } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,6 +22,7 @@ import { getCelebrationsEnabled, setCelebrationsEnabled } from "@/components/Rew
 import { getFriendSearchEnabled, setFriendSearchEnabled } from "@/components/FriendSearch";
 import { CrazyGamesSetupDialog } from "@/components/CrazyGamesSetupDialog";
 import { getA11yPrefs, setA11yPrefs, subscribeA11yPrefs, type A11yPrefs } from "@/lib/a11yPrefs";
+import { getUiScale, setUiScale, subscribeUiScale, resetUiScale, type UiScale } from "@/lib/uiScale";
 import { requestNotificationPermission, notificationsSupported } from "@/lib/notifications";
 
 interface SettingsDialogProps {
@@ -63,6 +64,9 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
   const [crazyOpen, setCrazyOpen] = useState(false);
   const [a11y, setA11y] = useState<A11yPrefs>(() => getA11yPrefs());
   useEffect(() => subscribeA11yPrefs((p) => setA11y(p)), []);
+
+  const [uiScale, setUiScaleState] = useState<UiScale>(() => getUiScale());
+  useEffect(() => subscribeUiScale((p) => setUiScaleState(p)), []);
 
   // --- Display name editor ---
   const { user } = useAuth();
