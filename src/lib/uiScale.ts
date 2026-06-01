@@ -26,8 +26,8 @@ export function getUiScale(): UiScale {
     if (!raw) return { ...DEFAULTS };
     const parsed = JSON.parse(raw) as Partial<UiScale>;
     return {
-      fontScale: clamp(Number(parsed.fontScale) || 1, 0.85, 1.4),
-      cardScale: clamp(Number(parsed.cardScale) || 1, 0.85, 1.5),
+      fontScale: clamp(Number(parsed.fontScale) || 1, 0.85, 2.0),
+      cardScale: clamp(Number(parsed.cardScale) || 1, 0.85, 1.75),
     };
   } catch {
     return { ...DEFAULTS };
@@ -36,8 +36,8 @@ export function getUiScale(): UiScale {
 
 export function setUiScale(next: Partial<UiScale>): UiScale {
   const merged = { ...getUiScale(), ...next };
-  merged.fontScale = clamp(merged.fontScale, 0.85, 1.4);
-  merged.cardScale = clamp(merged.cardScale, 0.85, 1.5);
+  merged.fontScale = clamp(merged.fontScale, 0.85, 2.0);
+  merged.cardScale = clamp(merged.cardScale, 0.85, 1.75);
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(merged));
   } catch {

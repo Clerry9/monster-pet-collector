@@ -139,9 +139,9 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
               <button
                 onClick={onClose}
                 aria-label="Close settings"
-                className="w-8 h-8 rounded-full bg-muted hover:bg-muted/70 flex items-center justify-center"
+                className="tap-target rounded-full bg-muted hover:bg-muted/70 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                <X size={16} />
+                <X size={20} aria-hidden="true" />
               </button>
             </div>
 
@@ -204,9 +204,9 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
                           type="button"
                           onClick={row.preview}
                           aria-label={`Preview ${row.label}`}
-                          className="w-6 h-6 rounded-full bg-muted hover:bg-muted/70 flex items-center justify-center"
+                          className="tap-target rounded-full bg-muted hover:bg-muted/70 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         >
-                          <Play size={11} />
+                          <Play size={18} aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -295,9 +295,10 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
                 </div>
                 <Slider
                   id="ui-font"
+                  aria-label="Text size"
                   value={[Math.round(uiScale.fontScale * 100)]}
                   min={85}
-                  max={140}
+                  max={200}
                   step={5}
                   onValueChange={([v]) => setUiScale({ fontScale: v / 100 })}
                 />
@@ -311,9 +312,10 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
                 </div>
                 <Slider
                   id="ui-card"
+                  aria-label="Monster card scale"
                   value={[Math.round(uiScale.cardScale * 100)]}
                   min={85}
-                  max={150}
+                  max={175}
                   step={5}
                   onValueChange={([v]) => setUiScale({ cardScale: v / 100 })}
                 />
