@@ -244,3 +244,19 @@ export default function Arena() {
     </div>
   );
 }
+
+function ArenaChosenStats({ monsterId }: { monsterId: string | null }) {
+  const upgrades = useMonsterUpgrades();
+  if (!monsterId) return null;
+  const monster = ALL_MONSTERS.find((m) => m.id === monsterId);
+  if (!monster) return null;
+  const stats = getMonsterStats(monster, 0, upgrades.get(monsterId));
+  return (
+    <div className="mb-3 rounded-lg border-2 border-wood-dark bg-black/30 p-2">
+      <div className="text-[10px] font-display text-gold mb-1">
+        {monster.name} battle stats
+      </div>
+      <MonsterStatsCard stats={stats} />
+    </div>
+  );
+}
