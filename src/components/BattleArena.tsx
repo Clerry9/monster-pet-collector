@@ -130,6 +130,12 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
         </div>
       )}
 
+      {/* Pre-fight stat readout — visible at battle start and remains as a quick reference */}
+      <div className="relative z-20 mx-3 mt-2 grid grid-cols-2 gap-2 text-cream">
+        <StatBlock label="YOU" name={atk.name} level={atk.level} hp={atk.max_hp} a={atk.atk} d={atk.def} s={atk.spd} tone="you" />
+        <StatBlock label="ENEMY" name={def.name} level={def.level} hp={def.max_hp} a={def.atk} d={def.def} s={def.spd} tone="enemy" />
+      </div>
+
       {/* Low HP vignette */}
       <AnimatePresence>
         {lowSelf && (
