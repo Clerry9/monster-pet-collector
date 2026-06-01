@@ -237,27 +237,31 @@ export function useMonsterUpgrades() {
   );
 
   const exportData = useCallback((): string => {
-    return JSON.stringify({
+    const payload: BackupV2 = {
       version: EXPORT_VERSION,
       exportedAt: new Date().toISOString(),
       upgrades: readStore(),
       history: readHistory(),
-    }, null, 2);
+    };
+    return JSON.stringify(payload, null, 2);
   }, []);
 
-  const importData = useCallback((raw: string): { ok: true } | { ok: false; error: string } => {
+  const importData = useCallback((raw: string):
+    | { ok: true; migratedFrom?: number }
+    | { ok: false; error: string } => {
     try {
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== "object" || !parsed.upgrades) {
         return { ok: false, error: "Invalid backup file" };
       }
-      const upgrades = parsed.upgrades as Record<string, StatUpgrade>;
-      const hist: UpgradeHistoryEntry[] = Array.isArray(parsed.history) ? parsed.history : [];
-      writeStore(upgrades);
-      writeHistory(hist);
-      setStore(upgrades);
-      setHistory(hist);
-      return { ok: true };
+      const { data, fromVersion } = migrateBackup(parsed as AnyBackup);
+      writeStore(data.upgrades);
+      writeHistory(data.history);
+      setStore(data.upgrades);
+      setHistory(data.history);
+      return fromVersion < EXPORT_VERSION
+        ? { ok: true, migratedFrom: fromVersion }
+        : { ok: true };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : "Parse error" };
     }
