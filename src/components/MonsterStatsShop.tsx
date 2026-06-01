@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { MONSTERS } from "@/data/monsters";
 import { Monster3D } from "./Monster3D";
@@ -38,20 +38,79 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
   const xp = monsterTaps[monster.id] ?? 0;
   const stats = getMonsterStats(monster, xp, upg);
   const [pendingStat, setPendingStat] = useState<StatKey | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const monsterHistory = upgrades.historyFor(monster.id);
+  const lastEntry = upgrades.history[upgrades.history.length - 1];
 
   const confirmBuy = (stat: StatKey) => {
     const cost = upgradeCost(stat, upg[stat]);
+    if (!Number.isFinite(coins) || coins == null) {
+      toast.error("Coin balance unavailable", {
+        description: "We couldn't read your current balance. Refresh and try again.",
+      });
+      setPendingStat(null);
+      return;
+    }
     if (coins < cost) {
       toast.error("Not enough coins", {
-        description: `${STAT_META[stat].label} upgrade needs 🪙 ${cost}.`,
+        description: `Need 🪙 ${cost.toLocaleString()}, but balance is 🪙 ${coins.toLocaleString()}. Earn more on the islands.`,
       });
       setPendingStat(null);
       return;
     }
     addCoins(-cost);
-    upgrades.apply(monster.id, stat);
+    upgrades.apply(monster.id, stat, cost);
     setPendingStat(null);
-    toast.success(`${monster.name} ${STAT_META[stat].label} +${STAT_META[stat].perLevel}!`);
+    toast.success(`${monster.name} ${STAT_META[stat].label} +${STAT_META[stat].perLevel}!`, {
+      description: `Spent 🪙 ${cost.toLocaleString()} · undo available below.`,
+    });
+  };
+
+  const handleUndo = () => {
+    const last = upgrades.undoLast();
+    if (!last) {
+      toast.error("Nothing to undo");
+      return;
+    }
+    addCoins(last.cost);
+    const name = MONSTERS.find((m) => m.id === last.monsterId)?.name ?? "Monster";
+    toast.success(`Undid ${name} ${STAT_META[last.stat].label}`, {
+      description: `Refunded 🪙 ${last.cost.toLocaleString()}.`,
+    });
+  };
+
+  const handleExport = () => {
+    const data = upgrades.exportData();
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `stat-forge-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast.success("Backup downloaded");
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const res = upgrades.importData(String(reader.result ?? "")) as
+        | { ok: true }
+        | { ok: false; error: string };
+      if (res.ok === true) {
+        toast.success("Backup restored");
+      } else {
+        toast.error("Import failed", { description: res.error });
+      }
+    };
+    reader.readAsText(file);
   };
 
   if (ownedMonsters.length === 0) {
@@ -76,6 +135,38 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
           <div className="text-[10px] text-muted-foreground">your coins</div>
         </div>
       </header>
+
+      {/* Backup + Undo bar */}
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border-2 border-border bg-background/40 p-2">
+        <button
+          onClick={handleUndo}
+          disabled={!lastEntry}
+          className="px-2.5 py-1 rounded-full font-display text-[11px] bg-secondary text-secondary-foreground disabled:opacity-40 hover:brightness-110"
+          aria-label="Undo last Stat Forge upgrade"
+          title={lastEntry ? `Undo ${STAT_META[lastEntry.stat].label} on ${MONSTERS.find((m) => m.id === lastEntry.monsterId)?.name}` : "No upgrades to undo"}
+        >
+          ↶ Undo last{lastEntry ? ` (+🪙 ${lastEntry.cost.toLocaleString()})` : ""}
+        </button>
+        <button
+          onClick={handleExport}
+          className="px-2.5 py-1 rounded-full font-display text-[11px] bg-card border-2 border-border text-foreground hover:bg-muted"
+        >
+          ⬇ Export backup
+        </button>
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="px-2.5 py-1 rounded-full font-display text-[11px] bg-card border-2 border-border text-foreground hover:bg-muted"
+        >
+          ⬆ Import backup
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={handleImport}
+        />
+      </div>
 
       {/* Monster picker */}
       <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Pick a monster">
@@ -187,6 +278,38 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
               </div>
             );
           })}
+        </div>
+
+        {/* History panel for this monster */}
+        <div className="mt-3 border-t border-border pt-2">
+          <button
+            onClick={() => setShowHistory((v) => !v)}
+            className="text-[11px] font-display text-primary underline focus-visible:outline-2 focus-visible:outline-primary"
+            aria-expanded={showHistory}
+          >
+            {showHistory ? "Hide" : "Show"} upgrade history ({monsterHistory.length})
+          </button>
+          {showHistory && (
+            <div className="mt-2 max-h-40 overflow-y-auto rounded-md bg-background/40 border border-border">
+              {monsterHistory.length === 0 ? (
+                <div className="p-2 text-[11px] text-muted-foreground">No upgrades yet for {monster.name}.</div>
+              ) : (
+                <ul className="divide-y divide-border text-[11px] font-body">
+                  {monsterHistory.map((h) => (
+                    <li key={h.id} className="flex items-center gap-2 px-2 py-1">
+                      <span aria-hidden="true">{STAT_META[h.stat].emoji}</span>
+                      <span className="font-bold text-foreground">{STAT_META[h.stat].label}</span>
+                      <span className="text-muted-foreground">→ Lv. {h.level}</span>
+                      <span className="ml-auto tabular-nums text-accent">🪙 {h.cost.toLocaleString()}</span>
+                      <span className="tabular-nums text-muted-foreground text-[10px]">
+                        {new Date(h.at).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

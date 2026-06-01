@@ -162,6 +162,18 @@ export function BattleArena({ battle, onAction, onUseItem, loading, recentEvents
         <StatBlock label="ENEMY" name={def.name} level={def.level} hp={def.max_hp} a={def.atk} d={def.def} s={def.spd} tone="enemy" />
       </div>
 
+      {/* Compact team total summary (HP/ATK/DEF/SPD) */}
+      <div className="relative z-20 mx-3 mt-1 grid grid-cols-2 gap-2 text-cream text-[10px] font-display">
+        <div className="rounded-md border border-emerald-400/40 bg-emerald-500/5 px-2 py-1 flex items-center justify-between">
+          <span className="text-emerald-300">TEAM</span>
+          <span className="tabular-nums">❤️ {atk.max_hp} ⚔️ {atk.atk} 🛡️ {atk.def} 💨 {atk.spd}</span>
+        </div>
+        <div className="rounded-md border border-candy-red/40 bg-candy-red/5 px-2 py-1 flex items-center justify-between">
+          <span className="text-candy-red">OPP.</span>
+          <span className="tabular-nums">❤️ {def.max_hp} ⚔️ {def.atk} 🛡️ {def.def} 💨 {def.spd}</span>
+        </div>
+      </div>
+
       {/* Low HP vignette */}
       <AnimatePresence>
         {lowSelf && (
