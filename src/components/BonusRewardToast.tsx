@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import type { BonusReward } from "@/lib/bonusRewards";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface Props {
   reward: BonusReward | null;
@@ -12,11 +12,18 @@ interface Props {
  * per-roll bonus reward triggers. Auto-dismisses after 1.8s.
  */
 export function BonusRewardToast({ reward, onDone }: Props) {
+  // Stash onDone in a ref so parent re-renders (per-second energy timer, etc.)
+  // don't restart the auto-dismiss timer and leave the toast stuck on screen.
+  const onDoneRef = useRef(onDone);
+  useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
+  const handledRef = useRef<BonusReward | null>(null);
   useEffect(() => {
-    if (!reward) return;
-    const t = setTimeout(onDone, 1800);
-    return () => clearTimeout(t);
-  }, [reward, onDone]);
+    if (!reward) { handledRef.current = null; return; }
+    if (handledRef.current === reward) return;
+    handledRef.current = reward;
+    const t = window.setTimeout(() => onDoneRef.current?.(), 1800);
+    return () => window.clearTimeout(t);
+  }, [reward]);
 
   return (
     <AnimatePresence>
