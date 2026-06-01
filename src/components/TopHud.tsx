@@ -80,11 +80,11 @@ export function TopHud({
         aria-label={`Level ${current.id} ${current.name}, ${xpInLevel} of ${xpNeeded} XP`}
       >
         {/* Paw / level badge */}
-        <div className="shrink-0 w-7 h-7 rounded-full bg-gradient-to-b from-rose-400 to-rose-700 border-2 border-wood-dark flex items-center justify-center shadow-chunky-sm">
-          <PawPrint size={14} className="text-cream-light" />
+        <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-b from-rose-400 to-rose-700 border-2 border-wood-dark flex items-center justify-center shadow-chunky-sm">
+          <PawPrint size={18} className="text-cream-light" />
         </div>
 
-        <div className="flex-1 h-3 rounded-full bg-black/40 overflow-hidden border border-black/40">
+        <div className="flex-1 h-3.5 rounded-full bg-black/40 overflow-hidden border border-black/40">
           <motion.div
             className="h-full pill-xp-fill rounded-full"
             initial={{ width: 0 }}
@@ -94,20 +94,20 @@ export function TopHud({
         </div>
 
         {/* "891 / 1.400" centered text */}
-        <span className="absolute left-1/2 -translate-x-1/2 text-[11px] font-display text-cream-light pointer-events-none drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]">
+        <span className="absolute left-1/2 -translate-x-1/2 text-sm font-display text-cream-light pointer-events-none drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]">
           {xpInLevel.toLocaleString()} / {xpNeeded.toLocaleString()}
         </span>
 
         {/* Flame multiplier on right */}
         <div className="shrink-0 relative">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-b from-amber-300 via-orange-500 to-red-600 border-2 border-wood-dark flex items-center justify-center shadow-chunky-sm">
-            <Flame size={16} className="text-cream-light" fill="currentColor" />
+          <div className="w-9 h-9 rounded-full bg-gradient-to-b from-amber-300 via-orange-500 to-red-600 border-2 border-wood-dark flex items-center justify-center shadow-chunky-sm">
+            <Flame size={18} className="text-cream-light" fill="currentColor" />
           </div>
-          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-display bg-wood-dark text-cream-light px-1 rounded-full border border-cream-light/60 leading-none py-[1px]">
+          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[11px] font-display bg-wood-dark text-cream-light px-1 rounded-full border border-cream-light/60 leading-none py-[1px]">
             ×{betMultiplier}
           </span>
           <span
-            className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-display text-cream-light/90 leading-none whitespace-nowrap drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]"
+            className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[11px] font-display text-cream-light/90 leading-none whitespace-nowrap drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]"
             aria-label={`Each roll costs ${energyCostForBet(betMultiplier)} energy`}
           >
             −{energyCostForBet(betMultiplier)}⚡
