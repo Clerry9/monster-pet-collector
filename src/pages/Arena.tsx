@@ -13,6 +13,9 @@ import type { RunChoiceCard, RunItem } from "@/lib/combat";
 import { Button } from "@/components/ui/button";
 import { MONSTERS } from "@/data/monsters";
 import { Monster3D } from "@/components/Monster3D";
+import { MonsterStatsCard } from "@/components/MonsterStatsCard";
+import { getMonsterStats, useMonsterUpgrades } from "@/lib/monsterStats";
+import { MONSTERS as ALL_MONSTERS } from "@/data/monsters";
 import { Trophy, Swords, ArrowLeft } from "lucide-react";
 import { GuestAccountGate } from "@/components/GuestAccountGate";
 import { PreBattleBoostBar } from "@/components/PreBattleBoostBar";
@@ -156,6 +159,7 @@ export default function Arena() {
                 </button>
               ))}
             </div>
+            <ArenaChosenStats monsterId={chosen} />
 
             <div className="mb-3">
               <PreBattleBoostBar kind="arena" max={2} onChange={setSelectedBoosts} />
