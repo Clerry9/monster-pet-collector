@@ -160,14 +160,14 @@ function KeySlots({ count, onAdd, tip }: { count: number; onAdd?: () => void; ti
         return (
           <span
             key={i}
-            className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
+            className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${
               filled
                 ? "bg-gradient-to-b from-yellow-300 to-amber-600 border-amber-900"
                 : "bg-black/40 border-black/60"
             }`}
             aria-hidden="true"
           >
-            <Key size={10} className={filled ? "text-amber-900" : "text-cream-light/30"} />
+            <Key size={14} className={filled ? "text-amber-900" : "text-cream-light/30"} />
           </span>
         );
       })}
