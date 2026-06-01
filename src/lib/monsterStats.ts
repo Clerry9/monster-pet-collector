@@ -21,11 +21,13 @@ export interface UpgradeHistoryEntry {
   cost: number;
   /** Epoch ms. */
   at: number;
+  /** True when the entry was synthesized during a backup migration. */
+  legacy?: boolean;
 }
 
 const STORAGE_KEY = "monsterStatUpgrades_v1";
 const HISTORY_KEY = "monsterStatUpgradesHistory_v1";
-const EXPORT_VERSION = 1;
+export const EXPORT_VERSION = 2;
 
 const RARITY_BASE: Record<Monster["rarity"], MonsterStats> = {
   common:    { hp: 100, atk: 15, def: 10, spd: 10 },
