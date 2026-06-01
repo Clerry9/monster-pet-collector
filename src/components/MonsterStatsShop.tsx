@@ -279,6 +279,38 @@ export function MonsterStatsShop({ unlockedMonsters, activeMonster, coins, monst
             );
           })}
         </div>
+
+        {/* History panel for this monster */}
+        <div className="mt-3 border-t border-border pt-2">
+          <button
+            onClick={() => setShowHistory((v) => !v)}
+            className="text-[11px] font-display text-primary underline focus-visible:outline-2 focus-visible:outline-primary"
+            aria-expanded={showHistory}
+          >
+            {showHistory ? "Hide" : "Show"} upgrade history ({monsterHistory.length})
+          </button>
+          {showHistory && (
+            <div className="mt-2 max-h-40 overflow-y-auto rounded-md bg-background/40 border border-border">
+              {monsterHistory.length === 0 ? (
+                <div className="p-2 text-[11px] text-muted-foreground">No upgrades yet for {monster.name}.</div>
+              ) : (
+                <ul className="divide-y divide-border text-[11px] font-body">
+                  {monsterHistory.map((h) => (
+                    <li key={h.id} className="flex items-center gap-2 px-2 py-1">
+                      <span aria-hidden="true">{STAT_META[h.stat].emoji}</span>
+                      <span className="font-bold text-foreground">{STAT_META[h.stat].label}</span>
+                      <span className="text-muted-foreground">→ Lv. {h.level}</span>
+                      <span className="ml-auto tabular-nums text-accent">🪙 {h.cost.toLocaleString()}</span>
+                      <span className="tabular-nums text-muted-foreground text-[10px]">
+                        {new Date(h.at).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
       </motion.div>
     </div>
   );
