@@ -286,6 +286,7 @@ export default function AuthPage() {
               const { error } = await supabase.auth.signInAnonymously();
               if (error) throw error;
               toast.success("Playing as guest!");
+              navigate(successRedirect, { replace: true });
             } catch (err) {
               reportAuthError("guest-sign-in", err);
             }
