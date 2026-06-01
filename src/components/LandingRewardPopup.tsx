@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export interface LandingReward {
   icon: string;
@@ -18,11 +18,19 @@ interface Props {
  * what was won (or lost) on the tile it landed on. Auto-dismisses.
  */
 export function LandingRewardPopup({ reward, onDone }: Props) {
+  // Keep latest onDone in a ref so parent re-renders (e.g. the per-second
+  // energy timer) don't keep resetting the auto-dismiss timer and leave the
+  // popup (skull "Ouch!", etc.) stuck on screen forever.
+  const onDoneRef = useRef(onDone);
+  useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
+  const handledRef = useRef<typeof reward>(null);
   useEffect(() => {
-    if (!reward) return;
-    const t = setTimeout(onDone, 2000);
-    return () => clearTimeout(t);
-  }, [reward, onDone]);
+    if (!reward) { handledRef.current = null; return; }
+    if (handledRef.current === reward) return;
+    handledRef.current = reward;
+    const t = window.setTimeout(() => onDoneRef.current?.(), 2000);
+    return () => window.clearTimeout(t);
+  }, [reward]);
 
   const bad = reward?.tone === "bad";
 
