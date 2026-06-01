@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Cpu, Box, Volume2, GraduationCap, Camera, RotateCcw, Play, Sparkles, Gamepad2, Search, Accessibility, Bell, UserCircle } from "lucide-react";
+import { X, Cpu, Box, Volume2, GraduationCap, Camera, RotateCcw, Play, Sparkles, Gamepad2, Search, Accessibility, Bell, UserCircle, Type } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,6 +22,7 @@ import { getCelebrationsEnabled, setCelebrationsEnabled } from "@/components/Rew
 import { getFriendSearchEnabled, setFriendSearchEnabled } from "@/components/FriendSearch";
 import { CrazyGamesSetupDialog } from "@/components/CrazyGamesSetupDialog";
 import { getA11yPrefs, setA11yPrefs, subscribeA11yPrefs, type A11yPrefs } from "@/lib/a11yPrefs";
+import { getUiScale, setUiScale, subscribeUiScale, resetUiScale, type UiScale } from "@/lib/uiScale";
 import { requestNotificationPermission, notificationsSupported } from "@/lib/notifications";
 
 interface SettingsDialogProps {
@@ -63,6 +64,9 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
   const [crazyOpen, setCrazyOpen] = useState(false);
   const [a11y, setA11y] = useState<A11yPrefs>(() => getA11yPrefs());
   useEffect(() => subscribeA11yPrefs((p) => setA11y(p)), []);
+
+  const [uiScale, setUiScaleState] = useState<UiScale>(() => getUiScale());
+  useEffect(() => subscribeUiScale((p) => setUiScaleState(p)), []);
 
   // --- Display name editor ---
   const { user } = useAuth();
@@ -261,6 +265,57 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
                     }
                   }}
                   aria-label="Reminder notifications toggle"
+                />
+              </div>
+            </section>
+
+            {/* --- Display: font + card scale --- */}
+            <section aria-labelledby="display-heading" className="space-y-3 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-bold" id="display-heading">
+                  <Type size={14} /> Display size
+                </div>
+                <button
+                  type="button"
+                  onClick={() => resetUiScale()}
+                  className="text-[11px] flex items-center gap-1 text-muted-foreground hover:text-foreground min-h-8 px-2"
+                >
+                  <RotateCcw size={11} /> Reset
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Fine-tune how large text and monster cards appear across the app.
+              </p>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <label htmlFor="ui-font" className="font-bold">Text size</label>
+                  <span className="font-mono text-muted-foreground tabular-nums">
+                    {Math.round(uiScale.fontScale * 100)}%
+                  </span>
+                </div>
+                <Slider
+                  id="ui-font"
+                  value={[Math.round(uiScale.fontScale * 100)]}
+                  min={85}
+                  max={140}
+                  step={5}
+                  onValueChange={([v]) => setUiScale({ fontScale: v / 100 })}
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <label htmlFor="ui-card" className="font-bold">Monster card scale</label>
+                  <span className="font-mono text-muted-foreground tabular-nums">
+                    {Math.round(uiScale.cardScale * 100)}%
+                  </span>
+                </div>
+                <Slider
+                  id="ui-card"
+                  value={[Math.round(uiScale.cardScale * 100)]}
+                  min={85}
+                  max={150}
+                  step={5}
+                  onValueChange={([v]) => setUiScale({ cardScale: v / 100 })}
                 />
               </div>
             </section>

@@ -44,6 +44,9 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
   const inv = useBonusInventory();
   const upgrades = useMonsterUpgrades();
   const [summoned, setSummoned] = useState<Monster | null>(null);
+  const [flipped, setFlipped] = useState<Record<string, boolean>>({});
+  const toggleFlip = (id: string) =>
+    setFlipped((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const handleSummon = (rarity: SummonRarity) => {
     const cost = SUMMON_COST[rarity];
@@ -212,7 +215,14 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
                 No {biome.name} monsters yet — save up {cheapest} 🪙 to unlock your first.
               </p>
             )}
-            <div className="grid grid-cols-2 gap-4" role="list">
+            <div
+              className="grid grid-cols-2 gap-3 sm:gap-4"
+              role="list"
+              style={{
+                // Cards scale uniformly with the user's preference.
+                ['--card-scale' as string]: 'var(--ui-card-scale, 1)',
+              }}
+            >
               {inBiome.map((m) => {
           const unlocked = isUnlocked(m);
           const active = m.id === activeMonster;
@@ -224,98 +234,179 @@ export function MonsterCollection({ unlockedMonsters, activeMonster, coins, mons
           const copies = entry?.copies ?? 0;
           const mergeLevel = entry?.level ?? 0;
           const canMerge = copies >= MERGE_COPIES_REQUIRED && mergeLevel < 4;
+          const isFlipped = !!flipped[m.id] && unlocked;
+          const stats = unlocked ? getMonsterStats(m, taps, upgrades.get(m.id)) : null;
+          const handleCardClick = () => {
+            if (!unlocked) {
+              if (canAfford) onUnlock(m.id);
+              return;
+            }
+            toggleFlip(m.id);
+          };
 
           return (
-            <motion.button
+            <div
               key={m.id}
               role="listitem"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => (unlocked ? onSelect(m.id) : canAfford ? onUnlock(m.id) : undefined)}
-              aria-label={
-                unlocked
-                  ? `${evo.name}, Level ${evo.level}, ${m.rarity} rarity${active ? " (active)" : ". Click to select"}`
-                  : canAfford
-                  ? `Unlock ${m.name} for ${m.cost} coins, ${m.rarity} rarity`
-                  : `${m.name}, ${m.rarity} rarity, costs ${m.cost} coins (not enough coins)`
-              }
-              aria-current={active ? "true" : undefined}
-              className={`relative flex flex-col items-center gap-1 rounded-xl border-2 p-3 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                active ? "border-primary bg-primary/10" : unlocked ? rarityColors[m.rarity] + " bg-card" : "border-border bg-card/50 opacity-70"
-              } ${!unlocked && !canAfford ? "cursor-not-allowed" : "cursor-pointer"}`}
+              className="card-flip-perspective min-w-0"
+              style={{
+                // Per-card sizing scales with the user's card-scale slider.
+                height: `calc(15rem * var(--card-scale, 1))`,
+              }}
             >
-              {!unlocked && (
-                <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-background/60 z-10" aria-hidden="true">
-                  <div className="flex flex-col items-center gap-1 w-full px-2">
-                    <Lock className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-xs font-bold text-accent">🪙 {m.cost}</span>
-                    <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-                      <div className="h-full bg-accent transition-all" style={{ width: `${progressPct}%` }} />
+              <div className={`card-flip-inner ${isFlipped ? "is-flipped" : ""}`}>
+                {/* FRONT — image */}
+                <motion.button
+                  type="button"
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleCardClick}
+                  aria-label={
+                    unlocked
+                      ? `${evo.name}, Level ${evo.level}, ${m.rarity} rarity${active ? " (active)" : ""}. Click to flip and view stats`
+                      : canAfford
+                      ? `Unlock ${m.name} for ${m.cost} coins, ${m.rarity} rarity`
+                      : `${m.name}, ${m.rarity} rarity, costs ${m.cost} coins (not enough coins)`
+                  }
+                  aria-pressed={isFlipped}
+                  aria-current={active ? "true" : undefined}
+                  className={`card-flip-face tap-target relative items-center justify-between gap-1 rounded-xl border-2 p-3 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    active
+                      ? "border-primary bg-primary/10"
+                      : unlocked
+                      ? rarityColors[m.rarity] + " bg-card"
+                      : "border-border bg-card/50 opacity-80"
+                  } ${!unlocked && !canAfford ? "cursor-not-allowed" : "cursor-pointer"}`}
+                >
+                  {!unlocked && (
+                    <div
+                      className="absolute inset-0 flex items-center justify-center rounded-xl bg-background/70 z-10"
+                      aria-hidden="true"
+                    >
+                      <div className="flex flex-col items-center gap-1 w-full px-3">
+                        <Lock className="w-6 h-6 text-muted-foreground" />
+                        <span className="text-sm font-bold text-accent tabular-nums">🪙 {m.cost}</span>
+                        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full bg-accent transition-all"
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {Math.min(coins, m.cost)}/{m.cost}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-[9px] text-muted-foreground tabular-nums">
-                      {Math.min(coins, m.cost)}/{m.cost}
+                  )}
+                  <div
+                    className="flex items-center justify-center"
+                    style={{
+                      width: `calc(6rem * var(--card-scale, 1))`,
+                      height: `calc(6rem * var(--card-scale, 1))`,
+                    }}
+                  >
+                    {unlocked ? (
+                      <Monster3D src={m.image} size={96} compact />
+                    ) : (
+                      <img
+                        src={m.image}
+                        alt=""
+                        width={96}
+                        height={96}
+                        loading="lazy"
+                        className="w-full h-full object-contain grayscale brightness-0 opacity-30"
+                      />
+                    )}
+                  </div>
+                  <span className="text-card-title text-center truncate max-w-full">
+                    {unlocked ? evo.name : "???"}
+                  </span>
+                  <div className="flex items-center gap-2 flex-wrap justify-center">
+                    {unlocked && (
+                      <span className="flex items-center gap-0.5 text-stat-label text-secondary normal-case">
+                        <Sparkles size={12} aria-hidden="true" />
+                        Lv.{evo.level}
+                      </span>
+                    )}
+                    <span className={`badge-rarity ${rarityBadge[m.rarity]}`}>
+                      {m.rarity}
                     </span>
                   </div>
-                </div>
-              )}
-              {unlocked ? (
-                <div className="w-24 h-24">
-                  <Monster3D src={m.image} size={96} compact />
-                </div>
-              ) : (
-                <img
-                  src={m.image}
-                  alt=""
-                  width={96}
-                  height={96}
-                  loading="lazy"
-                  className="w-24 h-24 object-contain grayscale brightness-0 opacity-30"
-                />
-              )}
-              <span className="text-sm font-bold font-body text-foreground">
-                {unlocked ? evo.name : "???"}
-              </span>
-              {unlocked && (
-                <div className="flex items-center gap-0.5 text-xs text-secondary">
-                  <Sparkles size={12} aria-hidden="true" />
-                  <span>Lv.{evo.level}</span>
-                </div>
-              )}
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${rarityBadge[m.rarity]}`}>
-                {m.rarity}
-              </span>
-              {unlocked && (
-                <MonsterStatsCard
-                  stats={getMonsterStats(m, taps, upgrades.get(m.id))}
-                  compact
-                  className="mt-1 w-full"
-                />
-              )}
-              {unlocked && (copies > 0 || mergeLevel > 0) && (
-                <div className="flex flex-col items-center gap-0.5 mt-1 w-full">
-                  <span className="text-xs font-body text-cyan-400 tabular-nums">
-                    +{mergeLevel} · ×{copies}
-                  </span>
-                  {canMerge && (
+                </motion.button>
+
+                {/* BACK — stats */}
+                <button
+                  type="button"
+                  onClick={handleCardClick}
+                  aria-label={`${unlocked ? evo.name : m.name} stats. Click to flip back`}
+                  className={`card-flip-face is-back tap-target items-center justify-between gap-2 rounded-xl border-2 p-3 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary text-left ${
+                    active ? "border-primary bg-primary/10" : rarityColors[m.rarity] + " bg-card"
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full gap-2">
+                    <span className="text-card-title truncate">
+                      {unlocked ? evo.name : m.name}
+                    </span>
+                    <span className={`badge-rarity ${rarityBadge[m.rarity]}`}>{m.rarity}</span>
+                  </div>
+                  {stats && (
+                    <MonsterStatsCard stats={stats} className="w-full" />
+                  )}
+                  {(copies > 0 || mergeLevel > 0) && (
+                    <div className="flex items-center justify-between gap-2 w-full">
+                      <span className="text-stat-label text-secondary normal-case">
+                        +{mergeLevel} · ×{copies}
+                      </span>
+                      {canMerge && (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMerge(m.id, m.name);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.stopPropagation();
+                              handleMerge(m.id, m.name);
+                            }
+                          }}
+                          className="tap-target inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full bg-primary text-primary-foreground text-sm font-bold cursor-pointer hover:brightness-110"
+                          aria-label={`Merge 3 ${m.name} copies to level up`}
+                        >
+                          <Combine size={14} /> Merge
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between w-full gap-2 mt-auto">
                     <span
                       role="button"
                       tabIndex={0}
-                      onClick={(e) => { e.stopPropagation(); handleMerge(m.id, m.name); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect(m.id);
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.stopPropagation();
-                          handleMerge(m.id, m.name);
+                          onSelect(m.id);
                         }
                       }}
-                      className="flex items-center gap-0.5 px-2 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold cursor-pointer hover:brightness-110"
-                      aria-label={`Merge 3 ${m.name} copies to level up`}
+                      className={`tap-target inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full text-sm font-bold transition ${
+                        active
+                          ? "bg-primary/30 text-primary-foreground cursor-default"
+                          : "bg-primary text-primary-foreground hover:brightness-110 cursor-pointer"
+                      }`}
+                      aria-label={active ? `${m.name} is active` : `Select ${m.name} as active monster`}
+                      aria-disabled={active ? "true" : undefined}
                     >
-                      <Combine size={12} /> Merge
+                      {active ? "✓ Active" : "Select"}
                     </span>
-                  )}
-                </div>
-              )}
-            </motion.button>
+                    <span className="text-stat-label">Tap to flip</span>
+                  </div>
+                </button>
+              </div>
+            </div>
           );
               })}
             </div>
