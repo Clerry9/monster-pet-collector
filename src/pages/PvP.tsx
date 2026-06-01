@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import type { TurnEvent } from "@/lib/combat";
 import { GuestAccountGate } from "@/components/GuestAccountGate";
 import { PreBattleBoostBar } from "@/components/PreBattleBoostBar";
+import { MonsterStatsCard } from "@/components/MonsterStatsCard";
+import { getMonsterStats, useMonsterUpgrades } from "@/lib/monsterStats";
 
 interface DefenseTeam {
   user_id: string;
@@ -56,6 +58,8 @@ export default function PvP() {
   const [result, setResult] = useState<MatchResult | null>(null);
   const [boosts, setBoosts] = useState<string[]>([]);
   const isGuest = !!user?.is_anonymous;
+  const upgrades = useMonsterUpgrades();
+  const chosenMonster = chosen ? MONSTERS.find((m) => m.id === chosen) : null;
 
   const refresh = async () => {
     if (!user) return;
@@ -167,6 +171,16 @@ export default function PvP() {
               </button>
             ))}
           </div>
+          {chosenMonster && (
+            <div className="mb-3 rounded-lg border-2 border-wood-dark bg-black/30 p-2">
+              <div className="text-[10px] font-display text-gold mb-1">
+                {chosenMonster.name} battle stats
+              </div>
+              <MonsterStatsCard
+                stats={getMonsterStats(chosenMonster, 0, upgrades.get(chosenMonster.id))}
+              />
+            </div>
+          )}
           <div className="flex items-center gap-2 mb-3">
             <label className="text-xs text-cream/70">Level</label>
             <input
