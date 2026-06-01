@@ -21,7 +21,20 @@ export function BonusRewardToast({ reward, onDone }: Props) {
     if (!reward) { handledRef.current = null; return; }
     if (handledRef.current === reward) return;
     handledRef.current = reward;
-    const t = window.setTimeout(() => onDoneRef.current?.(), 1800);
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.debug("[BonusRewardToast] open", reward);
+    }
+    let fired = false;
+    const t = window.setTimeout(() => {
+      if (fired) return;
+      fired = true;
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.debug("[BonusRewardToast] dismiss (timer)", reward);
+      }
+      onDoneRef.current?.();
+    }, 1800);
     return () => window.clearTimeout(t);
   }, [reward]);
 
