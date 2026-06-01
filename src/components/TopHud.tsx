@@ -32,7 +32,7 @@ export function TopHud({
   return (
     <div className="w-full flex flex-col gap-1.5" role="region" aria-label="Player resources">
       {guestName && (
-        <div className="self-start ml-1 px-2 py-0.5 rounded-full bg-black/45 border border-cream-light/30 text-[10px] font-display text-cream-light tracking-wide truncate max-w-[60%]" aria-label={`Guest name ${guestName}`}>
+        <div className="self-start ml-1 px-2 py-0.5 rounded-full bg-black/45 border border-cream-light/30 text-xs font-display text-cream-light tracking-wide truncate max-w-[60%]" aria-label={`Guest name ${guestName}`}>
           👤 {guestName}
         </div>
       )}
