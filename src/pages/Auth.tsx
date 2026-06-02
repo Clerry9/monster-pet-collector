@@ -39,6 +39,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [guestLoading, setGuestLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
   const handleEmailAuth = async (e: React.FormEvent) => {
@@ -282,6 +283,8 @@ export default function AuthPage() {
 
         <Button
           onClick={async () => {
+            if (guestLoading) return;
+            setGuestLoading(true);
             try {
               const { error } = await supabase.auth.signInAnonymously();
               if (error) throw error;
@@ -289,13 +292,18 @@ export default function AuthPage() {
               navigate(successRedirect, { replace: true });
             } catch (err) {
               reportAuthError("guest-sign-in", err);
+              toast.error("Couldn't start guest session. Please try again.");
+            } finally {
+              setGuestLoading(false);
             }
           }}
           variant="outline"
+          disabled={guestLoading || loading}
+          aria-busy={guestLoading}
           className="w-full border-border text-foreground hover:bg-card"
         >
           <User className="w-4 h-4 mr-2" />
-          Play as Guest
+          {guestLoading ? "Starting guest session…" : "Play as Guest"}
         </Button>
 
         <Button
