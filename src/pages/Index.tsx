@@ -620,6 +620,7 @@ const Index = () => {
       const r = result.bonusReward;
       if (r.kind === "energy") {
         game.addEnergy(r.amount);
+        setActiveBonus(r);
       } else if (r.kind === "skull") {
         const pct = r.percent ?? 1;
         const loss = Math.max(1, Math.floor((game.coins * pct) / 100));
