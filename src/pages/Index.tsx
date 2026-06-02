@@ -620,6 +620,12 @@ const Index = () => {
       const r = result.bonusReward;
       if (r.kind === "energy") {
         game.addEnergy(r.amount);
+      } else if (r.kind === "skull") {
+        const pct = r.percent ?? 1;
+        const loss = Math.max(1, Math.floor((game.coins * pct) / 100));
+        game.addCoins(-loss);
+        setActiveBonus({ ...r, amount: loss, label: `−${loss.toLocaleString()} 🪙`, description: `Bust! Lost ${pct}% of your coins.` });
+        return;
       } else {
         bonusInv.grant(r);
       }
