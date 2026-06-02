@@ -71,14 +71,27 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
+  // Defensive: if a malformed card slips in (missing core fields), bail out
+  // immediately so the player never sees a blank pack/reveal that traps them.
+  const isValidCard = !!card && !!card.id && !!card.name && !!card.emoji && !!card.rarity;
+  useEffect(() => {
+    if (card && !isValidCard) {
+      if (import.meta.env.DEV) {
+        console.warn("[CardReveal] dropping malformed card", card);
+      }
+      onComplete();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card?.id, isValidCard]);
+
   // Reset machine when a new card arrives.
   useEffect(() => {
-    if (!card) { setPhase("idle"); setCanDismiss(false); setDismissProgress(0); completedRef.current = false; return; }
+    if (!card || !isValidCard) { setPhase("idle"); setCanDismiss(false); setDismissProgress(0); completedRef.current = false; return; }
     setPhase("pack");
     setCanDismiss(false);
     setDismissProgress(0);
     completedRef.current = false;
-  }, [card?.id]);
+  }, [card?.id, isValidCard]);
 
   // Auto-advance pack → glow → reveal.
   useEffect(() => {
@@ -253,7 +266,7 @@ export const CardReveal = ({ card, onComplete }: CardRevealProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card?.id, phase]);
 
-  if (!card) return null;
+  if (!card || !isValidCard) return null;
   const colors = RARITY_COLORS[card.rarity];
 
   const content = (
