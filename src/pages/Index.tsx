@@ -625,11 +625,10 @@ const Index = () => {
         const loss = Math.max(1, Math.floor((game.coins * pct) / 100));
         game.addCoins(-loss);
         setActiveBonus({ ...r, amount: loss, label: `−${loss.toLocaleString()} 🪙`, description: `Bust! Lost ${pct}% of your coins.` });
-        return;
       } else {
         bonusInv.grant(r);
+        setActiveBonus(r);
       }
-      setActiveBonus(r);
       // First-time directions when a build-cost discount is awarded.
       if (r.kind === "build_discount") {
         const KEY = "lov_build_discount_intro_v1";
