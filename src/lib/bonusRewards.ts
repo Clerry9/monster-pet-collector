@@ -11,13 +11,16 @@ export type BonusKind =
   | "minigame_token"
   | "build_discount"
   | "shards"
-  | "shards_mega";
+  | "shards_mega"
+  | "skull";
 
 export interface BonusReward {
   kind: BonusKind;
   amount: number;
   /** For build_discount only: minutes the discount lasts. */
   durationMinutes?: number;
+  /** For skull only: percent of coins lost (e.g. 1 = -1%). */
+  percent?: number;
   label: string;
   emoji: string;
   description: string;
@@ -55,8 +58,8 @@ const POOL: PoolEntry[] = [
     kind: "energy",
     weight: () => 25,
     make: (bet) => {
-      const tiers = bet >= 8 ? [25, 50] : bet >= 3 ? [10, 25] : [10];
-      const amount = tiers[Math.floor(Math.random() * tiers.length)];
+      // Energy reward scales as 10× the current bet multiplier.
+      const amount = Math.max(10, Math.round(bet) * 10);
       return {
         kind: "energy",
         amount,
@@ -65,6 +68,19 @@ const POOL: PoolEntry[] = [
         description: "Keep on rolling!",
       };
     },
+  },
+  {
+    kind: "skull",
+    // Always-on bust chance; smaller weight so it stays uncommon.
+    weight: () => 12,
+    make: () => ({
+      kind: "skull",
+      amount: 0,
+      percent: 1,
+      label: "−1% Coins",
+      emoji: "💀",
+      description: "Ouch! The island bit back.",
+    }),
   },
   {
     kind: "monster_buff",
