@@ -1,57 +1,47 @@
+# Plan: Island Reward Persistence, Guard, Summary & Analytics + Guest Auth Test
 
-## Goal
+## 1. Guest Auth Button Test (`src/pages/Auth.test.tsx`)
+New Vitest + React Testing Library test that mounts `<Auth/>` with mocked `supabase.auth.signInAnonymously` and `useNavigate`:
+- Asserts button shows "Starting guest session…" while pending.
+- Asserts button is `disabled` and `aria-busy="true"` during the call.
+- On resolve → asserts `navigate("/", { replace: true })` (current `successRedirect`) fires.
+- On reject → asserts `toast.error` is invoked with a clear message and button re-enables.
 
-Make Stat Forge backups forward/backward compatible via explicit versioning and migrations, and add automated tests covering coin-spend validation, undo refund logic, and localStorage persistence.
+## 2. Island Reward Persistence
+Currently `useBonusInventory` already persists shards / minigame tokens / build discount / monster buff to `localStorage`. Energy goes through `game.addEnergy` (already persisted via `useGameState`). Skull coin loss currently mutates `game.coins` but the **pending grant** isn't checkpointed — if the user refreshes mid-popup the bonus is lost.
 
-## 1. Versioned export/import with migrations (`src/lib/monsterStats.ts`)
+Add a `pendingBonus` slot to `useBonusInventory`:
+- `setPendingBonus(reward, landingId)` called the moment a bonus is rolled in `Index.tsx`, before any UI shows.
+- `commitPendingBonus(landingId)` called once the user dismisses/claims, applying the effect (already-implemented switch in `Index.tsx`) and clearing.
+- On mount, if `pendingBonus` exists, replay it through `commit` automatically so a mid-animation refresh still credits the reward exactly once.
 
-- Bump `EXPORT_VERSION` to `2` and define the on-disk shape:
-  ```ts
-  interface BackupV1 { version: 1; upgrades: Record<string, StatUpgrade>; history?: UpgradeHistoryEntry[] }
-  interface BackupV2 { version: 2; exportedAt: string; upgrades: Record<string, StatUpgrade>; history: UpgradeHistoryEntry[] }
-  ```
-- Add a `migrations` registry: `{ 1: (b) => BackupV2 }` that upgrades step-by-step. Each migration:
-  - v1 → v2: ensures `history` exists (default `[]`), backfills `exportedAt` from now, normalizes missing stat keys to `0`, drops unknown stat keys, and synthesizes minimal history entries (`cost: 0`, `at: 0`) so undo still works on restored data — clearly labeled `legacy: true`.
-- `exportData()` writes the latest version explicitly with `version: EXPORT_VERSION`.
-- `importData(raw)`:
-  - Parses JSON; if `version` missing, assume `1` (legacy from the original export).
-  - Rejects with a typed error if `version > EXPORT_VERSION` ("Backup created by a newer app version").
-  - Runs migrations sequentially until current version.
-  - Validates the migrated payload (shape of `upgrades` and `history`); on failure returns `{ ok: false, error }`.
-  - On success writes both stores, updates React state, returns `{ ok: true, migratedFrom?: number }`.
-- Extend `UpgradeHistoryEntry` with optional `legacy?: boolean` (rendered subtly in the history panel — out of scope here, no UI change required).
+## 3. Single-Grant Guard per Landing
+- Generate a `landingId` (uuid) each time the monster lands on a tile in `Index.tsx`.
+- Track `grantedLandingIds: Set<string>` (also persisted in localStorage, last 50 entries).
+- `commitPendingBonus` short-circuits if the id is already in the granted set.
+- Card-reveal re-renders or refreshes cannot double-credit.
 
-## 2. Toast surfacing (`src/components/MonsterStatsShop.tsx`)
+## 4. Reward Summary Panel
+New `src/components/IslandRewardSummary.tsx` shown after the existing `BonusRewardToast` / `LandingRewardPopup` is dismissed (or inline at the bottom of the popup as a final step):
+- Header: reward type icon + label (Energy / Shards / Mini-Game Item / Skull Bust / Buff / Discount).
+- Body: before → after balance for whichever resource changed (coins for skull, energy for energy, shards for shards, etc.).
+- A single "Got it" button.
+- Wired into the existing dismiss flow in `Index.tsx`; uses snapshots captured at grant time.
 
-- On successful import, if `migratedFrom` is set, toast: `Backup restored (migrated from v{n})`.
-- No other UI changes.
-
-## 3. Tests
-
-Add Vitest specs (jsdom env already configured) using the existing setup. Use `beforeEach` to clear `localStorage`.
-
-### `src/lib/monsterStats.test.ts`
-- **upgradeCost** scales as expected at levels 0/1/5.
-- **apply + persistence**: call `apply`, then re-read via fresh `readStore`/new hook render — values persist; history entry appended with correct `cost`/`level`.
-- **undoLast**: returns the last entry, decrements the stat level, removes the history row; second call after empty returns `null`.
-- **exportData/importData round-trip** at current version preserves upgrades + history.
-- **Legacy v1 import**: feed `{ upgrades: {...} }` (no `version`, no `history`), assert it migrates, stores upgrades, and `history` is `[]`.
-- **Future-version import** (`version: 99`) returns `{ ok: false }` with a clear error.
-- **Malformed JSON / missing `upgrades`** returns `{ ok: false }`.
-
-### `src/components/MonsterStatsShop.test.tsx`
-- Render with `coins=0` and click a stat → click Confirm → expect `addCoins` NOT called and an error toast (mock `sonner`).
-- Render with sufficient coins → Confirm → `addCoins` called with negative cost; stat level persists in `localStorage`.
-- After a successful buy, click **Undo last** → `addCoins` called with `+cost` refund; history entry removed.
-- Simulate stale balance: balance shown is high but prop drops to `0` between preview and confirm → confirm shows "Not enough coins" toast.
+## 5. Analytics Events
+Add a tiny helper `src/lib/analytics.ts` (no new deps; uses `window.dataLayer?.push` if present and always `console.info("[analytics]", …)` in dev):
+- Emit `island_landing` with `{ landingId, rewardKind, amount, coinsBefore, coinsAfter, energyBefore, energyAfter }`.
+- Fired inside `commitPendingBonus` so it's guaranteed to run **exactly once** (guard above).
+- New test `src/lib/analytics.test.ts` asserts: granting the same `landingId` twice only fires one event; skull deduction reports correct before/after.
 
 ## Technical notes
+- No DB schema changes — persistence stays in `localStorage` to match existing `mpc-bonus-inv-v1` pattern.
+- No changes to `bonusRewards.ts` reward pool.
+- Only frontend/presentation + a thin analytics helper.
 
-- Keep all migration logic pure and exported (e.g. `migrateBackup(parsed): { data, fromVersion }`) so it can be unit-tested without touching React state.
-- Mock `sonner` via `vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))`.
-- No schema, network, or backend changes. Localstorage-only.
-
-## Out of scope
-
-- UI to surface `legacy: true` history rows (data field added, no visual treatment).
-- Cross-device sync; this remains local backups only.
+## Files
+- add `src/pages/Auth.test.tsx`
+- add `src/components/IslandRewardSummary.tsx`
+- add `src/lib/analytics.ts` + `src/lib/analytics.test.ts`
+- edit `src/hooks/useBonusInventory.ts` (pending + granted-ids)
+- edit `src/pages/Index.tsx` (landingId, commit flow, summary wiring, analytics)
