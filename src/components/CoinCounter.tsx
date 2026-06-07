@@ -24,12 +24,12 @@ export function CoinCounter({ coins, onAdd }: CoinCounterProps) {
 
   return (
     <div
-      className="relative pill-gold flex items-center gap-1.5 pl-2 pr-1 py-1"
+      className="relative pill-coin-red flex items-center gap-1.5 pl-2 pr-1 py-1"
       role="status"
       aria-label={`${coins.toLocaleString()} coins`}
       aria-live="polite"
     >
-      <span className="text-lg drop-shadow-sm" aria-hidden="true">🪙</span>
+      <span className="text-lg drop-shadow-sm" aria-hidden="true">🔴</span>
       <motion.span
         key={coins}
         initial={{ scale: 1.3 }}
