@@ -72,6 +72,8 @@ import { LandingRewardPopup, type LandingReward } from "@/components/LandingRewa
 import { useBonusInventory } from "@/hooks/useBonusInventory";
 import type { BonusReward } from "@/lib/bonusRewards";
 import { BuildDiscountBadge } from "@/components/BuildDiscountBadge";
+import { IslandRewardSummary, type IslandRewardSummaryData } from "@/components/IslandRewardSummary";
+import { trackIslandLanding } from "@/lib/analytics";
 
 type Tab = "board" | "monster" | "cards" | "collection" | "shop" | "spin" | "specials" | "season" | "account";
 
