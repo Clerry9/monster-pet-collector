@@ -621,17 +621,65 @@ const Index = () => {
     // Phase 1: per-roll bonus reward — grant + animated toast.
     if (result.bonusReward) {
       const r = result.bonusReward;
-      if (r.kind === "energy") {
-        game.addEnergy(r.amount);
-        setActiveBonus(r);
-      } else if (r.kind === "skull") {
-        const pct = r.percent ?? 1;
-        const loss = Math.max(1, Math.floor((game.coins * pct) / 100));
-        game.addCoins(-loss);
-        setActiveBonus({ ...r, amount: loss, label: `−${loss.toLocaleString()} 🪙`, description: `Bust! Lost ${pct}% of your coins.` });
-      } else {
-        bonusInv.grant(r);
-        setActiveBonus(r);
+      // Single-grant guard per landing — survives re-renders AND refreshes.
+      const landingId =
+        (typeof crypto !== "undefined" && "randomUUID" in crypto)
+          ? crypto.randomUUID()
+          : `land-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      if (bonusInv.tryClaimLanding(landingId)) {
+        const coinsBefore = game.coins;
+        const energyBefore = game.energy;
+        const shardsBefore = bonusInv.shards;
+        let coinsAfter = coinsBefore;
+        let energyAfter = energyBefore;
+        let shardsAfter = shardsBefore;
+        let displayed: BonusReward = r;
+
+        if (r.kind === "energy") {
+          game.addEnergy(r.amount);
+          energyAfter = energyBefore + r.amount;
+          setActiveBonus(r);
+        } else if (r.kind === "skull") {
+          const pct = r.percent ?? 1;
+          const loss = Math.max(1, Math.floor((game.coins * pct) / 100));
+          game.addCoins(-loss);
+          coinsAfter = coinsBefore - loss;
+          displayed = {
+            ...r,
+            amount: loss,
+            label: `−${loss.toLocaleString()} 🪙`,
+            description: `Bust! Lost ${pct}% of your coins.`,
+          };
+          setActiveBonus(displayed);
+        } else {
+          bonusInv.grant(r);
+          if (r.kind === "shards" || r.kind === "shards_mega") {
+            shardsAfter = shardsBefore + r.amount;
+          }
+          setActiveBonus(r);
+        }
+
+        // Analytics: fires exactly once per landingId (guarded inside).
+        trackIslandLanding({
+          landingId,
+          rewardKind: r.kind,
+          amount: displayed.amount,
+          coinsBefore,
+          coinsAfter,
+          energyBefore,
+          energyAfter,
+        });
+
+        // Summary panel — shows reward type + balance deltas.
+        setRewardSummary({
+          reward: displayed,
+          coinsBefore,
+          coinsAfter,
+          energyBefore,
+          energyAfter,
+          shardsBefore,
+          shardsAfter,
+        });
       }
       // First-time directions when a build-cost discount is awarded.
       if (r.kind === "build_discount") {
