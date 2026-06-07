@@ -38,12 +38,12 @@ export function useDailyReward(_addCoins: (n: number) => void, opts?: { autoOpen
   const nextClaimMs = msUntilNextClaim(lastClaimedAt);
   const alreadyClaimed = nextClaimMs > 0;
 
-  // Whenever the next-claim time is known, schedule a "daily reward ready"
-  // reminder. No-op unless the user has enabled notifications in Settings.
+  // Daily reward reminders are intentionally disabled — once a player claims,
+  // we don't ping them again. Any previously-scheduled reminder is cancelled
+  // so service-worker timers from older sessions don't fire either.
   useEffect(() => {
-    if (!alreadyClaimed) { cancelScheduled("daily-reward"); return; }
-    scheduleAt("daily-reward", Date.now() + nextClaimMs, "Daily reward ready 🎁", "Open the game to claim your streak bonus!");
-  }, [alreadyClaimed, lastClaimedAt]); // intentionally not nextClaimMs (ticks every second)
+    cancelScheduled("daily-reward");
+  }, [alreadyClaimed, lastClaimedAt]);
 
   const reward = DAILY_REWARDS[(((alreadyClaimed ? streak : streak) - 1 + 7) % 7)];
 

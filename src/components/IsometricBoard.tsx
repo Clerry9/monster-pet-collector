@@ -1,6 +1,6 @@
 import React, { useRef, useMemo, useState, useEffect, Suspense } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
-import { OrbitControls, Text, Float, Billboard } from "@react-three/drei";
+import { OrbitControls, Text, Float, Billboard, Environment, ContactShadows } from "@react-three/drei";
 import { TOUCH } from "three";
 import * as THREE from "three";
 import { BOARD_TILES, BoardTile, TileType } from "@/hooks/useGameState";
@@ -1119,7 +1119,18 @@ function Ocean({ theme }: { theme: LevelTheme3D }) {
 
   return (
     <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]} receiveShadow geometry={geometry}>
-      <meshStandardMaterial color={theme.ocean} emissive={theme.oceanEmissive} emissiveIntensity={0.2} roughness={0.3} metalness={0.2} transparent opacity={0.9} />
+      {/* Painted-diorama water: softer specular, slightly chalky finish so it
+          reads as hand-painted resin rather than glossy CG plastic. */}
+      <meshStandardMaterial
+        color={theme.ocean}
+        emissive={theme.oceanEmissive}
+        emissiveIntensity={0.18}
+        roughness={0.55}
+        metalness={0.05}
+        envMapIntensity={0.7}
+        transparent
+        opacity={0.92}
+      />
     </mesh>
   );
 }
@@ -1292,10 +1303,37 @@ const IsometricBoardScene = React.forwardRef<THREE.Group, { absoluteStep: number
 
   return (
     <>
-      <ambientLight intensity={0.7} color={theme.ambient} />
-      <directionalLight position={[8, 14, 8]} intensity={1.3} color={theme.directional} castShadow shadow-mapSize={[1024, 1024]} />
-      <pointLight position={[currentTilePos.x, currentTilePos.y + 3 + ACTIVE_LIFT_VALUE, currentTilePos.z]} intensity={1.2} color={theme.ringColor} distance={6} />
-      <hemisphereLight args={[theme.ambient, theme.structureDark, 0.4]} />
+      {/* Painted-diorama three-point lighting: warm key from upper-right,
+          cool sky fill from opposite side, warm rim from behind, plus a
+          tight focus light on the active tile so the player's island
+          always feels lit like a studio miniature. */}
+      <ambientLight intensity={0.45} color={theme.ambient} />
+      <hemisphereLight args={[theme.ambient, theme.structureDark, 0.55]} />
+      <directionalLight
+        position={[8, 14, 8]}
+        intensity={1.35}
+        color={theme.directional}
+        castShadow
+        shadow-mapSize={[2048, 2048]}
+        shadow-bias={-0.0005}
+      />
+      <directionalLight position={[-9, 6, -4]} intensity={0.45} color="#bcd9ff" />
+      <directionalLight position={[0, 5, -12]} intensity={0.55} color={theme.ringColor} />
+      <pointLight
+        position={[currentTilePos.x, currentTilePos.y + 3 + ACTIVE_LIFT_VALUE, currentTilePos.z]}
+        intensity={1.2}
+        color={theme.ringColor}
+        distance={6}
+      />
+      <Environment preset="sunset" background={false} />
+      <ContactShadows
+        position={[0, -0.18, 0]}
+        opacity={0.45}
+        scale={40}
+        blur={2.6}
+        far={6}
+        color="#1a0f08"
+      />
 
       <Ocean theme={theme} />
       <FloatingParticles theme={theme} />
