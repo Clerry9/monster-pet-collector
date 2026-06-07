@@ -17,18 +17,28 @@ Deno.serve(async (req) => {
       if (p.active) await stripe.promotionCodes.update(p.id, { active: false });
     }
 
-    const coupon = await stripe.coupons.create({
-      percent_off: 100,
-      duration: "once",
-      name: "FREE100 — 2 day test",
-      redeem_by: expiresAt,
-    });
+    // Pin to a pre-dahlia API version for the coupon/promotion_codes calls —
+    // the dahlia release reshaped these endpoints and `coupon` is no longer
+    // accepted as a top-level parameter on promotion_codes.
+    const legacy = { apiVersion: "2024-06-20" } as const;
+    const coupon = await stripe.coupons.create(
+      {
+        percent_off: 100,
+        duration: "once",
+        name: "FREE100 — 2 day test",
+        redeem_by: expiresAt,
+      },
+      legacy,
+    );
 
-    const promo = await stripe.promotionCodes.create({
-      coupon: coupon.id,
-      code: CODE,
-      expires_at: expiresAt,
-    });
+    const promo = await stripe.promotionCodes.create(
+      {
+        coupon: coupon.id,
+        code: CODE,
+        expires_at: expiresAt,
+      },
+      legacy,
+    );
 
     return new Response(
       JSON.stringify({
