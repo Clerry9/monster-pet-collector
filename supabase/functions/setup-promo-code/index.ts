@@ -20,7 +20,10 @@ Deno.serve(async (req) => {
     // Pin to a pre-dahlia API version for the coupon/promotion_codes calls —
     // the dahlia release reshaped these endpoints and `coupon` is no longer
     // accepted as a top-level parameter on promotion_codes.
-    const legacy = { apiVersion: "2024-06-20" } as const;
+    // Stripe gateway forces the dahlia API version, which renamed the
+    // promotion_codes link field from `coupon` to `discount`. Bypass the SDK
+    // and post form-encoded params via rawRequest so we control the body
+    // exactly.
     const coupon = await stripe.coupons.create(
       {
         percent_off: 100,
@@ -28,17 +31,27 @@ Deno.serve(async (req) => {
         name: "FREE100 — 2 day test",
         redeem_by: expiresAt,
       },
-      legacy,
     );
 
-    const promo = await stripe.promotionCodes.create(
-      {
-        coupon: coupon.id,
-        code: CODE,
-        expires_at: expiresAt,
-      },
-      legacy,
-    );
+    // Try a few known field names — Stripe API has changed the linker field
+    // across recent versions (`coupon`, `discount`).
+    let promo: any;
+    const candidateFields = ["discount", "coupon"] as const;
+    let lastErr: unknown;
+    for (const field of candidateFields) {
+      try {
+        promo = await (stripe as any).rawRequest(
+          "POST",
+          "/v1/promotion_codes",
+          { [field]: coupon.id, code: CODE, expires_at: expiresAt },
+          {},
+        );
+        break;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    if (!promo) throw lastErr ?? new Error("Failed to create promotion_code");
 
     return new Response(
       JSON.stringify({
