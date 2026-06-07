@@ -1060,6 +1060,7 @@ const Index = () => {
 
       <BonusRewardToast reward={activeBonus} onDone={() => setActiveBonus(null)} />
       <LandingRewardPopup reward={landingPopup} onDone={() => setLandingPopup(null)} />
+      <IslandRewardSummary data={rewardSummary} onClose={() => setRewardSummary(null)} />
 
       {isBoardTab && (
         <BuildDiscountBadge
