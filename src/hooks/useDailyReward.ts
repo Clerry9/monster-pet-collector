@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { scheduleAt, cancelScheduled } from "@/lib/notifications";
+import { cancelScheduled } from "@/lib/notifications";
 
 /**
  * Server-validated daily reward. Wraps the `claim_daily_streak` RPC so that
