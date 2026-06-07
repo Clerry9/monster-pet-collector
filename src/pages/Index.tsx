@@ -246,6 +246,7 @@ const Index = () => {
   const game = useGameState();
   const bonusInv = useBonusInventory();
   const [activeBonus, setActiveBonus] = useState<BonusReward | null>(null);
+  const [rewardSummary, setRewardSummary] = useState<IslandRewardSummaryData | null>(null);
   const [landingPopup, setLandingPopup] = useState<LandingReward | null>(null);
   useCheckoutSuccessToast();
   // Tutorial completion gates the daily reward auto-open so we can chain
