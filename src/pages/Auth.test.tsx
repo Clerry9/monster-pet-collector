@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import AuthPage from "./Auth";
 
@@ -49,7 +49,6 @@ describe("Auth: Play as Guest button", () => {
   });
 
   it("shows loading state and disables during sign-in, then navigates on success", async () => {
-    const user = userEvent.setup();
     let resolveSignIn!: (v: { error: null }) => void;
     signInAnonymouslyMock.mockImplementation(
       () => new Promise((res) => { resolveSignIn = res; })
@@ -59,7 +58,7 @@ describe("Auth: Play as Guest button", () => {
     const btn = screen.getByRole("button", { name: /play as guest/i });
     expect(btn).not.toBeDisabled();
 
-    await user.click(btn);
+    fireEvent.click(btn);
 
     // Loading state
     const loadingBtn = await screen.findByRole("button", { name: /starting guest session/i });
@@ -78,12 +77,11 @@ describe("Auth: Play as Guest button", () => {
   });
 
   it("shows a clear error message and re-enables on failure", async () => {
-    const user = userEvent.setup();
     signInAnonymouslyMock.mockResolvedValue({ error: new Error("network fail") });
 
     renderAuth();
     const btn = screen.getByRole("button", { name: /play as guest/i });
-    await user.click(btn);
+    fireEvent.click(btn);
 
     await waitFor(() => {
       expect(toastError).toHaveBeenCalledWith(
