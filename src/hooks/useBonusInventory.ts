@@ -37,6 +37,8 @@ interface Inventory {
   buildDiscount: BuildDiscount | null;
   monsterBuff: MonsterBuff | null;
   collection: Record<string, CollectionEntry>;
+  /** Most recently granted landing IDs (FIFO, capped). Persisted so refreshes mid-animation don't double-credit. */
+  grantedLandingIds: string[];
 }
 
 const DEFAULTS: Inventory = {
@@ -45,6 +47,7 @@ const DEFAULTS: Inventory = {
   buildDiscount: null,
   monsterBuff: null,
   collection: {},
+  grantedLandingIds: [],
 };
 
 function load(): Inventory {
@@ -153,6 +156,23 @@ export function useBonusInventory() {
     update((p) => ({ ...p, buildDiscount: null }));
   }, []);
 
+  /**
+   * Atomic single-grant guard for island landings. Returns true on the FIRST
+   * call for a given landingId and false on every subsequent call (across
+   * re-renders or page refreshes — the set is persisted to localStorage).
+   */
+  const tryClaimLanding = useCallback((landingId: string): boolean => {
+    const cur = ensure();
+    if (cur.grantedLandingIds.includes(landingId)) return false;
+    update((p) => {
+      const next = [...p.grantedLandingIds, landingId];
+      // Keep the list bounded so localStorage never bloats.
+      if (next.length > 50) next.splice(0, next.length - 50);
+      return { ...p, grantedLandingIds: next };
+    });
+    return true;
+  }, []);
+
   const consumeMinigameToken = useCallback((): boolean => {
     const cur = ensure();
     if (cur.minigameTokens <= 0) return false;
@@ -237,5 +257,6 @@ export function useBonusInventory() {
     merge,
     ensureCollectionEntry,
     clearBuildDiscount,
+    tryClaimLanding,
   };
 }
