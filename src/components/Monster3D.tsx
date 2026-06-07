@@ -107,8 +107,9 @@ function MonsterPlane({ src, reducedMotion }: { src: string; reducedMotion: bool
         transparent
         alphaTest={0.05}
         side={THREE.DoubleSide}
-        roughness={0.6}
-        metalness={0.05}
+        roughness={0.45}
+        metalness={0.08}
+        envMapIntensity={0.85}
       />
     </mesh>
   );
@@ -196,9 +197,11 @@ export function Monster3D({ src, size = 220, glow, compact = false, debugBadge =
         {override !== "force-3d" && (
           <FpsWatcher onLowFps={() => { SESSION_LOW_POWER = true; setAutoLowPower(true); }} />
         )}
-        <ambientLight intensity={0.85} />
-        <directionalLight position={[2, 3, 4]} intensity={0.9} />
-        <directionalLight position={[-3, -1, 2]} intensity={0.35} color="#a78bfa" />
+        {/* Diorama-style three-point lighting: warm key, cool fill, rim halo */}
+        <ambientLight intensity={0.55} />
+        <directionalLight position={[2.5, 4, 4]} intensity={1.15} color="#fff4d6" castShadow />
+        <directionalLight position={[-3, -0.5, 2]} intensity={0.45} color="#7dd3fc" />
+        <pointLight position={[0, 2, -3]} intensity={0.6} color="#ffd8a8" />
         <Suspense fallback={null}>
           <Float speed={reducedMotion ? 0 : 1.4} rotationIntensity={reducedMotion ? 0 : 0.15} floatIntensity={reducedMotion ? 0 : 0.4}>
             <MonsterPlane src={src} reducedMotion={reducedMotion} />
@@ -206,14 +209,14 @@ export function Monster3D({ src, size = 220, glow, compact = false, debugBadge =
           {!compact && (
             <ContactShadows
               position={[0, -1.05, 0]}
-              opacity={0.45}
-              scale={3}
-              blur={2.5}
-              far={2}
-              color="#000000"
+              opacity={0.65}
+              scale={3.4}
+              blur={2.2}
+              far={2.2}
+              color="#1a0f08"
             />
           )}
-          <Environment preset="city" />
+          <Environment preset="sunset" />
         </Suspense>
       </Canvas>
       {debugBadge && (
