@@ -102,6 +102,7 @@ Deno.serve(async (req) => {
       line_items: [{ price: price.id, quantity }],
       success_url: safeSuccessUrl,
       cancel_url: safeCancelUrl,
+      allow_promotion_codes: true,
       ...(customerEmail ? { customer_email: customerEmail } : {}),
       metadata,
       ...(isRecurring ? { subscription_data: { metadata } } : {}),
