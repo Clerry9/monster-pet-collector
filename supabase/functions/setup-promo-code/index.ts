@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   try {
     const stripe = createStripeClient("sandbox");
     const CODE = "FREE100";
-    const expiresAt = Math.floor(Date.now() / 1000) + 2 * 24 * 60 * 60;
+    const expiresAt = Math.floor(Date.now() / 1000) + 5 * 24 * 60 * 60;
 
     // Deactivate any existing promo code with the same code so we can recreate it cleanly.
     const existingPromos = await stripe.promotionCodes.list({ code: CODE, limit: 10 });
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
       {
         percent_off: 100,
         duration: "once",
-        name: "FREE100 — 2 day test",
+        name: "FREE100 — 5 day test",
         redeem_by: expiresAt,
       },
     );
