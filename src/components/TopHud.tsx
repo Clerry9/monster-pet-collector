@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { Gem, Coins, Key, Star, Flame, PawPrint, Plus, Sparkles } from "lucide-react";
 import { getLevelProgress } from "@/data/levels";
 import { energyCostForBet } from "@/hooks/useGameState";
+import { useEffect, useState } from "react";
+import { pickReward } from "@/data/rewardPool";
 
 interface TopHudProps {
   gems: number;
@@ -28,6 +30,14 @@ export function TopHud({
   onAddGems, onAddCoins, onAddKeys, onAddStars, onAddShards,
 }: TopHudProps) {
   const { current, progress, xpInLevel, xpNeeded } = getLevelProgress(xp);
+
+  // Cycle a random possible island reward every 3s so players always see
+  // something they could win when landing on a new island.
+  const [preview, setPreview] = useState(() => pickReward());
+  useEffect(() => {
+    const id = window.setInterval(() => setPreview(pickReward()), 3000);
+    return () => window.clearInterval(id);
+  }, []);
 
   return (
     <div className="w-full flex flex-col gap-1.5" role="region" aria-label="Player resources">
@@ -98,16 +108,22 @@ export function TopHud({
           {xpInLevel.toLocaleString()} / {xpNeeded.toLocaleString()}
         </span>
 
-        {/* Flame multiplier on right */}
-        <div className="shrink-0 relative">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-b from-amber-300 via-orange-500 to-red-600 border-2 border-wood-dark flex items-center justify-center shadow-chunky-sm">
-            <Flame size={18} className="text-cream-light" fill="currentColor" />
-          </div>
-          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[11px] font-display bg-wood-dark text-cream-light px-1 rounded-full border border-cream-light/60 leading-none py-[1px]">
+        {/* Random prize preview — shows a possible island-landing reward */}
+        <div className="shrink-0 relative" title={`Possible reward: ${preview.label}`}>
+          <motion.div
+            key={preview.emoji + preview.label}
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 18 }}
+            className="w-9 h-9 rounded-full bg-gradient-to-b from-yellow-300 via-amber-400 to-orange-500 border-2 border-wood-dark flex items-center justify-center shadow-chunky-sm"
+          >
+            <span className="text-lg leading-none">{preview.emoji}</span>
+          </motion.div>
+          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[10px] font-display bg-wood-dark text-cream-light px-1 rounded-full border border-cream-light/60 leading-none py-[1px] whitespace-nowrap">
             ×{betMultiplier}
           </span>
           <span
-            className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[11px] font-display text-cream-light/90 leading-none whitespace-nowrap drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]"
+            className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[10px] font-display text-cream-light/90 leading-none whitespace-nowrap drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]"
             aria-label={`Each roll costs ${energyCostForBet(betMultiplier)} energy`}
           >
             −{energyCostForBet(betMultiplier)}⚡
