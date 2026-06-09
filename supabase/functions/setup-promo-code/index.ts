@@ -33,25 +33,11 @@ Deno.serve(async (req) => {
       },
     );
 
-    // Try a few known field names — Stripe API has changed the linker field
-    // across recent versions (`coupon`, `discount`).
-    let promo: any;
-    const candidateFields = ["discount", "coupon"] as const;
-    let lastErr: unknown;
-    for (const field of candidateFields) {
-      try {
-        promo = await (stripe as any).rawRequest(
-          "POST",
-          "/v1/promotion_codes",
-          { [field]: coupon.id, code: CODE, expires_at: expiresAt },
-          {},
-        );
-        break;
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-    if (!promo) throw lastErr ?? new Error("Failed to create promotion_code");
+    const promo = await stripe.promotionCodes.create({
+      coupon: coupon.id,
+      code: CODE,
+      expires_at: expiresAt,
+    });
 
     return new Response(
       JSON.stringify({
