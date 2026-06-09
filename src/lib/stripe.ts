@@ -12,6 +12,7 @@ export async function createCheckoutSession(opts: {
   customerEmail?: string;
   customData?: Record<string, string>;
   successUrl?: string;
+  promoCode?: string;
 }): Promise<{ url: string }> {
   const { data, error } = await supabase.functions.invoke("create-checkout", {
     body: { ...opts, environment: getStripeEnvironment() },

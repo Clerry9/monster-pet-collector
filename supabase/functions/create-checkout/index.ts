@@ -26,6 +26,7 @@ Deno.serve(async (req) => {
       customData = {},
       successUrl,
       environment,
+      promoCode,
     }: {
       priceId?: string;
       quantity?: number;
@@ -33,6 +34,7 @@ Deno.serve(async (req) => {
       customData?: Record<string, string>;
       successUrl?: string;
       environment?: StripeEnv;
+      promoCode?: string;
     } = body;
 
     if (!priceId) {
@@ -97,12 +99,32 @@ Deno.serve(async (req) => {
       : `${fallbackOrigin}/?checkout=success`;
     const safeCancelUrl = safeSuccessUrl.replace("checkout=success", "checkout=canceled");
 
+    // If the client supplied a promo code, resolve it server-side to a
+    // Stripe promotion_code id and attach it as a discount. discounts and
+    // allow_promotion_codes are mutually exclusive, so we toggle.
+    let resolvedDiscount: { promotion_code: string } | null = null;
+    if (promoCode && typeof promoCode === "string") {
+      const code = promoCode.trim().toUpperCase();
+      if (code) {
+        const promos = await stripe.promotionCodes.list({ code, active: true, limit: 1 });
+        if (!promos.data.length) {
+          return new Response(
+            JSON.stringify({ error: `Invalid or expired promo code: ${code}` }),
+            { status: 400, headers: corsHeaders },
+          );
+        }
+        resolvedDiscount = { promotion_code: promos.data[0].id };
+      }
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: isRecurring ? "subscription" : "payment",
       line_items: [{ price: price.id, quantity }],
       success_url: safeSuccessUrl,
       cancel_url: safeCancelUrl,
-      allow_promotion_codes: true,
+      ...(resolvedDiscount
+        ? { discounts: [resolvedDiscount] }
+        : { allow_promotion_codes: true }),
       ...(customerEmail ? { customer_email: customerEmail } : {}),
       metadata,
       ...(isRecurring ? { subscription_data: { metadata } } : {}),

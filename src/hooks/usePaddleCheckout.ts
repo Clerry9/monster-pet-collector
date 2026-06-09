@@ -36,6 +36,7 @@ export function usePaddleCheckout() {
     customerEmail?: string;
     customData?: Record<string, string>;
     successUrl?: string;
+    promoCode?: string;
   }) => {
     setLoading(true);
     try {

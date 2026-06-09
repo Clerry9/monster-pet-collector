@@ -5,6 +5,7 @@ import { usePowerUps } from "@/hooks/usePowerUps";
 import { createCheckoutSession } from "@/lib/stripe";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 const KIND_LABEL: Record<PowerUpKind, string> = {
   arena: "Arena Boosts",
@@ -16,6 +17,7 @@ export function PowerUpShop() {
   const { user } = useAuth();
   const { qty, buy, loading } = usePowerUps();
   const [checkoutPriceId, setCheckoutPriceId] = useState<string | null>(null);
+  const [promoCode, setPromoCode] = useState("");
 
   const openBundleCheckout = async (priceId: string) => {
     if (!user) { toast.error("Sign in to purchase"); return; }
@@ -25,6 +27,7 @@ export function PowerUpShop() {
         priceId,
         customerEmail: user.email ?? undefined,
         customData: { packId: priceId },
+        promoCode: promoCode.trim() || undefined,
       });
       window.location.href = url;
     } catch (e) {
@@ -38,6 +41,16 @@ export function PowerUpShop() {
       {/* Real-money bundles */}
       <section>
         <h3 className="font-display text-cream-light text-sm mb-2 tracking-wide">💎 Best Value Bundles</h3>
+        <div className="mb-3 flex items-center gap-2">
+          <Input
+            value={promoCode}
+            onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+            placeholder="Promo code (optional)"
+            maxLength={32}
+            aria-label="Promo code"
+            className="h-9 text-xs uppercase tracking-wider"
+          />
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {BOOST_BUNDLES.map((b) => (
             <motion.div
