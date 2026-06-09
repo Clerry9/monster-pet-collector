@@ -1,5 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
 import { ENERGY_PACKS, AD_REFILL_AMOUNT, type EnergyPack } from "@/data/energyPacks";
 import { usePaddleCheckout, confirmGuestCheckout } from "@/hooks/usePaddleCheckout";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +30,7 @@ export function EnergyRefillModal({
 }: EnergyRefillModalProps) {
   const { openCheckout, loading } = usePaddleCheckout();
   const { user } = useAuth();
+  const [promoCode, setPromoCode] = useState("");
   const ad = useRewardedAd(playerLevel, () => {
     onAdRewardEnergy(AD_REFILL_AMOUNT);
     toast.success(`+${AD_REFILL_AMOUNT}⚡ from ad!`);
@@ -40,6 +43,7 @@ export function EnergyRefillModal({
         priceId: pack.paddlePriceId,
         customerEmail,
         customData: { sku: pack.id, energy: String(pack.energy) },
+        promoCode: promoCode.trim() || undefined,
       });
     } catch (e) {
       console.error(e);
@@ -85,6 +89,16 @@ export function EnergyRefillModal({
         </div>
 
         <div className="space-y-2">
+          <div>
+            <Input
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+              placeholder="Promo code (optional)"
+              maxLength={32}
+              aria-label="Promo code"
+              className="h-9 text-xs uppercase tracking-wider"
+            />
+          </div>
           {ENERGY_PACKS.map((pack) => (
             <div
               key={pack.id}
