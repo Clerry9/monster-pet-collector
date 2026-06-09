@@ -31,7 +31,12 @@ Deno.serve(async (req) => {
     const promo = await (stripe as any).rawRequest(
       "POST",
       "/v1/promotion_codes",
-      { discount: coupon.id, code: CODE, expires_at: expiresAt },
+      {
+        "promotion[type]": "coupon",
+        "promotion[coupon]": coupon.id,
+        code: CODE,
+        expires_at: expiresAt,
+      },
       {},
     );
 
