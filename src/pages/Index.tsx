@@ -1227,6 +1227,32 @@ const Index = () => {
                     onAddGems={() => setTab("specials")}
                     onAddKeys={() => setTab("season")}
                     onAddStars={() => setTab("specials")}
+                    onClaimReward={(reward) => {
+                      switch (reward.kind) {
+                        case "coins_small":
+                        case "coins_med":
+                        case "coins_jackpot":
+                          game.addCoins(reward.amount);
+                          break;
+                        case "rolls":
+                          game.addEnergy(reward.amount);
+                          break;
+                        case "island_star":
+                          game.addStars(reward.amount);
+                          break;
+                        case "card_flip":
+                          game.addCardFlip(reward.amount);
+                          break;
+                        case "monster_food":
+                          // No direct food currency — credit equivalent coins.
+                          game.addCoins(reward.amount);
+                          break;
+                        case "season_xp":
+                          // Treat as bonus XP via coins fallback to keep client-side.
+                          game.addCoins(reward.amount * 2);
+                          break;
+                      }
+                    }}
                   />
                 </div>
                 {/* Prominent centered ⚡ energy pill — main on-screen energy indicator */}
