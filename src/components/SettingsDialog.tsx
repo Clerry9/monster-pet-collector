@@ -230,6 +230,8 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
 
             {/* --- Accessibility --- */}
             <section aria-labelledby="a11y-heading" className="space-y-3 mb-6">
+              {/* placeholder anchor */}
+              <div className="hidden" aria-hidden="true" />
               <div className="flex items-center gap-2 text-sm font-bold" id="a11y-heading">
                 <Accessibility size={14} /> Accessibility
               </div>
