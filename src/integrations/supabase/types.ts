@@ -485,6 +485,48 @@ export type Database = {
         }
         Relationships: []
       }
+      island_landing_rewards: {
+        Row: {
+          amount: number
+          claimed_at: string | null
+          created_at: string
+          emoji: string
+          expired_at: string | null
+          id: string
+          kind: string
+          label: string
+          locked_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          claimed_at?: string | null
+          created_at?: string
+          emoji: string
+          expired_at?: string | null
+          id?: string
+          kind: string
+          label: string
+          locked_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          claimed_at?: string | null
+          created_at?: string
+          emoji?: string
+          expired_at?: string | null
+          id?: string
+          kind?: string
+          label?: string
+          locked_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       missions_def: {
         Row: {
           code: string
@@ -1319,6 +1361,28 @@ export type Database = {
           reward_rolls: number
         }[]
       }
+      claim_island_landing_reward: {
+        Args: { p_id: string }
+        Returns: {
+          amount: number
+          claimed_at: string | null
+          created_at: string
+          emoji: string
+          expired_at: string | null
+          id: string
+          kind: string
+          label: string
+          locked_at: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "island_landing_rewards"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       claim_mission: {
         Args: { p_code: string }
         Returns: {
@@ -1540,6 +1604,28 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_pending_island_landing_reward: {
+        Args: never
+        Returns: {
+          amount: number
+          claimed_at: string | null
+          created_at: string
+          emoji: string
+          expired_at: string | null
+          id: string
+          kind: string
+          label: string
+          locked_at: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "island_landing_rewards"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_season_leaderboard: {
         Args: { _limit?: number; _season_id: string }
         Returns: {
@@ -1684,6 +1770,33 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      lock_island_landing_reward: {
+        Args: {
+          p_amount: number
+          p_emoji: string
+          p_kind: string
+          p_label: string
+        }
+        Returns: {
+          amount: number
+          claimed_at: string | null
+          created_at: string
+          emoji: string
+          expired_at: string | null
+          id: string
+          kind: string
+          label: string
+          locked_at: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "island_landing_rewards"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       purchase_power_up: {
         Args: { p_power_up_id: string; p_quantity?: number }

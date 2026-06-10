@@ -371,6 +371,12 @@ const Index = () => {
       emoji: "🎴",
     },
     {
+      selector: "[data-tutorial='prize-circle']",
+      title: "Island prize roulette",
+      body: "This glowing circle previews a random island-landing prize. Tap it to roll — coins, rolls, cards, stars or a jackpot. Your win is locked on the server, so it survives refreshes.",
+      emoji: "🎁",
+    },
+    {
       selector: "[data-rail='season']",
       title: "Event timer",
       body: "Left rail, top: jumps to the current limited-time event. The countdown shows how long until a new season rotates in.",

@@ -1,14 +1,21 @@
 import { motion } from "framer-motion";
-import { Gem, Coins, Key, Star, Flame, PawPrint, Plus, Sparkles, History } from "lucide-react";
+import { Gem, Coins, Key, Star, PawPrint, Plus, Sparkles, History } from "lucide-react";
 import { getLevelProgress } from "@/data/levels";
 import { energyCostForBet } from "@/hooks/useGameState";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { pickReward, type Reward, type RewardTemplate } from "@/data/rewardPool";
 import { useRewardPool } from "@/hooks/useRewardPool";
 import { useIslandPreviewHistory } from "@/hooks/useIslandPreviewHistory";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { sfxDiceTick, sfxRouletteWin, sfxCoinGain } from "@/lib/sfx";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  getRewardFeedbackPrefs,
+  subscribeRewardFeedback,
+  vibrateWithPrefs,
+  type RewardFeedbackPrefs,
+} from "@/lib/rewardFeedback";
 
 interface TopHudProps {
   gems: number;
@@ -28,12 +35,19 @@ interface TopHudProps {
   /**
    * Called when the player claims an island-landing preview reward.
    * Parent maps the reward kind onto the appropriate state grant.
+   * May return a Promise — the HUD will race it against a safety timeout
+   * so a stuck claim never freezes the reveal UI.
    */
-  onClaimReward?: (reward: Reward) => void;
+  onClaimReward?: (reward: Reward) => void | Promise<void>;
 }
 
 /** Cooldown after a claim before cycling resumes — keeps the won prize visible. */
 const CLAIM_LOCK_MS = 60_000;
+
+/** Max time we wait for the parent's onClaimReward before bailing out. */
+const CLAIM_TIMEOUT_MS = 5_000;
+/** Max retries for a failing/slow claim before surfacing an error. */
+const CLAIM_MAX_RETRIES = 1;
 
 function pickFromPool(pool: RewardTemplate[]): Reward {
   const total = pool.reduce((s, t) => s + Math.max(0, t.weight), 0);
@@ -46,12 +60,15 @@ function pickFromPool(pool: RewardTemplate[]): Reward {
   return pool[0].build();
 }
 
-function vibrate(pattern: number | number[]) {
-  try {
-    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-      (navigator as Navigator).vibrate(pattern);
-    }
-  } catch { /* no-op */ }
+/** Race a promise against a timeout — rejects when the deadline hits. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error("claim timeout")), ms);
+    p.then(
+      (v) => { window.clearTimeout(timer); resolve(v); },
+      (e) => { window.clearTimeout(timer); reject(e); },
+    );
+  });
 }
 
 /**
@@ -75,6 +92,36 @@ export function TopHud({
 
   const history = useIslandPreviewHistory();
 
+  // Sound + haptic prefs (localStorage, with live updates from the
+  // Settings dialog).
+  const [feedback, setFeedback] = useState<RewardFeedbackPrefs>(() => getRewardFeedbackPrefs());
+  useEffect(() => subscribeRewardFeedback(setFeedback), []);
+
+  const playSfx = (fn: () => void) => { if (feedback.sound) { try { fn(); } catch {} } };
+
+  // Restore a server-locked, unclaimed reward after a refresh so the
+  // final prize can't be re-rolled mid-spin.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase.rpc("get_pending_island_landing_reward");
+        if (cancelled || !data) return;
+        const row: any = Array.isArray(data) ? data[0] : data;
+        if (!row) return;
+        setPreview({
+          kind: row.kind,
+          amount: row.amount,
+          label: row.label,
+          emoji: row.emoji,
+        });
+        setPhase("locked");
+        setLockedUntil(Date.now() + CLAIM_LOCK_MS);
+      } catch { /* offline / signed-out — fall back to local cycling */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Idle cycling — pause while rolling or while a won prize is locked on screen.
   useEffect(() => {
     if (phase !== "idle") return;
@@ -94,39 +141,86 @@ export function TopHud({
 
   const canClaim = phase === "idle";
 
-  const runReveal = () => {
+  const runReveal = async () => {
     if (!canClaim) return;
     setPhase("rolling");
 
+    // Server-of-truth: lock the final reward up-front so the prize
+    // can't change if the page refreshes mid-spin.
+    const candidate = pickFromPool(pool);
+    let lockedId: string | null = null;
+    let final: Reward = candidate;
+    try {
+      const { data, error } = await supabase.rpc("lock_island_landing_reward", {
+        p_kind: candidate.kind,
+        p_amount: candidate.amount,
+        p_label: candidate.label,
+        p_emoji: candidate.emoji,
+      });
+      if (error) throw error;
+      const row: any = Array.isArray(data) ? data[0] : data;
+      if (row) {
+        lockedId = row.id;
+        final = { kind: row.kind, amount: row.amount, label: row.label, emoji: row.emoji };
+      }
+    } catch {
+      // Guests / offline: still run reveal locally so play isn't blocked.
+    }
+
     // Fast cycling — ~80ms steps, decelerating, ~2s total.
     const steps = 22;
-    let i = 0;
-    let final: Reward = pickFromPool(pool);
-    const tick = () => {
-      i += 1;
-      if (i < steps) {
-        setPreview(pickFromPool(pool));
-        sfxDiceTick();
-        vibrate(8);
-        // Easing — slow down toward the end.
-        const delay = 60 + Math.pow(i / steps, 2.4) * 220;
-        window.setTimeout(tick, delay);
-      } else {
-        final = pickFromPool(pool);
-        setPreview(final);
-        setPhase("locked");
-        setLockedUntil(Date.now() + CLAIM_LOCK_MS);
-        sfxRouletteWin();
-        sfxCoinGain();
-        vibrate([20, 40, 60, 40, 120]);
-        history.push(final);
-        onClaimReward?.(final);
-        toast.success(`+${final.amount.toLocaleString()} ${final.label}`, {
-          description: `${final.emoji} added to your stash`,
-        });
+    for (let i = 1; i < steps; i++) {
+      setPreview(pickFromPool(pool));
+      playSfx(sfxDiceTick);
+      vibrateWithPrefs(8);
+      const delay = 60 + Math.pow(i / steps, 2.4) * 220;
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise<void>((r) => window.setTimeout(r, delay));
+      if (phaseRef.current !== "rolling") return; // bailed out elsewhere
+    }
+
+    setPreview(final);
+    setPhase("locked");
+    setLockedUntil(Date.now() + CLAIM_LOCK_MS);
+    playSfx(sfxRouletteWin);
+    playSfx(sfxCoinGain);
+    vibrateWithPrefs([20, 40, 60, 40, 120]);
+    history.push(final);
+
+    // Grant the reward with a safety timeout + retry; on failure, surface
+    // an error toast and release the lock so the player can try again.
+    let attempt = 0;
+    let granted = false;
+    while (attempt <= CLAIM_MAX_RETRIES && !granted) {
+      try {
+        await withTimeout(
+          Promise.resolve(onClaimReward?.(final)),
+          CLAIM_TIMEOUT_MS,
+        );
+        granted = true;
+      } catch {
+        attempt += 1;
+        if (attempt > CLAIM_MAX_RETRIES) break;
+        await new Promise<void>((r) => window.setTimeout(r, 400));
       }
-    };
-    window.setTimeout(tick, 60);
+    }
+
+    if (!granted) {
+      toast.error("Couldn't claim that prize — please try again.", {
+        description: `${final.emoji} ${final.amount.toLocaleString()} ${final.label}`,
+      });
+      setPhase("idle");
+      setLockedUntil(0);
+      return;
+    }
+
+    // Mark server-side as claimed (fire-and-forget; safe if it fails).
+    if (lockedId) {
+      supabase.rpc("claim_island_landing_reward", { p_id: lockedId }).then(() => {}, () => {});
+    }
+    toast.success(`+${final.amount.toLocaleString()} ${final.label}`, {
+      description: `${final.emoji} added to your stash`,
+    });
   };
 
   return (
@@ -197,34 +291,38 @@ export function TopHud({
         <span className="absolute left-1/2 -translate-x-1/2 text-sm font-display text-cream-light pointer-events-none drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]">
           {xpInLevel.toLocaleString()} / {xpNeeded.toLocaleString()}
         </span>
+      </div>
 
-        {/* Random prize preview + tap-to-reveal flow */}
-        <div className="shrink-0 flex items-center gap-1">
-          <button
-            type="button"
-            onClick={runReveal}
-            disabled={!canClaim}
-            className="relative outline-none focus-visible:ring-2 focus-visible:ring-cream-light rounded-full disabled:cursor-not-allowed"
-            aria-label={
-              phase === "rolling"
-                ? "Rolling reward…"
-                : phase === "locked"
-                  ? `You won ${preview.amount} ${preview.label}`
-                  : `Tap to reveal a reward. Currently showing ${preview.label}`
-            }
-            title={
-              phase === "rolling"
-                ? "Rolling…"
-                : phase === "locked"
-                  ? `Won: ${preview.amount} ${preview.label}`
-                  : `Tap to claim — possible: ${preview.label}`
-            }
-          >
+      {/* Island-landing prize preview — placed on its own row BELOW
+          the XP bar so the bigger icons can't overlap level text. */}
+      <div className="flex items-center justify-end gap-3 mt-1 pr-1">
+        <button
+          type="button"
+          onClick={runReveal}
+          disabled={!canClaim}
+          data-tutorial="prize-circle"
+          className="relative outline-none focus-visible:ring-2 focus-visible:ring-cream-light rounded-full disabled:cursor-not-allowed pr-1"
+          aria-label={
+            phase === "rolling"
+              ? "Rolling reward…"
+              : phase === "locked"
+                ? `You won ${preview.amount} ${preview.label}`
+                : `Tap to reveal a reward. Currently showing ${preview.label}`
+          }
+          title={
+            phase === "rolling"
+              ? "Rolling…"
+              : phase === "locked"
+                ? `Won: ${preview.amount} ${preview.label}`
+                : `Tap to claim — possible: ${preview.label}`
+          }
+        >
+          <div className="flex items-center gap-2">
             <motion.div
               key={preview.emoji + preview.label + phase}
               initial={{ scale: phase === "rolling" ? 1.05 : 0.7, opacity: 0 }}
               animate={{
-                scale: phase === "locked" ? [1, 1.25, 1] : 1,
+                scale: phase === "locked" ? [1, 1.3, 1] : 1,
                 opacity: 1,
                 rotate: phase === "rolling" ? [0, 12, -12, 0] : 0,
               }}
@@ -235,27 +333,29 @@ export function TopHud({
                     ? { duration: 0.18, ease: "easeInOut" }
                     : { type: "spring", stiffness: 300, damping: 18 }
               }
-              className={`w-9 h-9 rounded-full border-2 border-wood-dark flex items-center justify-center shadow-chunky-sm ${
+              className={`w-14 h-14 rounded-full border-[3px] border-wood-dark flex items-center justify-center shadow-chunky-sm ${
                 phase === "locked"
                   ? "bg-gradient-to-b from-lime-300 via-emerald-400 to-emerald-600 ring-2 ring-emerald-200"
                   : "bg-gradient-to-b from-yellow-300 via-amber-400 to-orange-500"
               }`}
             >
-              <span className="text-lg leading-none">{preview.emoji}</span>
+              <span className="text-3xl leading-none">{preview.emoji}</span>
             </motion.div>
-            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[10px] font-display bg-wood-dark text-cream-light px-1 rounded-full border border-cream-light/60 leading-none py-[1px] whitespace-nowrap">
-              ×{betMultiplier}
-            </span>
-            <span
-              className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[10px] font-display text-cream-light/90 leading-none whitespace-nowrap drop-shadow-[0_1px_0_rgba(0,0,0,0.6)]"
-              aria-label={`Each roll costs ${energyCostForBet(betMultiplier)} energy`}
-            >
-              −{energyCostForBet(betMultiplier)}⚡
-            </span>
-          </button>
+            <div className="flex flex-col items-start leading-tight">
+              <span className="text-[11px] font-display bg-wood-dark text-cream-light px-1.5 rounded-full border border-cream-light/60 py-[1px] whitespace-nowrap">
+                ×{betMultiplier}
+              </span>
+              <span
+                className="text-[11px] font-display text-cream-light/90 whitespace-nowrap drop-shadow-[0_1px_0_rgba(0,0,0,0.6)] mt-0.5"
+                aria-label={`Each roll costs ${energyCostForBet(betMultiplier)} energy`}
+              >
+                −{energyCostForBet(betMultiplier)}⚡
+              </span>
+            </div>
+          </div>
+        </button>
 
-          <HistoryButton entries={history.entries} onClear={history.clear} />
-        </div>
+        <HistoryButton entries={history.entries} onClear={history.clear} />
       </div>
     </div>
   );

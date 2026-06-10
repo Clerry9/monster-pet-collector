@@ -24,6 +24,10 @@ import { CrazyGamesSetupDialog } from "@/components/CrazyGamesSetupDialog";
 import { getA11yPrefs, setA11yPrefs, subscribeA11yPrefs, type A11yPrefs } from "@/lib/a11yPrefs";
 import { getUiScale, setUiScale, subscribeUiScale, resetUiScale, type UiScale } from "@/lib/uiScale";
 import { requestNotificationPermission, notificationsSupported } from "@/lib/notifications";
+import {
+  getRewardFeedbackPrefs, setRewardFeedbackPrefs, subscribeRewardFeedback,
+  type RewardFeedbackPrefs, type HapticIntensity,
+} from "@/lib/rewardFeedback";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -67,6 +71,9 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
 
   const [uiScale, setUiScaleState] = useState<UiScale>(() => getUiScale());
   useEffect(() => subscribeUiScale((p) => setUiScaleState(p)), []);
+
+  const [rewardFb, setRewardFb] = useState<RewardFeedbackPrefs>(() => getRewardFeedbackPrefs());
+  useEffect(() => subscribeRewardFeedback(setRewardFb), []);
 
   // --- Display name editor ---
   const { user } = useAuth();
@@ -218,6 +225,49 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
                     />
                   </div>
                 ))}
+              </div>
+            </section>
+
+            {/* --- Reward reveal feedback (sound + haptic) --- */}
+            <section aria-labelledby="reward-fb-heading" className="space-y-3 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-bold" id="reward-fb-heading">
+                  <Sparkles size={14} /> Prize reveal feedback
+                </div>
+                <Switch
+                  checked={rewardFb.sound}
+                  onCheckedChange={(v) => setRewardFeedbackPrefs({ sound: !!v })}
+                  aria-label="Prize reveal sound toggle"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Controls the ticking + win sound and vibration when the island prize circle is rolled.
+              </p>
+              <div className="space-y-2">
+                <div className="text-xs font-bold">Vibration intensity</div>
+                <div className="grid grid-cols-4 gap-2">
+                  {(["off","light","medium","strong"] as HapticIntensity[]).map((lvl) => {
+                    const active = rewardFb.haptic === lvl;
+                    return (
+                      <button
+                        key={lvl}
+                        type="button"
+                        onClick={() => setRewardFeedbackPrefs({ haptic: lvl })}
+                        className={`min-h-10 px-2 rounded-xl border-2 text-xs font-bold capitalize transition ${
+                          active
+                            ? "border-gold bg-gold/15 text-foreground"
+                            : "border-wood-dark/30 bg-background text-muted-foreground hover:text-foreground"
+                        }`}
+                        aria-pressed={active}
+                      >
+                        {lvl}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Only affects devices with vibration support.
+                </p>
               </div>
             </section>
 
