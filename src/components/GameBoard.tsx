@@ -16,6 +16,12 @@ interface GameBoardProps {
   lastResult: { steps: number; tile: BoardTile; islandStarEarned?: boolean } | null;
   onRollDice: () => void;
   onLanded?: () => void;
+  /**
+   * Fires `true` when the dice spinner starts (and through the monster's
+   * hop), and `false` once the monster has landed on its final tile.
+   * Lets the HUD sync visuals like the prize roulette to the roll cadence.
+   */
+  onMovingChange?: (moving: boolean) => void;
   activeDiceMax: number;
   /** Visual tier for the 3D dice (basic/silver/gold). */
   diceTier?: "basic" | "silver" | "gold";
@@ -71,7 +77,7 @@ interface Particle {
 const PARTICLE_COLORS = ["#22c55e", "#facc15", "#38bdf8", "#a78bfa", "#f472b6"];
 let particleIdCounter = 0;
 
-export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, onRollDice, onLanded, activeDiceMax, diceTier = "basic", frozen = false, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1, minRollCost = 1, onInsufficientEnergy }: GameBoardProps) {
+export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, onRollDice, onLanded, onMovingChange, activeDiceMax, diceTier = "basic", frozen = false, levelId = 1, seasonAccent, seasonGlow, seasonSymbol, fullscreen = false, islandStars = 0, pendingCardFlips = 0, betMultiplier = 1, minRollCost = 1, onInsufficientEnergy }: GameBoardProps) {
   const [isRolling, setIsRolling] = useState(false);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -215,9 +221,12 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
       }
       // Notify parent so card reveals + island-star toasts only fire after landing.
       onLanded?.();
+      // Monster has finished hopping — release "moving" so the HUD locks
+      // its prize roulette on whatever's currently showing.
+      onMovingChange?.(false);
     }, landDelay);
     return () => { if (resultTimerRef.current) clearTimeout(resultTimerRef.current); };
-  }, [lastResult, isRolling, seasonSymbol, onLanded]);
+  }, [lastResult, isRolling, seasonSymbol, onLanded, onMovingChange]);
 
   const performRoll = () => {
     // Self-heal: if a stale isRolling flag is blocking us but no interval is actually running,
@@ -244,6 +253,8 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
     }
     setIsRolling(true);
     isRollingRef.current = true;
+    // Tell the HUD the roll has begun — the prize roulette starts spinning.
+    onMovingChange?.(true);
     rollStartedAtRef.current = Date.now();
     setDiceValue(null);
 
