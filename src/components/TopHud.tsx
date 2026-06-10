@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Gem, Coins, Key, Star, PawPrint, Plus, Sparkles, History } from "lucide-react";
 import { getLevelProgress } from "@/data/levels";
 import { energyCostForBet } from "@/hooks/useGameState";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { pickReward, type Reward, type RewardTemplate } from "@/data/rewardPool";
 import { useRewardPool } from "@/hooks/useRewardPool";
 import { useIslandPreviewHistory } from "@/hooks/useIslandPreviewHistory";
@@ -39,6 +39,17 @@ interface TopHudProps {
    * so a stuck claim never freezes the reveal UI.
    */
   onClaimReward?: (reward: Reward) => void | Promise<void>;
+  /**
+   * Optional JSX rendered between the XP bar and the prize-circle row —
+   * used to slot the centered energy pill so it sits right under the XP bar.
+   */
+  energySlot?: ReactNode;
+  /**
+   * When provided, the prize roulette is driven by the monster's movement
+   * instead of a manual tap: it spins while `externalRolling` is `true`
+   * and locks the visible prize the moment it flips back to `false`.
+   */
+  externalRolling?: boolean;
 }
 
 /** Cooldown after a claim before cycling resumes — keeps the won prize visible. */
@@ -77,6 +88,7 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 export function TopHud({
   gems, coins, keys, stars, shards = 0, xp, level, betMultiplier, guestName,
   onAddGems, onAddCoins, onAddKeys, onAddStars, onAddShards, onClaimReward,
+  energySlot, externalRolling,
 }: TopHudProps) {
   const { current, progress, xpInLevel, xpNeeded } = getLevelProgress(xp);
 
@@ -87,6 +99,8 @@ export function TopHud({
   const [phase, setPhase] = useState<"idle" | "rolling" | "locked">("idle");
   const [preview, setPreview] = useState<Reward>(() => pickFromPool(pool));
   const [lockedUntil, setLockedUntil] = useState(0);
+  // Retry countdown — non-null while we're between claim attempts.
+  const [retrySecondsLeft, setRetrySecondsLeft] = useState<number | null>(null);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
 
@@ -98,6 +112,66 @@ export function TopHud({
   useEffect(() => subscribeRewardFeedback(setFeedback), []);
 
   const playSfx = (fn: () => void) => { if (feedback.sound) { try { fn(); } catch {} } };
+
+  /** Shared post-spin grant: handles retries + a visible countdown. */
+  const grantWithRetry = async (final: Reward, lockedId: string | null) => {
+    const RETRY_DELAY_MS = 1500;
+    let attempt = 0;
+    let granted = false;
+    while (attempt <= CLAIM_MAX_RETRIES && !granted) {
+      try {
+        await withTimeout(Promise.resolve(onClaimReward?.(final)), CLAIM_TIMEOUT_MS);
+        granted = true;
+      } catch {
+        attempt += 1;
+        if (attempt > CLAIM_MAX_RETRIES) break;
+        // Show countdown for the next attempt.
+        const start = Date.now();
+        setRetrySecondsLeft(Math.ceil(RETRY_DELAY_MS / 1000));
+        const tickId = window.setInterval(() => {
+          const remain = Math.max(0, RETRY_DELAY_MS - (Date.now() - start));
+          setRetrySecondsLeft(remain > 0 ? Math.ceil(remain / 1000) : 0);
+        }, 250);
+        await new Promise<void>((r) => window.setTimeout(r, RETRY_DELAY_MS));
+        window.clearInterval(tickId);
+        setRetrySecondsLeft(null);
+      }
+    }
+    if (!granted) {
+      toast.error("Couldn't claim that prize — please try again.", {
+        description: `${final.emoji} ${final.amount.toLocaleString()} ${final.label}`,
+      });
+      setPhase("idle");
+      setLockedUntil(0);
+      return;
+    }
+    if (lockedId) {
+      supabase.rpc("claim_island_landing_reward", { p_id: lockedId }).then(() => {}, () => {});
+    }
+    toast.success(`+${final.amount.toLocaleString()} ${final.label}`, {
+      description: `${final.emoji} added to your stash`,
+    });
+  };
+
+  // Auto-sync: when the parent says the monster is moving, spin in sync
+  // with the hop and lock the visible prize when the monster stops.
+  useEffect(() => {
+    if (externalRolling === undefined) return;
+    if (externalRolling) {
+      if (phaseRef.current === "idle") setPhase("rolling");
+    } else if (phaseRef.current === "rolling") {
+      const final = pickFromPool(pool);
+      setPreview(final);
+      setPhase("locked");
+      setLockedUntil(Date.now() + CLAIM_LOCK_MS);
+      playSfx(sfxRouletteWin);
+      playSfx(sfxCoinGain);
+      vibrateWithPrefs([20, 40, 60, 40, 120]);
+      history.push(final);
+      void grantWithRetry(final, null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalRolling]);
 
   // Restore a server-locked, unclaimed reward after a refresh so the
   // final prize can't be re-rolled mid-spin.
@@ -122,13 +196,20 @@ export function TopHud({
     return () => { cancelled = true; };
   }, []);
 
-  // Idle cycling — pause while rolling or while a won prize is locked on screen.
+  // Cycle previews — fast while rolling (driven by hop or manual tap),
+  // slow + ambient while idle. Locked phase freezes the won prize.
   useEffect(() => {
-    if (phase !== "idle") return;
+    if (phase === "locked") return;
+    const ms = phase === "rolling" ? 110 : 3000;
     const id = window.setInterval(() => {
-      if (phaseRef.current === "idle") setPreview(pickFromPool(pool));
-    }, 3000);
+      setPreview(pickFromPool(pool));
+      if (phaseRef.current === "rolling") {
+        playSfx(sfxDiceTick);
+        vibrateWithPrefs(8);
+      }
+    }, ms);
     return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, pool]);
 
   // Auto-release the lock so cycling can resume after the cooldown.
@@ -139,7 +220,8 @@ export function TopHud({
     return () => window.clearTimeout(id);
   }, [phase, lockedUntil]);
 
-  const canClaim = phase === "idle";
+  // Manual tap is only available when there's no parent-driven roll.
+  const canClaim = phase === "idle" && externalRolling === undefined;
 
   const runReveal = async () => {
     if (!canClaim) return;
@@ -187,40 +269,7 @@ export function TopHud({
     vibrateWithPrefs([20, 40, 60, 40, 120]);
     history.push(final);
 
-    // Grant the reward with a safety timeout + retry; on failure, surface
-    // an error toast and release the lock so the player can try again.
-    let attempt = 0;
-    let granted = false;
-    while (attempt <= CLAIM_MAX_RETRIES && !granted) {
-      try {
-        await withTimeout(
-          Promise.resolve(onClaimReward?.(final)),
-          CLAIM_TIMEOUT_MS,
-        );
-        granted = true;
-      } catch {
-        attempt += 1;
-        if (attempt > CLAIM_MAX_RETRIES) break;
-        await new Promise<void>((r) => window.setTimeout(r, 400));
-      }
-    }
-
-    if (!granted) {
-      toast.error("Couldn't claim that prize — please try again.", {
-        description: `${final.emoji} ${final.amount.toLocaleString()} ${final.label}`,
-      });
-      setPhase("idle");
-      setLockedUntil(0);
-      return;
-    }
-
-    // Mark server-side as claimed (fire-and-forget; safe if it fails).
-    if (lockedId) {
-      supabase.rpc("claim_island_landing_reward", { p_id: lockedId }).then(() => {}, () => {});
-    }
-    toast.success(`+${final.amount.toLocaleString()} ${final.label}`, {
-      description: `${final.emoji} added to your stash`,
-    });
+    await grantWithRetry(final, lockedId);
   };
 
   return (
@@ -293,6 +342,14 @@ export function TopHud({
         </span>
       </div>
 
+      {/* Energy pill slot — centered directly beneath the XP bar so the
+          most important stat sits front and centre, not behind the monster. */}
+      {energySlot && (
+        <div className="flex justify-center pointer-events-auto">
+          {energySlot}
+        </div>
+      )}
+
       {/* Island-landing prize preview — placed on its own row BELOW
           the XP bar so the bigger icons can't overlap level text. */}
       <div className="flex items-center justify-end gap-3 mt-1 pr-1">
@@ -353,6 +410,15 @@ export function TopHud({
               </span>
             </div>
           </div>
+          {retrySecondsLeft !== null && (
+            <span
+              role="status"
+              aria-live="polite"
+              className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap bg-destructive text-destructive-foreground text-[10px] font-display px-1.5 py-0.5 rounded-full border border-wood-dark shadow-chunky-sm"
+            >
+              Retrying in {retrySecondsLeft}s…
+            </span>
+          )}
         </button>
 
         <HistoryButton entries={history.entries} onClear={history.clear} />

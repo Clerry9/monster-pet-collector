@@ -26,7 +26,7 @@ import { getUiScale, setUiScale, subscribeUiScale, resetUiScale, type UiScale } 
 import { requestNotificationPermission, notificationsSupported } from "@/lib/notifications";
 import {
   getRewardFeedbackPrefs, setRewardFeedbackPrefs, subscribeRewardFeedback,
-  type RewardFeedbackPrefs, type HapticIntensity,
+  type RewardFeedbackPrefs,
 } from "@/lib/rewardFeedback";
 
 interface SettingsDialogProps {
@@ -244,29 +244,23 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
                 Controls the ticking + win sound and vibration when the island prize circle is rolled.
               </p>
               <div className="space-y-2">
-                <div className="text-xs font-bold">Vibration intensity</div>
-                <div className="grid grid-cols-4 gap-2">
-                  {(["off","light","medium","strong"] as HapticIntensity[]).map((lvl) => {
-                    const active = rewardFb.haptic === lvl;
-                    return (
-                      <button
-                        key={lvl}
-                        type="button"
-                        onClick={() => setRewardFeedbackPrefs({ haptic: lvl })}
-                        className={`min-h-10 px-2 rounded-xl border-2 text-xs font-bold capitalize transition ${
-                          active
-                            ? "border-gold bg-gold/15 text-foreground"
-                            : "border-wood-dark/30 bg-background text-muted-foreground hover:text-foreground"
-                        }`}
-                        aria-pressed={active}
-                      >
-                        {lvl}
-                      </button>
-                    );
-                  })}
+                <div className="flex items-center justify-between">
+                  <label htmlFor="haptic-intensity" className="text-xs font-bold">
+                    Vibration intensity
+                  </label>
+                  <span className="text-[11px] tabular-nums text-muted-foreground">
+                    {rewardFb.hapticPct === 0 ? "Off" : `${rewardFb.hapticPct}%`}
+                  </span>
                 </div>
+                <Slider
+                  id="haptic-intensity"
+                  value={[rewardFb.hapticPct]}
+                  min={0} max={100} step={1}
+                  onValueChange={([v]) => setRewardFeedbackPrefs({ hapticPct: v })}
+                  aria-label="Prize reveal vibration intensity"
+                />
                 <p className="text-[11px] text-muted-foreground">
-                  Only affects devices with vibration support.
+                  Fine-grained control — drag to silence (0) or punch up (100). Only affects devices with vibration support.
                 </p>
               </div>
             </section>
