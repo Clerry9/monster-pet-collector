@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
-import { Gem, Coins, Key, Star, Flame, PawPrint, Plus, Sparkles, History } from "lucide-react";
+import { Gem, Coins, Key, Star, PawPrint, Plus, Sparkles, History } from "lucide-react";
 import { getLevelProgress } from "@/data/levels";
 import { energyCostForBet } from "@/hooks/useGameState";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { pickReward, type Reward, type RewardTemplate } from "@/data/rewardPool";
 import { useRewardPool } from "@/hooks/useRewardPool";
 import { useIslandPreviewHistory } from "@/hooks/useIslandPreviewHistory";
