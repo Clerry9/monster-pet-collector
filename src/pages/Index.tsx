@@ -1201,6 +1201,7 @@ const Index = () => {
                   lastResult={lastResult}
                   onRollDice={handleRollDice}
                   onLanded={handleLanded}
+                  onMovingChange={setMonsterMoving}
                   activeDiceMax={game.activeDiceTierData.maxRoll}
                   diceTier={(["basic","silver","gold"] as const).includes(game.activeDiceTier as "basic"|"silver"|"gold") ? (game.activeDiceTier as "basic"|"silver"|"gold") : "basic"}
                   minRollCost={energyCostForBet(game.betMultiplier)}
@@ -1229,6 +1230,16 @@ const Index = () => {
                     level={game.level}
                     betMultiplier={game.betMultiplier}
                     guestName={guestName}
+                    externalRolling={monsterMoving}
+                    energySlot={
+                      <CenterEnergyPill
+                        energy={game.energy}
+                        energyCap={game.energyCap}
+                        energyUpdatedAt={game.energyUpdatedAt}
+                        energyRegenMs={game.energyRegenMs}
+                        requiredEnergy={energyCostForBet(game.betMultiplier)}
+                      />
+                    }
                     onAddCoins={() => setTab("shop")}
                     onAddGems={() => setTab("specials")}
                     onAddKeys={() => setTab("season")}
@@ -1259,16 +1270,6 @@ const Index = () => {
                           break;
                       }
                     }}
-                  />
-                </div>
-                {/* Prominent centered ⚡ energy pill — main on-screen energy indicator */}
-                <div className="pointer-events-auto mt-2 flex justify-center">
-                  <CenterEnergyPill
-                    energy={game.energy}
-                    energyCap={game.energyCap}
-                    energyUpdatedAt={game.energyUpdatedAt}
-                    energyRegenMs={game.energyRegenMs}
-                    requiredEnergy={energyCostForBet(game.betMultiplier)}
                   />
                 </div>
                 <div className="pointer-events-auto mt-2">
