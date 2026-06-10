@@ -228,10 +228,6 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
               </div>
             </section>
 
-            {/* --- Accessibility --- */}
-            <section aria-labelledby="a11y-heading" className="space-y-3 mb-6">
-            </section>
-
             {/* --- Reward reveal feedback (sound + haptic) --- */}
             <section aria-labelledby="reward-fb-heading" className="space-y-3 mb-6">
               <div className="flex items-center justify-between">
@@ -276,7 +272,7 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
             </section>
 
             {/* --- Accessibility --- */}
-            <section aria-labelledby="a11y-heading-2" className="space-y-3 mb-6">
+            <section aria-labelledby="a11y-heading" className="space-y-3 mb-6">
               <div className="flex items-center gap-2 text-sm font-bold" id="a11y-heading">
                 <Accessibility size={14} /> Accessibility
               </div>
