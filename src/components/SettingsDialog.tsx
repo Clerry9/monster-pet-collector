@@ -230,8 +230,53 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
 
             {/* --- Accessibility --- */}
             <section aria-labelledby="a11y-heading" className="space-y-3 mb-6">
-              {/* placeholder anchor */}
-              <div className="hidden" aria-hidden="true" />
+            </section>
+
+            {/* --- Reward reveal feedback (sound + haptic) --- */}
+            <section aria-labelledby="reward-fb-heading" className="space-y-3 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-bold" id="reward-fb-heading">
+                  <Sparkles size={14} /> Prize reveal feedback
+                </div>
+                <Switch
+                  checked={rewardFb.sound}
+                  onCheckedChange={(v) => setRewardFeedbackPrefs({ sound: !!v })}
+                  aria-label="Prize reveal sound toggle"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Controls the ticking + win sound and vibration when the island prize circle is rolled.
+              </p>
+              <div className="space-y-2">
+                <div className="text-xs font-bold">Vibration intensity</div>
+                <div className="grid grid-cols-4 gap-2">
+                  {(["off","light","medium","strong"] as HapticIntensity[]).map((lvl) => {
+                    const active = rewardFb.haptic === lvl;
+                    return (
+                      <button
+                        key={lvl}
+                        type="button"
+                        onClick={() => setRewardFeedbackPrefs({ haptic: lvl })}
+                        className={`min-h-10 px-2 rounded-xl border-2 text-xs font-bold capitalize transition ${
+                          active
+                            ? "border-gold bg-gold/15 text-foreground"
+                            : "border-wood-dark/30 bg-background text-muted-foreground hover:text-foreground"
+                        }`}
+                        aria-pressed={active}
+                      >
+                        {lvl}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Only affects devices with vibration support.
+                </p>
+              </div>
+            </section>
+
+            {/* --- Accessibility --- */}
+            <section aria-labelledby="a11y-heading-2" className="space-y-3 mb-6">
               <div className="flex items-center gap-2 text-sm font-bold" id="a11y-heading">
                 <Accessibility size={14} /> Accessibility
               </div>
