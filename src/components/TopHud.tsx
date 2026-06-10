@@ -342,6 +342,14 @@ export function TopHud({
         </span>
       </div>
 
+      {/* Energy pill slot — centered directly beneath the XP bar so the
+          most important stat sits front and centre, not behind the monster. */}
+      {energySlot && (
+        <div className="flex justify-center pointer-events-auto">
+          {energySlot}
+        </div>
+      )}
+
       {/* Island-landing prize preview — placed on its own row BELOW
           the XP bar so the bigger icons can't overlap level text. */}
       <div className="flex items-center justify-end gap-3 mt-1 pr-1">
@@ -402,6 +410,15 @@ export function TopHud({
               </span>
             </div>
           </div>
+          {retrySecondsLeft !== null && (
+            <span
+              role="status"
+              aria-live="polite"
+              className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap bg-destructive text-destructive-foreground text-[10px] font-display px-1.5 py-0.5 rounded-full border border-wood-dark shadow-chunky-sm"
+            >
+              Retrying in {retrySecondsLeft}s…
+            </span>
+          )}
         </button>
 
         <HistoryButton entries={history.entries} onClear={history.clear} />
