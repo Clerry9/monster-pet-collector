@@ -24,6 +24,10 @@ import { CrazyGamesSetupDialog } from "@/components/CrazyGamesSetupDialog";
 import { getA11yPrefs, setA11yPrefs, subscribeA11yPrefs, type A11yPrefs } from "@/lib/a11yPrefs";
 import { getUiScale, setUiScale, subscribeUiScale, resetUiScale, type UiScale } from "@/lib/uiScale";
 import { requestNotificationPermission, notificationsSupported } from "@/lib/notifications";
+import {
+  getRewardFeedbackPrefs, setRewardFeedbackPrefs, subscribeRewardFeedback,
+  type RewardFeedbackPrefs, type HapticIntensity,
+} from "@/lib/rewardFeedback";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -67,6 +71,9 @@ export function SettingsDialog({ open, onClose, onReplayTutorial }: SettingsDial
 
   const [uiScale, setUiScaleState] = useState<UiScale>(() => getUiScale());
   useEffect(() => subscribeUiScale((p) => setUiScaleState(p)), []);
+
+  const [rewardFb, setRewardFb] = useState<RewardFeedbackPrefs>(() => getRewardFeedbackPrefs());
+  useEffect(() => subscribeRewardFeedback(setRewardFb), []);
 
   // --- Display name editor ---
   const { user } = useAuth();
