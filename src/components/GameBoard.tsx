@@ -502,7 +502,11 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
                 </>
               )}
               {(isRolling || (lastResult && !showResult)) && (diceValue || lastResult) && (
-                <div className="absolute -top-5 -right-5" aria-hidden="true">
+                <div
+                  className="absolute -top-14 left-1/2 -translate-x-1/2"
+                  aria-hidden="true"
+                  title="Dice result — number of tiles your monster will hop this turn"
+                >
                   {/* Energy badge replaces the old 3D dice. While the reel is
                       ticking it cycles random numbers; once the server result
                       arrives (isRolling cleared) it snaps to the authoritative
