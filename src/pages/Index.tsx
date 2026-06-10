@@ -252,6 +252,10 @@ const Index = () => {
   // Tutorial completion gates the daily reward auto-open so we can chain
   // tutorial -> daily reward -> mini-game in order.
   const mainTutorialPreCheck = useTutorial("main");
+  // Tracks whether the monster is currently rolling/hopping — drives the
+  // HUD prize roulette so it spins in sync with the move and locks the
+  // visible prize the moment the monster lands.
+  const [monsterMoving, setMonsterMoving] = useState(false);
   const daily = useDailyReward(game.addCoins, { autoOpen: mainTutorialPreCheck.completed });
   const season = useSeason();
   const { user } = useAuth();
