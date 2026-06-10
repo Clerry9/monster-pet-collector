@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Gift, RefreshCw, Trophy, Gamepad2, Star, Dices, Swords, Crosshair } from "lucide-react";
+
+const RAIL_ICON_SIZE = 26;
 import { formatTimeRemaining } from "@/data/seasons";
 import {
   Popover,
@@ -58,16 +60,16 @@ export function SideRails({
 }: Props) {
   const luckyReady = !rouletteCooldownMs || rouletteCooldownMs <= 0;
   const left: RailItem[] = [
-    { id: "season", icon: <Star size={18} />, label: "EVENT", countdownMs: msRemaining, onClick: onOpenSeason, hot: newEvent, tip: "Limited-time event with a battle pass and exclusive monsters. Countdown shows when a new season starts." },
-    ...(onOpenArena ? [{ id: "arena", icon: <Swords size={18} />, label: "ARENA", onClick: onOpenArena, tip: "Endless solo battle gauntlet — climb waves, earn shards & coins, chase the season leaderboard." } as RailItem] : []),
-    ...(onOpenPvp ? [{ id: "pvp", icon: <Crosshair size={18} />, label: "PVP", onClick: onOpenPvp, tip: "Battle other players' defense teams. Set your own defender and climb the ranked ladder." } as RailItem] : []),
-    { id: "specials", icon: <Sparkles size={18} />, label: "SHOP", onClick: onOpenSpecials, tip: "Buy dice bundles, special packs, and the Season Pass. Best deals live here." },
-    { id: "cards", icon: <Gamepad2 size={18} />, label: "CARDS", onClick: onOpenCards, tip: "Browse every card you've drawn and see how close each set is to completion." },
+    { id: "season", icon: <Star size={RAIL_ICON_SIZE} />, label: "EVENT", countdownMs: msRemaining, onClick: onOpenSeason, hot: newEvent, tip: "Limited-time event with a battle pass and exclusive monsters. Countdown shows when a new season starts." },
+    ...(onOpenArena ? [{ id: "arena", icon: <Swords size={RAIL_ICON_SIZE} />, label: "ARENA", onClick: onOpenArena, tip: "Endless solo battle gauntlet — climb waves, earn shards & coins, chase the season leaderboard." } as RailItem] : []),
+    ...(onOpenPvp ? [{ id: "pvp", icon: <Crosshair size={RAIL_ICON_SIZE} />, label: "PVP", onClick: onOpenPvp, tip: "Battle other players' defense teams. Set your own defender and climb the ranked ladder." } as RailItem] : []),
+    { id: "specials", icon: <Sparkles size={RAIL_ICON_SIZE} />, label: "SHOP", onClick: onOpenSpecials, tip: "Buy dice bundles, special packs, and the Season Pass. Best deals live here." },
+    { id: "cards", icon: <Gamepad2 size={RAIL_ICON_SIZE} />, label: "CARDS", onClick: onOpenCards, tip: "Browse every card you've drawn and see how close each set is to completion." },
   ];
   const right: RailItem[] = [
     {
       id: "shards",
-      icon: <Sparkles size={18} className="text-cyan-300" />,
+      icon: <Sparkles size={RAIL_ICON_SIZE} className="text-cyan-300" />,
       label: "SHARDS",
       badge: shards > 0 ? String(shards) : undefined,
       onClick: onOpenShards ?? onOpenCollection,
@@ -76,7 +78,7 @@ export function SideRails({
     ...(LUCKY_ROULETTE_EVENT_ENABLED
       ? [{
           id: "roulette",
-          icon: <Dices size={18} />,
+          icon: <Dices size={RAIL_ICON_SIZE} />,
           label: "LUCK",
           onClick: onOpenRoulette,
           hot: luckyReady,
@@ -86,9 +88,9 @@ export function SideRails({
             : "Lucky Roulette. Next free spin in the timer below; or pay 100 🪙 for an extra spin anytime.",
         } as RailItem]
       : []),
-    { id: "daily", icon: <Gift size={18} />, label: "DAILY", onClick: onOpenDaily, tip: "Claim a free reward every 24 hours. Streaks pay more — don't miss a day!" },
-    { id: "spin", icon: <RefreshCw size={18} />, label: "SPIN", onClick: onOpenSpin, tip: "Spin the prize wheel for free dice, coins, and rare cards. Refills on a timer." },
-    { id: "collection", icon: <Trophy size={18} />, label: "MONST", onClick: onOpenCollection, tip: "Your monster album — see who you own, who's evolving, and who's still hiding." },
+    { id: "daily", icon: <Gift size={RAIL_ICON_SIZE} />, label: "DAILY", onClick: onOpenDaily, tip: "Claim a free reward every 24 hours. Streaks pay more — don't miss a day!" },
+    { id: "spin", icon: <RefreshCw size={RAIL_ICON_SIZE} />, label: "SPIN", onClick: onOpenSpin, tip: "Spin the prize wheel for free dice, coins, and rare cards. Refills on a timer." },
+    { id: "collection", icon: <Trophy size={RAIL_ICON_SIZE} />, label: "MONST", onClick: onOpenCollection, tip: "Your monster album — see who you own, who's evolving, and who's still hiding." },
   ];
 
   return (
@@ -142,7 +144,7 @@ function Rail({ items, side, onLearnMore }: { items: RailItem[]; side: "left" | 
                 onMouseLeave={() => { if (!isMobile) setOpenId((cur) => (cur === it.id ? null : cur)); }}
                 onFocus={() => setOpenId(it.id)}
                 onBlur={() => setOpenId((cur) => (cur === it.id ? null : cur))}
-                className="icon-tile-gold w-10 h-10 sm:w-12 sm:h-12 flex flex-col items-center justify-center relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                className="icon-tile-gold w-14 h-14 sm:w-16 sm:h-16 flex flex-col items-center justify-center relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
                 aria-label={`${it.label}${it.tip ? ` — ${it.tip}` : ""}`}
                 aria-haspopup="dialog"
                 aria-expanded={isOpen}
@@ -150,7 +152,7 @@ function Rail({ items, side, onLearnMore }: { items: RailItem[]; side: "left" | 
                 data-rail={it.id}
               >
                 {it.icon}
-                <span className="text-[7px] sm:text-[8px] font-display leading-none mt-0.5">{it.label}</span>
+                <span className="text-[9px] sm:text-[10px] font-display leading-none mt-1">{it.label}</span>
                 {it.hot && (
                   <motion.span
                     initial={{ scale: 0 }} animate={{ scale: 1 }}
