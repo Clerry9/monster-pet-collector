@@ -293,7 +293,7 @@ export function TopHud({
       const row: any = Array.isArray(data) ? data[0] : data;
       if (row) {
         lockedId = row.id;
-        final = { kind: row.kind, amount: row.amount, label: row.label, emoji: row.emoji };
+        final = sanitizeReward(row, candidate);
       }
     } catch {
       // Guests / offline: still run reveal locally so play isn't blocked.
