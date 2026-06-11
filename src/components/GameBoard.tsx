@@ -543,8 +543,37 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
             </motion.button>
           </div>
 
-          {/* Spacer to balance the AUTO pill so the dial stays centered */}
-          <div className="w-[52px] sm:w-[60px]" aria-hidden="true" />
+          {/* Right slot — holds the rolling/landing "steps" badge, themed
+              to match the translucent side-rail icons. Parallel to the AUTO
+              pill so the dial stays visually balanced. */}
+          <div className="w-[52px] sm:w-[60px] flex items-center justify-center" aria-hidden="true">
+            {(isRolling || (lastResult && !showResult)) && (diceValue || lastResult) && (
+              <motion.div
+                initial={reducedMotion ? false : { scale: 0.6, rotate: -15 }}
+                animate={
+                  reducedMotion
+                    ? { scale: 1 }
+                    : isRolling
+                      ? { scale: [1, 1.1, 1], rotate: [0, 6, -6, 0] }
+                      : { scale: 1.12, rotate: 0 }
+                }
+                transition={
+                  reducedMotion
+                    ? { duration: 0 }
+                    : isRolling
+                      ? { repeat: Infinity, duration: 0.4 }
+                      : { type: "spring", stiffness: 320, damping: 16 }
+                }
+                className="rail-tile-glass relative w-11 h-11 rounded-full flex items-center justify-center"
+                title="Dice result — number of tiles your monster will hop this turn"
+              >
+                <Zap size={18} className="drop-shadow-[0_1px_0_rgba(0,0,0,0.5)]" fill="currentColor" />
+                <span className="absolute -bottom-1.5 right-0 text-[11px] font-display text-wood-dark bg-cream rounded-full px-1.5 leading-tight border border-wood-dark/60 shadow-sm">
+                  {!isRolling && lastResult ? lastResult.steps : (diceValue ?? 1)}
+                </span>
+              </motion.div>
+            )}
+          </div>
         </div>
 
         {/* Tiny status row */}
