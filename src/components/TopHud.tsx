@@ -71,6 +71,27 @@ function pickFromPool(pool: RewardTemplate[]): Reward {
   return pool[0].build();
 }
 
+/**
+ * Scale a freshly-picked reward by the player's current bet multiplier and
+ * level. Coin-style prizes use a base of `bet × 100` and grow ~5% per level
+ * so high-level / high-bet rolls feel meaningfully bigger.
+ */
+function scaleReward(r: Reward, betMultiplier: number, level: number): Reward {
+  const levelBoost = 1 + Math.max(0, level - 1) * 0.05;
+  if (r.kind === "coins_small" || r.kind === "coins_med" || r.kind === "coins_jackpot") {
+    const baseRange =
+      r.kind === "coins_small" ? 100 :
+      r.kind === "coins_med" ? 400 :
+      /* jackpot */ 2000;
+    // Randomized within bet×base range, then level-scaled.
+    const min = Math.round(baseRange * 0.5 * betMultiplier);
+    const max = Math.round(baseRange * 1.0 * betMultiplier);
+    const rolled = min + Math.floor(Math.random() * Math.max(1, max - min + 1));
+    return { ...r, amount: Math.max(1, Math.round(rolled * levelBoost)) };
+  }
+  return r;
+}
+
 /** Race a promise against a timeout — rejects when the deadline hits. */
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
