@@ -62,13 +62,32 @@ const CLAIM_MAX_RETRIES = 1;
 
 function pickFromPool(pool: RewardTemplate[]): Reward {
   const total = pool.reduce((s, t) => s + Math.max(0, t.weight), 0);
-  if (total <= 0) return pickReward();
+  if (total <= 0) {
+    try { return pickReward(); } catch { return FALLBACK_REWARD(); }
+  }
   let r = Math.random() * total;
   for (const t of pool) {
     r -= Math.max(0, t.weight);
-    if (r <= 0) return t.build();
+    if (r <= 0) return sanitizeReward(t.build());
   }
-  return pool[0].build();
+  return pool[0] ? sanitizeReward(pool[0].build()) : FALLBACK_REWARD();
+}
+
+/** Minimal always-valid reward used when pool/RPC data is missing. */
+function FALLBACK_REWARD(): Reward {
+  return { kind: "coins_small", amount: 0, label: "Coins", emoji: "🪙" };
+}
+
+/** Coerce any partial/unknown reward-shaped value into a safe Reward. */
+function sanitizeReward(input: unknown, fallback: Reward = FALLBACK_REWARD()): Reward {
+  const r = (input ?? {}) as Partial<Reward>;
+  const amountNum = Number(r.amount);
+  return {
+    kind: (typeof r.kind === "string" && r.kind ? r.kind : fallback.kind) as Reward["kind"],
+    amount: Number.isFinite(amountNum) ? amountNum : fallback.amount,
+    label: typeof r.label === "string" && r.label ? r.label : fallback.label,
+    emoji: typeof r.emoji === "string" && r.emoji ? r.emoji : fallback.emoji,
+  };
 }
 
 /**
