@@ -224,9 +224,6 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
       }
       // Notify parent so card reveals + island-star toasts only fire after landing.
       onLanded?.();
-      // Monster has finished hopping — release "moving" so the HUD locks
-      // its prize roulette on whatever's currently showing.
-      onMovingChange?.(false);
     }, landDelay);
     return () => { if (resultTimerRef.current) clearTimeout(resultTimerRef.current); };
   }, [lastResult, isRolling, seasonSymbol, onLanded, onMovingChange]);

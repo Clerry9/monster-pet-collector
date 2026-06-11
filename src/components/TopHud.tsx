@@ -71,6 +71,27 @@ function pickFromPool(pool: RewardTemplate[]): Reward {
   return pool[0].build();
 }
 
+/**
+ * Scale a freshly-picked reward by the player's current bet multiplier and
+ * level. Coin-style prizes use a base of `bet × 100` and grow ~5% per level
+ * so high-level / high-bet rolls feel meaningfully bigger.
+ */
+function scaleReward(r: Reward, betMultiplier: number, level: number): Reward {
+  const levelBoost = 1 + Math.max(0, level - 1) * 0.05;
+  if (r.kind === "coins_small" || r.kind === "coins_med" || r.kind === "coins_jackpot") {
+    const baseRange =
+      r.kind === "coins_small" ? 100 :
+      r.kind === "coins_med" ? 400 :
+      /* jackpot */ 2000;
+    // Randomized within bet×base range, then level-scaled.
+    const min = Math.round(baseRange * 0.5 * betMultiplier);
+    const max = Math.round(baseRange * 1.0 * betMultiplier);
+    const rolled = min + Math.floor(Math.random() * Math.max(1, max - min + 1));
+    return { ...r, amount: Math.max(1, Math.round(rolled * levelBoost)) };
+  }
+  return r;
+}
+
 /** Race a promise against a timeout — rejects when the deadline hits. */
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -166,7 +187,7 @@ export function TopHud({
         setPhase("rolling");
       }
     } else if (phaseRef.current === "rolling") {
-      const final = pickFromPool(pool);
+      const final = scaleReward(pickFromPool(pool), betMultiplier, level);
       setPreview(final);
       setPhase("locked");
       setLockedUntil(Date.now() + CLAIM_LOCK_MS);
@@ -235,7 +256,7 @@ export function TopHud({
 
     // Server-of-truth: lock the final reward up-front so the prize
     // can't change if the page refreshes mid-spin.
-    const candidate = pickFromPool(pool);
+    const candidate = scaleReward(pickFromPool(pool), betMultiplier, level);
     let lockedId: string | null = null;
     let final: Reward = candidate;
     try {
@@ -405,6 +426,11 @@ export function TopHud({
               <span className="text-3xl leading-none">{preview.emoji}</span>
             </motion.div>
             <div className="flex flex-col items-start leading-tight">
+              {phase === "locked" && (
+                <span className="text-[12px] font-display text-emerald-200 drop-shadow-[0_1px_0_rgba(0,0,0,0.7)] whitespace-nowrap">
+                  +{preview.amount.toLocaleString()} {preview.emoji}
+                </span>
+              )}
               <span className="text-[11px] font-display bg-wood-dark text-cream-light px-1.5 rounded-full border border-cream-light/60 py-[1px] whitespace-nowrap">
                 ×{betMultiplier}
               </span>
