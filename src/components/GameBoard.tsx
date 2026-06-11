@@ -203,8 +203,14 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
       setShowResult(false);
       return;
     }
-    // Delay banner until monster's hop animation finishes (~steps × 110ms + 250ms settle)
-    const landDelay = Math.min(lastResult.steps, 12) * 110 + 250;
+    // Sync banner + onLanded with the actual hopSequence above:
+    //   per-hop = 0.12s up + 0.10s down = 220ms, capped at 6 hops,
+    //   plus the 500ms landing settle. This makes the reward pop the
+    //   instant the monster lands, instead of trailing behind during
+    //   fast auto-rolls (where the old 110ms estimate could leave
+    //   prizes piling up after energy ran out).
+    const hops = Math.min(lastResult.steps, 6);
+    const landDelay = hops * 220 + 500;
     if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
     resultTimerRef.current = setTimeout(() => {
       setShowResult(true);
