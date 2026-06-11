@@ -492,6 +492,26 @@ export function MiniGame({ season, onFinish, onClose, hasRolls, onSpendRoll, coi
                   />
                 ))}
 
+                {/* Hit flashes — make it obvious when a shot connects. */}
+                {hits.map((h) => (
+                  <motion.div
+                    key={h.id}
+                    initial={{ scale: 0.6, opacity: 1 }}
+                    animate={{ scale: 2.2, opacity: 0 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 text-2xl pointer-events-none font-display"
+                    style={{
+                      left: `${h.x}%`,
+                      top: `${h.y}%`,
+                      color: h.isBug ? "hsl(var(--destructive))" : "hsl(var(--gold))",
+                      textShadow: "0 0 10px currentColor",
+                    }}
+                    aria-hidden="true"
+                  >
+                    {h.isBug ? "💥" : "+1"}
+                  </motion.div>
+                ))}
+
                 <motion.div
                   className="absolute -translate-x-1/2 -translate-y-1/2 text-3xl pointer-events-none"
                   style={{ left: `${shipX}%`, top: `${SHIP_Y}%`, filter: "drop-shadow(0 0 8px hsl(var(--gold)))" }}
