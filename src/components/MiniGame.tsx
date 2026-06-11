@@ -60,6 +60,14 @@ interface Bullet {
   id: number;
   x: number;
   y: number;
+  prevY?: number;
+}
+
+interface HitFx {
+  id: number;
+  x: number;
+  y: number;
+  isBug: boolean;
 }
 
 const SHIP_Y = 90;
@@ -78,6 +86,7 @@ export function MiniGame({ season, onFinish, onClose, hasRolls, onSpendRoll, coi
 
   const [enemies, setEnemies] = useState<Enemy[]>([]);
   const [bullets, setBullets] = useState<Bullet[]>([]);
+  const [hits, setHits] = useState<HitFx[]>([]);
   const [shipX, setShipX] = useState(50);
   const [progress, setProgress] = useState<[number, number, number]>([0, 0, 0]);
   const [timeLeft, setTimeLeft] = useState(cfg.seconds);
@@ -85,6 +94,7 @@ export function MiniGame({ season, onFinish, onClose, hasRolls, onSpendRoll, coi
 
   const idCounter = useRef(0);
   const bulletIdRef = useRef(0);
+  const hitIdRef = useRef(0);
   const spawnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const moveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fireTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -158,7 +168,14 @@ export function MiniGame({ season, onFinish, onClose, hasRolls, onSpendRoll, coi
   useEffect(() => {
     if (phase !== "playing") return;
     moveTimerRef.current = setInterval(() => {
-      setBullets((bs) => bs.map((b) => ({ ...b, y: b.y - cfg.bulletSpeed })).filter((b) => b.y > -4));
+      // Keep the bullet's PREVIOUS y on the bullet itself so the collision
+      // step below can do a swept-segment check (no tunnelling through
+      // fast-falling enemies).
+      setBullets((bs) =>
+        bs
+          .map((b) => ({ ...b, prevY: b.y, y: b.y - cfg.bulletSpeed }))
+          .filter((b) => b.y > -4),
+      );
 
       setEnemies((prev) => {
         const moved = prev.map((e) => {
@@ -175,7 +192,14 @@ export function MiniGame({ season, onFinish, onClose, hasRolls, onSpendRoll, coi
         const usedBulletIds = new Set<number>();
         for (const b of curBullets) {
           for (const e of moved) {
-            if (Math.abs(e.x - b.x) < 6 && Math.abs(e.y - b.y) < 7) {
+            // Horizontal: generous box so emoji-sized targets register.
+            // Vertical: swept range from previous bullet y down to current
+            // y (bullets travel upward), expanded by ±4 to cover the
+            // enemy's height. This stops the "shoot but nothing hits" bug.
+            const prevY = (b as Bullet & { prevY?: number }).prevY ?? b.y;
+            const yTop = Math.min(b.y, prevY) - 4;
+            const yBot = Math.max(b.y, prevY) + 4;
+            if (Math.abs(e.x - b.x) < 8 && e.y >= yTop && e.y <= yBot) {
               damaged.set(e.id, (damaged.get(e.id) ?? 0) + 1);
               usedBulletIds.add(b.id);
               break;
@@ -187,10 +211,13 @@ export function MiniGame({ season, onFinish, onClose, hasRolls, onSpendRoll, coi
         }
 
         const remaining: Enemy[] = [];
+        const newHits: HitFx[] = [];
         for (const e of moved) {
           const dmg = damaged.get(e.id) ?? 0;
           const newHp = e.hp - dmg;
           if (dmg > 0 && newHp <= 0) {
+            hitIdRef.current += 1;
+            newHits.push({ id: hitIdRef.current, x: e.x, y: e.y, isBug: e.isBug });
             if (e.isBug) {
               sfxSkull();
               setProgress((p) => {
@@ -220,6 +247,15 @@ export function MiniGame({ season, onFinish, onClose, hasRolls, onSpendRoll, coi
             continue;
           }
           remaining.push({ ...e, hp: newHp });
+        }
+        if (newHits.length > 0) {
+          setHits((h) => [...h, ...newHits]);
+          // Auto-clear each hit fx after its animation.
+          newHits.forEach((hit) => {
+            window.setTimeout(() => {
+              setHits((h) => h.filter((x) => x.id !== hit.id));
+            }, 450);
+          });
         }
         return remaining;
       });
@@ -454,6 +490,26 @@ export function MiniGame({ season, onFinish, onClose, hasRolls, onSpendRoll, coi
                     style={{ left: `${b.x}%`, top: `${b.y}%`, boxShadow: "0 0 6px hsl(var(--gold))" }}
                     aria-hidden="true"
                   />
+                ))}
+
+                {/* Hit flashes — make it obvious when a shot connects. */}
+                {hits.map((h) => (
+                  <motion.div
+                    key={h.id}
+                    initial={{ scale: 0.6, opacity: 1 }}
+                    animate={{ scale: 2.2, opacity: 0 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 text-2xl pointer-events-none font-display"
+                    style={{
+                      left: `${h.x}%`,
+                      top: `${h.y}%`,
+                      color: h.isBug ? "hsl(var(--destructive))" : "hsl(var(--gold))",
+                      textShadow: "0 0 10px currentColor",
+                    }}
+                    aria-hidden="true"
+                  >
+                    {h.isBug ? "💥" : "+1"}
+                  </motion.div>
                 ))}
 
                 <motion.div
