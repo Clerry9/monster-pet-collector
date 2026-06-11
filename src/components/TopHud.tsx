@@ -188,7 +188,7 @@ export function TopHud({
     }
     if (!granted) {
       toast.error("Couldn't claim that prize — please try again.", {
-        description: `${final.emoji} ${final.amount.toLocaleString()} ${final.label}`,
+        description: `${final.emoji} ${(final.amount ?? 0).toLocaleString()} ${final.label}`,
       });
       setPhase("idle");
       setLockedUntil(0);
@@ -197,7 +197,7 @@ export function TopHud({
     if (lockedId) {
       supabase.rpc("claim_island_landing_reward", { p_id: lockedId }).then(() => {}, () => {});
     }
-    toast.success(`+${final.amount.toLocaleString()} ${final.label}`, {
+    toast.success(`+${(final.amount ?? 0).toLocaleString()} ${final.label}`, {
       description: `${final.emoji} added to your stash`,
     });
   };
