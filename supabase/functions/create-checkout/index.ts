@@ -44,11 +44,29 @@ Deno.serve(async (req) => {
     const env: StripeEnv = environment === "live" ? "live" : "sandbox";
     const stripe = createStripeClient(env);
 
-    // Resolve lookup_key → Stripe price id
-    const prices = await stripe.prices.list({ lookup_keys: [priceId], expand: ["data.product"], limit: 1 });
-    const price = prices.data[0];
+    // Resolve lookup_key → Stripe price id. Guard the response shape so a
+    // gateway/API hiccup that returns no `data` array doesn't crash the
+    // function with "Cannot read properties of undefined (reading '0')".
+    let price: Awaited<ReturnType<typeof stripe.prices.list>>["data"][number] | undefined;
+    try {
+      const prices = await stripe.prices.list({
+        lookup_keys: [priceId],
+        expand: ["data.product"],
+        limit: 1,
+      });
+      price = Array.isArray(prices?.data) ? prices.data[0] : undefined;
+    } catch (e) {
+      console.error("create-checkout: prices.list failed", e);
+      return new Response(
+        JSON.stringify({ error: `Unable to look up price "${priceId}". ${(e as Error).message}` }),
+        { status: 502, headers: corsHeaders },
+      );
+    }
     if (!price) {
-      return new Response(JSON.stringify({ error: `Unknown price: ${priceId}` }), { status: 404, headers: corsHeaders });
+      return new Response(
+        JSON.stringify({ error: `Unknown price: ${priceId}. Make sure a Stripe Price with this lookup_key exists in the current environment.` }),
+        { status: 404, headers: corsHeaders },
+      );
     }
     const isRecurring = !!price.recurring;
 
