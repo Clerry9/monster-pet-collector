@@ -62,13 +62,32 @@ const CLAIM_MAX_RETRIES = 1;
 
 function pickFromPool(pool: RewardTemplate[]): Reward {
   const total = pool.reduce((s, t) => s + Math.max(0, t.weight), 0);
-  if (total <= 0) return pickReward();
+  if (total <= 0) {
+    try { return pickReward(); } catch { return FALLBACK_REWARD(); }
+  }
   let r = Math.random() * total;
   for (const t of pool) {
     r -= Math.max(0, t.weight);
-    if (r <= 0) return t.build();
+    if (r <= 0) return sanitizeReward(t.build());
   }
-  return pool[0].build();
+  return pool[0] ? sanitizeReward(pool[0].build()) : FALLBACK_REWARD();
+}
+
+/** Minimal always-valid reward used when pool/RPC data is missing. */
+function FALLBACK_REWARD(): Reward {
+  return { kind: "coins_small", amount: 0, label: "Coins", emoji: "🪙" };
+}
+
+/** Coerce any partial/unknown reward-shaped value into a safe Reward. */
+function sanitizeReward(input: unknown, fallback: Reward = FALLBACK_REWARD()): Reward {
+  const r = (input ?? {}) as Partial<Reward>;
+  const amountNum = Number(r.amount);
+  return {
+    kind: (typeof r.kind === "string" && r.kind ? r.kind : fallback.kind) as Reward["kind"],
+    amount: Number.isFinite(amountNum) ? amountNum : fallback.amount,
+    label: typeof r.label === "string" && r.label ? r.label : fallback.label,
+    emoji: typeof r.emoji === "string" && r.emoji ? r.emoji : fallback.emoji,
+  };
 }
 
 /**
@@ -169,7 +188,7 @@ export function TopHud({
     }
     if (!granted) {
       toast.error("Couldn't claim that prize — please try again.", {
-        description: `${final.emoji} ${final.amount.toLocaleString()} ${final.label}`,
+        description: `${final.emoji} ${(final.amount ?? 0).toLocaleString()} ${final.label}`,
       });
       setPhase("idle");
       setLockedUntil(0);
@@ -178,7 +197,7 @@ export function TopHud({
     if (lockedId) {
       supabase.rpc("claim_island_landing_reward", { p_id: lockedId }).then(() => {}, () => {});
     }
-    toast.success(`+${final.amount.toLocaleString()} ${final.label}`, {
+    toast.success(`+${(final.amount ?? 0).toLocaleString()} ${final.label}`, {
       description: `${final.emoji} added to your stash`,
     });
   };
@@ -219,12 +238,7 @@ export function TopHud({
         if (cancelled || !data) return;
         const row: any = Array.isArray(data) ? data[0] : data;
         if (!row) return;
-        setPreview({
-          kind: row.kind,
-          amount: row.amount,
-          label: row.label,
-          emoji: row.emoji,
-        });
+        setPreview(sanitizeReward(row, pickFromPool(pool)));
         setPhase("locked");
         setLockedUntil(Date.now() + CLAIM_LOCK_MS);
       } catch { /* offline / signed-out — fall back to local cycling */ }
@@ -279,7 +293,7 @@ export function TopHud({
       const row: any = Array.isArray(data) ? data[0] : data;
       if (row) {
         lockedId = row.id;
-        final = { kind: row.kind, amount: row.amount, label: row.label, emoji: row.emoji };
+        final = sanitizeReward(row, candidate);
       }
     } catch {
       // Guests / offline: still run reveal locally so play isn't blocked.
@@ -437,7 +451,7 @@ export function TopHud({
             <div className="flex flex-col items-start leading-tight">
               {phase === "locked" && (
                 <span className="text-[12px] font-display text-emerald-200 drop-shadow-[0_1px_0_rgba(0,0,0,0.7)] whitespace-nowrap">
-                  +{preview.amount.toLocaleString()} {preview.emoji}
+                  +{(preview.amount ?? 0).toLocaleString()} {preview.emoji}
                 </span>
               )}
               <span className="text-[11px] font-display bg-wood-dark text-cream-light px-1.5 rounded-full border border-cream-light/60 py-[1px] whitespace-nowrap">
@@ -511,7 +525,7 @@ function HistoryButton({
                 <span className="text-lg leading-none" aria-hidden>{e.emoji}</span>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium truncate">
-                    +{e.amount.toLocaleString()} {e.label}
+                    +{(e.amount ?? 0).toLocaleString()} {e.label}
                   </div>
                   <div className="text-[10px] text-muted-foreground">{formatAgo(e.at)}</div>
                 </div>
