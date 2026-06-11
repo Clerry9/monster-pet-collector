@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Gift, RefreshCw, Trophy, Gamepad2, Star, Dices, Swords, Crosshair } from "lucide-react";
+import { Sparkles, Gift, RefreshCw, Trophy, Gamepad2, Star, Dices, Swords, Layers } from "lucide-react";
 
 const RAIL_ICON_SIZE = 26;
 import { formatTimeRemaining } from "@/data/seasons";
@@ -62,9 +62,9 @@ export function SideRails({
   const left: RailItem[] = [
     { id: "season", icon: <Star size={RAIL_ICON_SIZE} />, label: "EVENT", countdownMs: msRemaining, onClick: onOpenSeason, hot: newEvent, tip: "Limited-time event with a battle pass and exclusive monsters. Countdown shows when a new season starts." },
     ...(onOpenArena ? [{ id: "arena", icon: <Swords size={RAIL_ICON_SIZE} />, label: "ARENA", onClick: onOpenArena, tip: "Endless solo battle gauntlet — climb waves, earn shards & coins, chase the season leaderboard." } as RailItem] : []),
-    ...(onOpenPvp ? [{ id: "pvp", icon: <Crosshair size={RAIL_ICON_SIZE} />, label: "PVP", onClick: onOpenPvp, tip: "Battle other players' defense teams. Set your own defender and climb the ranked ladder." } as RailItem] : []),
+    ...(onOpenPvp ? [{ id: "pvp", icon: <Gamepad2 size={RAIL_ICON_SIZE} />, label: "PVP", onClick: onOpenPvp, tip: "Battle other players' defense teams. Set your own defender and climb the ranked ladder." } as RailItem] : []),
     { id: "specials", icon: <Sparkles size={RAIL_ICON_SIZE} />, label: "SHOP", onClick: onOpenSpecials, tip: "Buy dice bundles, special packs, and the Season Pass. Best deals live here." },
-    { id: "cards", icon: <Gamepad2 size={RAIL_ICON_SIZE} />, label: "CARDS", onClick: onOpenCards, tip: "Browse every card you've drawn and see how close each set is to completion." },
+    { id: "cards", icon: <Layers size={RAIL_ICON_SIZE} />, label: "CARDS", onClick: onOpenCards, tip: "Browse every card you've drawn and see how close each set is to completion." },
   ];
   const right: RailItem[] = [
     {
@@ -144,7 +144,7 @@ function Rail({ items, side, onLearnMore }: { items: RailItem[]; side: "left" | 
                 onMouseLeave={() => { if (!isMobile) setOpenId((cur) => (cur === it.id ? null : cur)); }}
                 onFocus={() => setOpenId(it.id)}
                 onBlur={() => setOpenId((cur) => (cur === it.id ? null : cur))}
-                className="icon-tile-gold w-14 h-14 sm:w-16 sm:h-16 flex flex-col items-center justify-center relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                className="rail-tile-glass w-14 h-14 sm:w-16 sm:h-16 flex flex-col items-center justify-center relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cream-light rounded-2xl"
                 aria-label={`${it.label}${it.tip ? ` — ${it.tip}` : ""}`}
                 aria-haspopup="dialog"
                 aria-expanded={isOpen}

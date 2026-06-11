@@ -268,6 +268,24 @@ html[data-contrast="high"] *:focus-visible {
     text-shadow: 0 1px 0 hsl(48 100% 88% / 0.7);
   }
 
+  /* Whitish translucent rail/tab tile — glassy look that lets the board show through */
+  .rail-tile-glass {
+    background: linear-gradient(180deg, rgba(255,255,255,0.32), rgba(255,255,255,0.14));
+    border: 2px solid rgba(255,255,255,0.55);
+    backdrop-filter: blur(8px) saturate(140%);
+    -webkit-backdrop-filter: blur(8px) saturate(140%);
+    color: hsl(38 90% 96%);
+    box-shadow:
+      0 4px 12px -2px rgba(0,0,0,0.35),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.55);
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .rail-tile-glass:hover {
+    background: linear-gradient(180deg, rgba(255,255,255,0.42), rgba(255,255,255,0.22));
+    border-color: rgba(255,255,255,0.75);
+  }
+
   /* Curved gold banner */
   .banner-gold {
     background: linear-gradient(180deg, hsl(48 100% 72%), hsl(var(--gold)) 60%, hsl(var(--gold-deep)));

@@ -189,10 +189,13 @@ export function GameBoard({ position, absoluteStep, monster, rolls, lastResult, 
           rotate: [0, 0, 0, 0, 0],
           transition: { duration: 0.5, ease: "easeOut" },
         });
+        // Monster has fully finished hopping + landing settle — flip
+        // "moving" off so the HUD prize roulette locks on the visible icon.
+        onMovingChange?.(false);
       };
       hopSequence();
     }
-  }, [position, monsterControls]);
+  }, [position, monsterControls, onMovingChange]);
 
   // Trigger effects + show result banner AFTER the monster lands
   useEffect(() => {
