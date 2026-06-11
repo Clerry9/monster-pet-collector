@@ -451,7 +451,7 @@ export function TopHud({
             <div className="flex flex-col items-start leading-tight">
               {phase === "locked" && (
                 <span className="text-[12px] font-display text-emerald-200 drop-shadow-[0_1px_0_rgba(0,0,0,0.7)] whitespace-nowrap">
-                  +{preview.amount.toLocaleString()} {preview.emoji}
+                  +{(preview.amount ?? 0).toLocaleString()} {preview.emoji}
                 </span>
               )}
               <span className="text-[11px] font-display bg-wood-dark text-cream-light px-1.5 rounded-full border border-cream-light/60 py-[1px] whitespace-nowrap">
@@ -525,7 +525,7 @@ function HistoryButton({
                 <span className="text-lg leading-none" aria-hidden>{e.emoji}</span>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium truncate">
-                    +{e.amount.toLocaleString()} {e.label}
+                    +{(e.amount ?? 0).toLocaleString()} {e.label}
                   </div>
                   <div className="text-[10px] text-muted-foreground">{formatAgo(e.at)}</div>
                 </div>
