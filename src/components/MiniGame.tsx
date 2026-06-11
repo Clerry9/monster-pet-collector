@@ -60,6 +60,14 @@ interface Bullet {
   id: number;
   x: number;
   y: number;
+  prevY?: number;
+}
+
+interface HitFx {
+  id: number;
+  x: number;
+  y: number;
+  isBug: boolean;
 }
 
 const SHIP_Y = 90;
@@ -78,6 +86,7 @@ export function MiniGame({ season, onFinish, onClose, hasRolls, onSpendRoll, coi
 
   const [enemies, setEnemies] = useState<Enemy[]>([]);
   const [bullets, setBullets] = useState<Bullet[]>([]);
+  const [hits, setHits] = useState<HitFx[]>([]);
   const [shipX, setShipX] = useState(50);
   const [progress, setProgress] = useState<[number, number, number]>([0, 0, 0]);
   const [timeLeft, setTimeLeft] = useState(cfg.seconds);
@@ -85,6 +94,7 @@ export function MiniGame({ season, onFinish, onClose, hasRolls, onSpendRoll, coi
 
   const idCounter = useRef(0);
   const bulletIdRef = useRef(0);
+  const hitIdRef = useRef(0);
   const spawnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const moveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fireTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
