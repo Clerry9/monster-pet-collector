@@ -158,7 +158,13 @@ export function TopHud({
   useEffect(() => {
     if (externalRolling === undefined) return;
     if (externalRolling) {
-      if (phaseRef.current === "idle") setPhase("rolling");
+      // Force the wheel to spin whenever the monster is hopping, even if a
+      // previous "locked" reward was still being shown — otherwise a stale
+      // server-locked prize permanently freezes the roulette.
+      if (phaseRef.current !== "rolling") {
+        setLockedUntil(0);
+        setPhase("rolling");
+      }
     } else if (phaseRef.current === "rolling") {
       const final = pickFromPool(pool);
       setPreview(final);
@@ -345,7 +351,7 @@ export function TopHud({
       {/* Energy pill slot — centered directly beneath the XP bar so the
           most important stat sits front and centre, not behind the monster. */}
       {energySlot && (
-        <div className="flex justify-center pointer-events-auto">
+        <div className="flex justify-center pointer-events-auto -mt-1">
           {energySlot}
         </div>
       )}
