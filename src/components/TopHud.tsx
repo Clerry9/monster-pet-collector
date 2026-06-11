@@ -594,8 +594,9 @@ function KeySlots({ count, onAdd, tip }: { count: number; onAdd?: () => void; ti
 }
 
 function formatCompact(n: number): string {
-  if (n < 1000) return n.toLocaleString();
-  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 2 : 1)}K`;
-  if (n < 1_000_000_000) return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 2 : 1)}M`;
-  return `${(n / 1_000_000_000).toFixed(2)}B`;
+  const v = Number.isFinite(n) ? n : 0;
+  if (v < 1000) return v.toLocaleString();
+  if (v < 1_000_000) return `${(v / 1000).toFixed(v < 10_000 ? 2 : 1)}K`;
+  if (v < 1_000_000_000) return `${(v / 1_000_000).toFixed(v < 10_000_000 ? 2 : 1)}M`;
+  return `${(v / 1_000_000_000).toFixed(2)}B`;
 }
