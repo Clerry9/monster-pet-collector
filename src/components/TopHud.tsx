@@ -107,10 +107,19 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
  * Coin-Master style top HUD: gem · coin · 3 key slots · star + center XP bar.
  */
 export function TopHud({
-  gems, coins, keys, stars, shards = 0, xp, level, betMultiplier, guestName,
+  gems: gemsProp, coins: coinsProp, keys: keysProp, stars: starsProp,
+  shards: shardsProp = 0, xp: xpProp, level, betMultiplier, guestName,
   onAddGems, onAddCoins, onAddKeys, onAddStars, onAddShards, onClaimReward,
   energySlot, externalRolling,
 }: TopHudProps) {
+  // Defensive coercion — upstream state can briefly hand us null while
+  // rehydrating from storage, and `null.toLocaleString()` would crash the HUD.
+  const gems = Number.isFinite(gemsProp as number) ? (gemsProp as number) : 0;
+  const coins = Number.isFinite(coinsProp as number) ? (coinsProp as number) : 0;
+  const keys = Number.isFinite(keysProp as number) ? (keysProp as number) : 0;
+  const stars = Number.isFinite(starsProp as number) ? (starsProp as number) : 0;
+  const shards = Number.isFinite(shardsProp as number) ? (shardsProp as number) : 0;
+  const xp = Number.isFinite(xpProp as number) ? (xpProp as number) : 0;
   const { current, progress, xpInLevel, xpNeeded } = getLevelProgress(xp);
 
   // Configurable odds — admin overrides applied on top of SHARED_POOL.
@@ -585,8 +594,9 @@ function KeySlots({ count, onAdd, tip }: { count: number; onAdd?: () => void; ti
 }
 
 function formatCompact(n: number): string {
-  if (n < 1000) return n.toLocaleString();
-  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 2 : 1)}K`;
-  if (n < 1_000_000_000) return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 2 : 1)}M`;
-  return `${(n / 1_000_000_000).toFixed(2)}B`;
+  const v = Number.isFinite(n) ? n : 0;
+  if (v < 1000) return v.toLocaleString();
+  if (v < 1_000_000) return `${(v / 1000).toFixed(v < 10_000 ? 2 : 1)}K`;
+  if (v < 1_000_000_000) return `${(v / 1_000_000).toFixed(v < 10_000_000 ? 2 : 1)}M`;
+  return `${(v / 1_000_000_000).toFixed(2)}B`;
 }
