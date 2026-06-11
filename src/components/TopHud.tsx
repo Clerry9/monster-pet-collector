@@ -187,7 +187,7 @@ export function TopHud({
         setPhase("rolling");
       }
     } else if (phaseRef.current === "rolling") {
-      const final = pickFromPool(pool);
+      const final = scaleReward(pickFromPool(pool), betMultiplier, level);
       setPreview(final);
       setPhase("locked");
       setLockedUntil(Date.now() + CLAIM_LOCK_MS);
@@ -256,7 +256,7 @@ export function TopHud({
 
     // Server-of-truth: lock the final reward up-front so the prize
     // can't change if the page refreshes mid-spin.
-    const candidate = pickFromPool(pool);
+    const candidate = scaleReward(pickFromPool(pool), betMultiplier, level);
     let lockedId: string | null = null;
     let final: Reward = candidate;
     try {
