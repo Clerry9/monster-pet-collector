@@ -31,7 +31,11 @@ export function PowerUpShop() {
       });
       window.location.href = url;
     } catch (e) {
-      toast.error((e as Error).message || "Checkout failed");
+      const msg = (e as Error).message || "Checkout failed";
+      const friendly = /unknown price|price not found|404/i.test(msg)
+        ? "This bundle isn't available right now. Please try another or contact support."
+        : msg;
+      toast.error("Checkout unavailable", { description: friendly });
       setCheckoutPriceId(null);
     }
   };
