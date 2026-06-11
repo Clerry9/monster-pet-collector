@@ -98,8 +98,12 @@ export function SpecialPacks() {
         customerEmail: user.email,
         customData: { userId: user.id, packId: `special_${pack.id}` },
       });
-    } catch {
-      toast.error("Failed to open checkout");
+    } catch (e) {
+      const msg = (e as Error)?.message ?? "";
+      const friendly = /unknown price|price not found|404/i.test(msg)
+        ? "This pack isn't available right now. Please try another."
+        : msg || "Failed to open checkout";
+      toast.error("Checkout unavailable", { description: friendly });
     }
   };
 
