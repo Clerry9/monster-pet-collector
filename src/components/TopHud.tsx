@@ -238,12 +238,7 @@ export function TopHud({
         if (cancelled || !data) return;
         const row: any = Array.isArray(data) ? data[0] : data;
         if (!row) return;
-        setPreview({
-          kind: row.kind,
-          amount: row.amount,
-          label: row.label,
-          emoji: row.emoji,
-        });
+        setPreview(sanitizeReward(row, pickFromPool(pool)));
         setPhase("locked");
         setLockedUntil(Date.now() + CLAIM_LOCK_MS);
       } catch { /* offline / signed-out — fall back to local cycling */ }
