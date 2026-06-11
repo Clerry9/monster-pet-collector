@@ -426,6 +426,11 @@ export function TopHud({
               <span className="text-3xl leading-none">{preview.emoji}</span>
             </motion.div>
             <div className="flex flex-col items-start leading-tight">
+              {phase === "locked" && (
+                <span className="text-[12px] font-display text-emerald-200 drop-shadow-[0_1px_0_rgba(0,0,0,0.7)] whitespace-nowrap">
+                  +{preview.amount.toLocaleString()} {preview.emoji}
+                </span>
+              )}
               <span className="text-[11px] font-display bg-wood-dark text-cream-light px-1.5 rounded-full border border-cream-light/60 py-[1px] whitespace-nowrap">
                 ×{betMultiplier}
               </span>
