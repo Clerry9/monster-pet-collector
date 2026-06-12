@@ -949,8 +949,23 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
       currentPos.current.y + 1.1 + hopY + idleBob + liftRef.current,
       currentPos.current.z
     );
-    groupRef.current.scale.setScalar(hopScale * idleScale);
-    groupRef.current.rotation.z = hopRotZ;
+    // Squash-and-stretch so the monster's *body* visibly hops, not just
+    // translates. Anticipation squash at takeoff & landing, vertical
+    // stretch at the peak of the arc. Falls back to uniform scaling
+    // while idle so breathing reads cleanly.
+    const scaleBase = hopScale * idleScale;
+    let sx = scaleBase;
+    let sy = scaleBase;
+    if (activeTargetIdx.current !== null) {
+      const p = stepProgress.current;
+      const arc = Math.sin(p * Math.PI); // 0 → 1 → 0 across the hop
+      const squash = p < 0.18 ? (0.18 - p) / 0.18 : p > 0.82 ? (p - 0.82) / 0.18 : 0;
+      sy = scaleBase * (1 + arc * 0.22 - squash * 0.28);
+      sx = scaleBase * (1 - arc * 0.14 + squash * 0.2);
+    }
+    groupRef.current.scale.set(sx, sy, scaleBase);
+    // Lean into the jump direction: a touch more rotation while airborne.
+    groupRef.current.rotation.z = hopRotZ * 1.6;
 
     trailPosRef.current = [new THREE.Vector3(currentPos.current.x, currentPos.current.y + liftRef.current, currentPos.current.z)];
     if (monsterPosRef) {
@@ -988,10 +1003,16 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
     }
   });
 
-  const rarityColor =
-    monster.rarity === "legendary" ? "#a855f7" :
-    monster.rarity === "epic" ? "#3b82f6" :
-    monster.rarity === "rare" ? "#22d3ee" : "#22c55e";
+  // Tint the rim/halo to match the monster's biome icon palette so the
+  // pawn visually belongs to its world (forest = green, sky = azure,
+  // abyss = teal, shadow = violet). Legendary monsters keep an extra
+  // rarity boost via the outer ring brightness below.
+  const biomeColor =
+    monster.biome === "forest" ? "#22c55e" :
+    monster.biome === "sky"    ? "#60a5fa" :
+    monster.biome === "abyss"  ? "#06b6d4" :
+    /* shadow */                  "#a855f7";
+  const rarityColor = biomeColor;
 
   return (
     // `frustumCulled={false}` on the group: when the pawn animates upward
