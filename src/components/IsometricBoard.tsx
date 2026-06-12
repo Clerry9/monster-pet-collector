@@ -1003,10 +1003,16 @@ function MonsterPawn({ absoluteIndex, pathPointAt, monster, movementResult, trai
     }
   });
 
-  const rarityColor =
-    monster.rarity === "legendary" ? "#a855f7" :
-    monster.rarity === "epic" ? "#3b82f6" :
-    monster.rarity === "rare" ? "#22d3ee" : "#22c55e";
+  // Tint the rim/halo to match the monster's biome icon palette so the
+  // pawn visually belongs to its world (forest = green, sky = azure,
+  // abyss = teal, shadow = violet). Legendary monsters keep an extra
+  // rarity boost via the outer ring brightness below.
+  const biomeColor =
+    monster.biome === "forest" ? "#22c55e" :
+    monster.biome === "sky"    ? "#60a5fa" :
+    monster.biome === "abyss"  ? "#06b6d4" :
+    /* shadow */                  "#a855f7";
+  const rarityColor = biomeColor;
 
   return (
     // `frustumCulled={false}` on the group: when the pawn animates upward
