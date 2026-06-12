@@ -6,33 +6,33 @@
 
 @layer base {
   :root {
-    /* Warm cartoon-casino palette */
-    --background: 35 70% 82%;            /* cream */
-    --foreground: 22 55% 18%;            /* dark wood */
+    /* Sky-blue cartoon palette (matches biome icons) */
+    --background: 213 80% 85%;           /* pale sky */
+    --foreground: 213 72% 15%;           /* deep navy */
 
-    --card: 38 75% 92%;                  /* light cream card */
-    --card-foreground: 22 55% 18%;
+    --card: 213 94% 93%;                 /* light sky card */
+    --card-foreground: 213 72% 15%;
 
-    --popover: 38 75% 92%;
-    --popover-foreground: 22 55% 18%;
+    --popover: 213 94% 93%;
+    --popover-foreground: 213 72% 15%;
 
     --primary: 354 78% 56%;              /* candy red */
     --primary-foreground: 38 90% 96%;
 
-    --secondary: 22 60% 34%;             /* wood brown */
+    --secondary: 222 76% 48%;            /* royal blue */
     --secondary-foreground: 38 90% 96%;
 
-    --muted: 35 45% 75%;
-    --muted-foreground: 22 35% 32%;
+    --muted: 213 60% 78%;
+    --muted-foreground: 213 45% 28%;
 
     --accent: 42 92% 55%;                /* gold */
-    --accent-foreground: 22 55% 18%;
+    --accent-foreground: 213 72% 15%;
 
     --destructive: 354 78% 48%;
     --destructive-foreground: 38 90% 96%;
 
-    --border: 22 55% 28%;                /* dark wood border */
-    --input: 22 55% 28%;
+    --border: 213 72% 17%;               /* deep navy border */
+    --input: 213 72% 17%;
     --ring: 354 78% 56%;
 
     --radius: 1.25rem;
@@ -40,26 +40,26 @@
     --coin: 42 95% 55%;
     --gold: 42 92% 55%;
     --gold-deep: 36 88% 42%;
-    --wood: 22 60% 34%;
-    --wood-dark: 22 65% 22%;
-    --wood-light: 28 55% 52%;
-    --cream: 35 70% 82%;
-    --cream-light: 38 80% 90%;
+    --wood: 222 76% 48%;                 /* royal blue (legacy token name) */
+    --wood-dark: 213 72% 17%;            /* deep navy */
+    --wood-light: 213 94% 68%;           /* sky blue */
+    --cream: 213 80% 85%;                /* pale sky */
+    --cream-light: 213 94% 93%;          /* lightest sky */
     --candy-red: 354 78% 56%;
     --candy-red-deep: 354 78% 38%;
     --energy-pink: 330 90% 62%;
-    --monster-bg: 35 70% 82%;
+    --monster-bg: 213 80% 85%;
 
     --font-display: 'Luckiest Guy', cursive;
     --font-body: 'Nunito', sans-serif;
 
-    --sidebar-background: 22 60% 28%;
+    --sidebar-background: 213 72% 22%;
     --sidebar-foreground: 38 90% 96%;
     --sidebar-primary: 42 92% 55%;
-    --sidebar-primary-foreground: 22 55% 18%;
+    --sidebar-primary-foreground: 213 72% 15%;
     --sidebar-accent: 354 78% 56%;
     --sidebar-accent-foreground: 38 90% 96%;
-    --sidebar-border: 22 65% 22%;
+    --sidebar-border: 213 72% 17%;
     --sidebar-ring: 42 92% 55%;
   }
 }
@@ -72,7 +72,7 @@
     @apply bg-background text-foreground;
     font-family: var(--font-body);
     background-image:
-      radial-gradient(ellipse at top, hsl(var(--cream-light)) 0%, hsl(var(--cream)) 40%, hsl(35 60% 70%) 100%);
+      radial-gradient(ellipse at top, hsl(var(--cream-light)) 0%, hsl(var(--cream)) 40%, hsl(213 70% 70%) 100%);
     background-attachment: fixed;
   }
 
@@ -131,20 +131,20 @@ html[data-contrast="high"] *:focus-visible {
 
   /* Chunky cartoon shadow */
   .shadow-chunky {
-    box-shadow: 0 4px 0 0 hsl(var(--wood-dark)), 0 8px 16px -2px hsl(22 60% 15% / 0.35);
+    box-shadow: 0 4px 0 0 hsl(var(--wood-dark)), 0 8px 16px -2px hsl(213 60% 15% / 0.35);
   }
   .shadow-chunky-sm {
-    box-shadow: 0 3px 0 0 hsl(var(--wood-dark)), 0 5px 10px -2px hsl(22 60% 15% / 0.3);
+    box-shadow: 0 3px 0 0 hsl(var(--wood-dark)), 0 5px 10px -2px hsl(213 60% 15% / 0.3);
   }
 
   /* Wood-grain panel framing the board (default / level 1) */
   .panel-wood {
     background:
-      repeating-linear-gradient(90deg, hsl(22 55% 30%) 0px, hsl(22 55% 35%) 2px, hsl(22 60% 32%) 4px, hsl(22 50% 28%) 6px),
+      repeating-linear-gradient(90deg, hsl(213 55% 30%) 0px, hsl(213 55% 35%) 2px, hsl(213 60% 32%) 4px, hsl(213 50% 28%) 6px),
       linear-gradient(180deg, hsl(var(--wood-light)), hsl(var(--wood)));
     border: 6px solid hsl(var(--wood-dark));
     border-radius: 2rem;
-    box-shadow: 0 8px 0 0 hsl(var(--wood-dark)), 0 14px 28px -4px hsl(22 60% 12% / 0.5), inset 0 0 0 3px hsl(42 92% 55% / 0.6);
+    box-shadow: 0 8px 0 0 hsl(var(--wood-dark)), 0 14px 28px -4px hsl(213 60% 12% / 0.5), inset 0 0 0 3px hsl(42 92% 55% / 0.6);
   }
 
   /* Level 2 — Crystal Caves (icy facets, cyan glow) */
@@ -214,10 +214,10 @@ html[data-contrast="high"] *:focus-visible {
   /* Gold pill (stat badges) */
   .pill-gold {
     background: linear-gradient(180deg, hsl(48 100% 70%) 0%, hsl(var(--gold)) 50%, hsl(var(--gold-deep)) 100%);
-    border: 3px solid hsl(22 80% 12%);
-    color: hsl(22 80% 8%);
+    border: 3px solid hsl(213 80% 12%);
+    color: hsl(213 80% 8%);
     border-radius: 9999px;
-    box-shadow: 0 3px 0 0 hsl(22 80% 12%), inset 0 2px 0 hsl(50 100% 85% / 0.8);
+    box-shadow: 0 3px 0 0 hsl(213 80% 12%), inset 0 2px 0 hsl(50 100% 85% / 0.8);
     font-family: var(--font-display);
     text-shadow: 0 1px 0 hsl(48 100% 88% / 0.7);
   }
@@ -239,7 +239,7 @@ html[data-contrast="high"] *:focus-visible {
   /* Big red 3D PRESS button */
   .btn-press {
     background: radial-gradient(circle at 35% 30%, hsl(354 90% 70%) 0%, hsl(var(--candy-red)) 45%, hsl(var(--candy-red-deep)) 100%);
-    border: 5px solid hsl(22 80% 12%);
+    border: 5px solid hsl(213 80% 12%);
     color: hsl(var(--primary-foreground));
     box-shadow:
       0 8px 0 0 hsl(var(--candy-red-deep)),
@@ -261,10 +261,10 @@ html[data-contrast="high"] *:focus-visible {
   /* Square gold icon tile (for tabs / rails) */
   .icon-tile-gold {
     background: linear-gradient(180deg, hsl(48 100% 72%), hsl(var(--gold)) 60%, hsl(var(--gold-deep)));
-    border: 3px solid hsl(22 80% 12%);
+    border: 3px solid hsl(213 80% 12%);
     border-radius: 1rem;
-    box-shadow: 0 4px 0 0 hsl(22 80% 12%), inset 0 2px 0 hsl(50 100% 85% / 0.8);
-    color: hsl(22 80% 8%);
+    box-shadow: 0 4px 0 0 hsl(213 80% 12%), inset 0 2px 0 hsl(50 100% 85% / 0.8);
+    color: hsl(213 80% 8%);
     text-shadow: 0 1px 0 hsl(48 100% 88% / 0.7);
   }
 
@@ -289,10 +289,10 @@ html[data-contrast="high"] *:focus-visible {
   /* Curved gold banner */
   .banner-gold {
     background: linear-gradient(180deg, hsl(48 100% 72%), hsl(var(--gold)) 60%, hsl(var(--gold-deep)));
-    border: 4px solid hsl(22 80% 12%);
-    color: hsl(22 80% 8%);
+    border: 4px solid hsl(213 80% 12%);
+    color: hsl(213 80% 8%);
     border-radius: 9999px;
-    box-shadow: 0 5px 0 0 hsl(22 80% 12%), 0 10px 16px -2px hsl(22 60% 15% / 0.4), inset 0 3px 0 hsl(50 100% 85% / 0.8);
+    box-shadow: 0 5px 0 0 hsl(213 80% 12%), 0 10px 16px -2px hsl(213 60% 15% / 0.4), inset 0 3px 0 hsl(50 100% 85% / 0.8);
     text-shadow: 0 1px 0 hsl(48 100% 88% / 0.7);
   }
 
@@ -317,11 +317,11 @@ html[data-contrast="high"] *:focus-visible {
 
   /* Generic counter pill: dark capsule with rounded "+" stub */
   .pill-counter {
-    background: linear-gradient(180deg, hsl(22 60% 28%), hsl(var(--wood-dark)));
-    border: 3px solid hsl(22 70% 14%);
+    background: linear-gradient(180deg, hsl(213 60% 28%), hsl(var(--wood-dark)));
+    border: 3px solid hsl(213 70% 14%);
     border-radius: 9999px;
     color: hsl(var(--cream-light));
-    box-shadow: 0 3px 0 0 hsl(22 70% 10%), inset 0 2px 0 hsl(35 50% 45% / 0.5);
+    box-shadow: 0 3px 0 0 hsl(213 70% 10%), inset 0 2px 0 hsl(213 60% 55% / 0.5);
     font-family: var(--font-display);
     letter-spacing: 0.04em;
   }
@@ -335,10 +335,10 @@ html[data-contrast="high"] *:focus-visible {
 
   /* Green XP bar (paw + 891/1.400 + flame) */
   .pill-xp-shell {
-    background: linear-gradient(180deg, hsl(22 60% 28%), hsl(var(--wood-dark)));
-    border: 3px solid hsl(22 70% 14%);
+    background: linear-gradient(180deg, hsl(213 60% 28%), hsl(var(--wood-dark)));
+    border: 3px solid hsl(213 70% 14%);
     border-radius: 9999px;
-    box-shadow: 0 3px 0 0 hsl(22 70% 10%);
+    box-shadow: 0 3px 0 0 hsl(213 70% 10%);
   }
   .pill-xp-fill {
     background: linear-gradient(180deg, hsl(120 80% 60%), hsl(120 75% 38%));
@@ -393,10 +393,10 @@ html[data-contrast="high"] *:focus-visible {
   /* Wood plank dock (bottom tab bar) */
   .dock-wood {
     background:
-      repeating-linear-gradient(90deg, hsl(22 55% 30%) 0px, hsl(22 55% 36%) 3px, hsl(22 60% 32%) 6px, hsl(22 50% 28%) 9px),
+      repeating-linear-gradient(90deg, hsl(213 55% 30%) 0px, hsl(213 55% 36%) 3px, hsl(213 60% 32%) 6px, hsl(213 50% 28%) 9px),
       linear-gradient(180deg, hsl(var(--wood-light)), hsl(var(--wood)));
     border-top: 5px solid hsl(var(--wood-dark));
-    box-shadow: 0 -6px 16px -2px hsl(22 60% 12% / 0.4), inset 0 3px 0 hsl(48 92% 55% / 0.45);
+    box-shadow: 0 -6px 16px -2px hsl(213 60% 12% / 0.4), inset 0 3px 0 hsl(48 92% 55% / 0.45);
   }
 }
 
