@@ -6,33 +6,33 @@
 
 @layer base {
   :root {
-    /* Warm cartoon-casino palette */
-    --background: 35 70% 82%;            /* cream */
-    --foreground: 22 55% 18%;            /* dark wood */
+    /* Sky-blue cartoon palette (matches biome icons) */
+    --background: 213 80% 85%;           /* pale sky */
+    --foreground: 213 72% 15%;           /* deep navy */
 
-    --card: 38 75% 92%;                  /* light cream card */
-    --card-foreground: 22 55% 18%;
+    --card: 213 94% 93%;                 /* light sky card */
+    --card-foreground: 213 72% 15%;
 
-    --popover: 38 75% 92%;
-    --popover-foreground: 22 55% 18%;
+    --popover: 213 94% 93%;
+    --popover-foreground: 213 72% 15%;
 
     --primary: 354 78% 56%;              /* candy red */
     --primary-foreground: 38 90% 96%;
 
-    --secondary: 22 60% 34%;             /* wood brown */
+    --secondary: 222 76% 48%;            /* royal blue */
     --secondary-foreground: 38 90% 96%;
 
-    --muted: 35 45% 75%;
-    --muted-foreground: 22 35% 32%;
+    --muted: 213 60% 78%;
+    --muted-foreground: 213 45% 28%;
 
     --accent: 42 92% 55%;                /* gold */
-    --accent-foreground: 22 55% 18%;
+    --accent-foreground: 213 72% 15%;
 
     --destructive: 354 78% 48%;
     --destructive-foreground: 38 90% 96%;
 
-    --border: 22 55% 28%;                /* dark wood border */
-    --input: 22 55% 28%;
+    --border: 213 72% 17%;               /* deep navy border */
+    --input: 213 72% 17%;
     --ring: 354 78% 56%;
 
     --radius: 1.25rem;
@@ -40,26 +40,26 @@
     --coin: 42 95% 55%;
     --gold: 42 92% 55%;
     --gold-deep: 36 88% 42%;
-    --wood: 22 60% 34%;
-    --wood-dark: 22 65% 22%;
-    --wood-light: 28 55% 52%;
-    --cream: 35 70% 82%;
-    --cream-light: 38 80% 90%;
+    --wood: 222 76% 48%;                 /* royal blue (legacy token name) */
+    --wood-dark: 213 72% 17%;            /* deep navy */
+    --wood-light: 213 94% 68%;           /* sky blue */
+    --cream: 213 80% 85%;                /* pale sky */
+    --cream-light: 213 94% 93%;          /* lightest sky */
     --candy-red: 354 78% 56%;
     --candy-red-deep: 354 78% 38%;
     --energy-pink: 330 90% 62%;
-    --monster-bg: 35 70% 82%;
+    --monster-bg: 213 80% 85%;
 
     --font-display: 'Luckiest Guy', cursive;
     --font-body: 'Nunito', sans-serif;
 
-    --sidebar-background: 22 60% 28%;
+    --sidebar-background: 213 72% 22%;
     --sidebar-foreground: 38 90% 96%;
     --sidebar-primary: 42 92% 55%;
-    --sidebar-primary-foreground: 22 55% 18%;
+    --sidebar-primary-foreground: 213 72% 15%;
     --sidebar-accent: 354 78% 56%;
     --sidebar-accent-foreground: 38 90% 96%;
-    --sidebar-border: 22 65% 22%;
+    --sidebar-border: 213 72% 17%;
     --sidebar-ring: 42 92% 55%;
   }
 }
