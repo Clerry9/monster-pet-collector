@@ -72,7 +72,7 @@ const Achievements = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-bold font-display truncate">{a.title}</h3>
+                    <h2 className="font-bold font-display truncate">{a.title}</h2>
                     <div className="flex items-center gap-1 text-xs whitespace-nowrap">
                       {rewardIcon(a.reward_kind)}
                       <span className="font-bold">+{a.reward_amount}</span>

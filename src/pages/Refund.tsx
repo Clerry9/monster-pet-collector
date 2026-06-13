@@ -1,7 +1,13 @@
 import { Link } from "react-router-dom";
+import { SEO } from "@/components/SEO";
 
 const Refund = () => (
   <main className="min-h-screen bg-background text-foreground px-4 py-10">
+    <SEO
+      title="Refund Policy — Monster Pet Collector"
+      description="30-day money-back guarantee on all in-game purchases. Refunds are handled by Paddle, our Merchant of Record."
+      path="/refund"
+    />
     <article className="mx-auto max-w-3xl space-y-6">
       <Link to="/" className="text-sm text-primary underline">← Back to game</Link>
       <h1 className="font-display text-4xl text-primary">Refund Policy</h1>

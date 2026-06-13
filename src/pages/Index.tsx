@@ -1013,7 +1013,7 @@ const Index = () => {
 
         {/* Curved gold banner */}
         <div className="banner-gold px-6 py-2 mb-3">
-          <h1 className="font-display text-2xl tracking-wide">⭐ MONSTER MASH ⭐</h1>
+          <h1 className="font-display text-2xl tracking-wide">⭐ Monster Pet Collector — Collect and level up 3D monsters ⭐</h1>
         </div>
 
         <EventBanner
