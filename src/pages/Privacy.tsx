@@ -1,7 +1,13 @@
 import { Link } from "react-router-dom";
+import { SEO } from "@/components/SEO";
 
 const Privacy = () => (
   <main className="min-h-screen bg-background text-foreground px-4 py-10">
+    <SEO
+      title="Privacy Policy — Monster Pet Collector"
+      description="How Monster Pet Collector collects, uses, and protects your data — account info, gameplay data, cookies, and your GDPR/CCPA rights."
+      path="/privacy"
+    />
     <article className="mx-auto max-w-3xl space-y-6">
       <Link to="/" className="text-sm text-primary underline">← Back to game</Link>
       <h1 className="font-display text-4xl text-primary">Privacy Policy</h1>

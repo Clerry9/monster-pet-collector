@@ -1,7 +1,13 @@
 import { Link } from "react-router-dom";
+import { SEO } from "@/components/SEO";
 
 const AcceptableUse = () => (
   <main className="min-h-screen bg-background text-foreground px-4 py-10">
+    <SEO
+      title="Acceptable Use Policy — Monster Pet Collector"
+      description="Fair-play rules for Monster Pet Collector: no cheating, account trading, harassment, fraud, or unauthorized access."
+      path="/acceptable-use"
+    />
     <article className="mx-auto max-w-3xl space-y-6">
       <Link to="/" className="text-sm text-primary underline">← Back to game</Link>
       <h1 className="font-display text-4xl text-primary">Acceptable Use Policy</h1>
