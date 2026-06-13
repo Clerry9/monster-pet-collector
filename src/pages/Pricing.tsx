@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Footer } from "@/components/Footer";
+import { SEO } from "@/components/SEO";
+import { Helmet } from "react-helmet-async";
 
 const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
 
@@ -178,6 +180,33 @@ const Pricing = () => {
 
   return (
     <main className="min-h-screen bg-background text-foreground px-4 py-10">
+      <SEO
+        title="Pricing — Monster Pet Collector coin & dice packs"
+        description="Coin packs, dice tier upgrades, season passes, and monthly subscriptions for Monster Pet Collector. Secure checkout via Paddle."
+        path="/pricing"
+      />
+      {tiers && tiers.length > 0 && (
+        <Helmet>
+          <script type="application/ld+json">
+            {JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": tiers.map((t) => ({
+                "@type": "Product",
+                name: t.name,
+                description: t.description,
+                brand: { "@type": "Brand", name: "Monster Pet Collector" },
+                offers: {
+                  "@type": "Offer",
+                  price: (t.amountCents / 100).toFixed(2),
+                  priceCurrency: t.currency,
+                  availability: "https://schema.org/InStock",
+                  url: "https://monsterpetcol.com/pricing",
+                },
+              })),
+            })}
+          </script>
+        </Helmet>
+      )}
       <article className="mx-auto max-w-3xl space-y-6">
         <Link to="/" className="text-sm text-primary underline">← Back to game</Link>
         <h1 className="font-display text-4xl text-primary">Pricing</h1>
