@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { SEO } from "@/components/SEO";
+import { Helmet } from "react-helmet-async";
 
 const Terms = () => (
   <main className="min-h-screen bg-background text-foreground px-4 py-10">
@@ -8,6 +9,14 @@ const Terms = () => (
       description="The terms governing your use of Monster Pet Collector, including accounts, virtual items, purchases via Paddle, and account termination."
       path="/terms"
     />
+    <Helmet>
+      <script type="application/ld+json">{JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "Terms of Service — Monster Pet Collector",
+        url: "https://monsterpetcol.com/terms",
+      })}</script>
+    </Helmet>
     <article className="mx-auto max-w-3xl space-y-6">
       <Link to="/" className="text-sm text-primary underline">← Back to game</Link>
       <h1 className="font-display text-4xl text-primary">Terms of Service</h1>
