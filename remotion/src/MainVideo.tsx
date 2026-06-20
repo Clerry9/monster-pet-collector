@@ -30,6 +30,65 @@ const C = {
   white: "#fff8ee",
 };
 
+export type Variant = {
+  hook1: string;
+  hook2: string;
+  tagline: string;
+  attackName: string;
+  damage: string;
+  finisher: string;
+  victory: string;
+  ctaLine1: string;
+  ctaLine2: string;
+};
+
+export const VARIANTS: Record<string, Variant> = {
+  original: {
+    hook1: "MONSTER",
+    hook2: "BATTLE!",
+    tagline: "COLLECT • TRAIN • WIN",
+    attackName: "EMBER BLAST!",
+    damage: "-440",
+    finisher: "CRITICAL!",
+    victory: "VICTORY!",
+    ctaLine1: "COLLECT 100+ MONSTERS.",
+    ctaLine2: "BATTLE. LEVEL UP. RULE THE ARENA.",
+  },
+  hookA: {
+    hook1: "CAN YOU",
+    hook2: "WIN THIS?",
+    tagline: "TAP • ROLL • CRUSH",
+    attackName: "INFERNO FANG!",
+    damage: "-512",
+    finisher: "MEGA HIT!",
+    victory: "FLAWLESS!",
+    ctaLine1: "BUILD THE ULTIMATE SQUAD.",
+    ctaLine2: "PLAY FREE TODAY.",
+  },
+  hookB: {
+    hook1: "ONE TAP.",
+    hook2: "BIG K.O.",
+    tagline: "FAST • FIERCE • FUN",
+    attackName: "PYRO STRIKE!",
+    damage: "-678",
+    finisher: "PERFECT!",
+    victory: "DOMINATED!",
+    ctaLine1: "100+ MONSTERS TO HUNT.",
+    ctaLine2: "JOIN THE ARENA NOW.",
+  },
+  hookC: {
+    hook1: "READY",
+    hook2: "TO BRAWL?",
+    tagline: "ROLL • RAGE • REIGN",
+    attackName: "BLAZE COMBO!",
+    damage: "-999",
+    finisher: "ULTRA KO!",
+    victory: "CHAMPION!",
+    ctaLine1: "EVOLVE YOUR TEAM.",
+    ctaLine2: "DOWNLOAD & PLAY FREE.",
+  },
+};
+
 const Bg: React.FC<{ shift?: number }> = ({ shift = 0 }) => {
   const frame = useCurrentFrame();
   const t = (frame + shift) / 30;
