@@ -136,6 +136,7 @@ const Confetti: React.FC<{ count?: number; colors?: string[] }> = ({ count = 40,
 const Scene1: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const v = useV();
   const pop = spring({ frame, fps, config: { damping: 10, stiffness: 180 } });
   const subPop = spring({ frame: frame - 10, fps, config: { damping: 14 } });
   const slamScale = interpolate(pop, [0, 1], [3, 1]);
@@ -164,7 +165,7 @@ const Scene1: React.FC = () => {
             lineHeight: 0.9,
           }}
         >
-          MONSTER
+          {v.hook1}
         </div>
         <div
           style={{
@@ -177,7 +178,7 @@ const Scene1: React.FC = () => {
             lineHeight: 0.9,
           }}
         >
-          BATTLE!
+          {v.hook2}
         </div>
         <div
           style={{
@@ -190,7 +191,7 @@ const Scene1: React.FC = () => {
             letterSpacing: 8,
           }}
         >
-          COLLECT • TRAIN • WIN
+          {v.tagline}
         </div>
       </div>
     </AbsoluteFill>
