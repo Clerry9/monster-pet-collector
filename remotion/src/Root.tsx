@@ -17,8 +17,8 @@ export const RemotionRoot: React.FC = () => (
     {VARIANT_IDS.flatMap((vid) =>
       SIZES.map((s) => (
         <Composition
-          key={`${vid}_${s.label}`}
-          id={`${vid}_${s.label}`}
+          key={`${vid}-${s.label}`}
+          id={`${vid}-${s.label}`}
           component={MainVideo}
           durationInFrames={450}
           fps={30}
