@@ -30,6 +30,9 @@ const C = {
   white: "#fff8ee",
 };
 
+const VariantCtx = React.createContext<Variant>(null as any);
+const useV = () => React.useContext(VariantCtx);
+
 export type Variant = {
   hook1: string;
   hook2: string;
