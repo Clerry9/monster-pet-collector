@@ -453,6 +453,7 @@ const Scene4: React.FC = () => {
 const Scene5: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const v = useV();
   const winPop = spring({ frame, fps, config: { damping: 8, stiffness: 180 } });
   const cta = spring({ frame: frame - 50, fps, config: { damping: 12 } });
   const logo = spring({ frame: frame - 80, fps, config: { damping: 14 } });
@@ -492,7 +493,7 @@ const Scene5: React.FC = () => {
             lineHeight: 0.9,
           }}
         >
-          VICTORY!
+          {v.victory}
         </div>
         <div
           style={{
@@ -506,9 +507,9 @@ const Scene5: React.FC = () => {
             textAlign: "center",
           }}
         >
-          COLLECT 100+ MONSTERS.
+          {v.ctaLine1}
           <br />
-          BATTLE. LEVEL UP. RULE THE ARENA.
+          {v.ctaLine2}
         </div>
         <div
           style={{
