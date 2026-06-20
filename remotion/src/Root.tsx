@@ -4,10 +4,10 @@ import { MainVideo, VARIANTS } from "./MainVideo";
 
 type Size = { w: number; h: number; label: string };
 const SIZES: Size[] = [
-  { w: 1920, h: 1080, label: "h_1080" },
-  { w: 1280, h: 720,  label: "h_720"  },
-  { w: 1080, h: 1920, label: "v_1080" },
-  { w: 720,  h: 1280, label: "v_720"  },
+  { w: 1920, h: 1080, label: "h-1080" },
+  { w: 1280, h: 720,  label: "h-720"  },
+  { w: 1080, h: 1920, label: "v-1080" },
+  { w: 720,  h: 1280, label: "v-720"  },
 ];
 
 const VARIANT_IDS = Object.keys(VARIANTS) as Array<keyof typeof VARIANTS>;

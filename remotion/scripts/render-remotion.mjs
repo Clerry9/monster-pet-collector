@@ -21,16 +21,16 @@ const filter = process.argv[2] || "";
 
 const VARIANTS = ["original", "hookA", "hookB", "hookC"];
 const SIZES = [
-  { label: "h_1080", file: "1920x1080" },
-  { label: "h_720",  file: "1280x720"  },
-  { label: "v_1080", file: "1080x1920" },
-  { label: "v_720",  file: "720x1280"  },
+  { label: "h-1080", file: "1920x1080" },
+  { label: "h-720",  file: "1280x720"  },
+  { label: "v-1080", file: "1080x1920" },
+  { label: "v-720",  file: "720x1280"  },
 ];
 
 const targets = [];
 for (const v of VARIANTS) {
   for (const s of SIZES) {
-    const id = `${v}_${s.label}`;
+    const id = `${v}-${s.label}`;
     if (filter && !id.includes(filter)) continue;
     targets.push({
       id,
