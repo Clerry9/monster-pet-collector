@@ -272,7 +272,7 @@ const Scene3: React.FC = () => {
         </div>
       )}
       {/* move name */}
-      <Sequence from={6} durationInFrames={30}>
+      {frame >= 6 && frame < 36 && (
         <div style={{ position: "absolute", left: 0, right: 0, top: 420, textAlign: "center" }}>
           <div
             style={{
@@ -285,14 +285,14 @@ const Scene3: React.FC = () => {
               fontSize: 84,
               color: C.white,
               letterSpacing: 4,
-              transform: `scale(${spring({ frame: useCurrentFrame(), fps, config: { damping: 8 } })})`,
+              transform: `scale(${spring({ frame: frame - 6, fps, config: { damping: 8 } })}) rotate(-4deg)`,
               boxShadow: `0 12px 0 ${C.bg1}`,
             }}
           >
             EMBER BLAST!
           </div>
         </div>
-      </Sequence>
+      )}
     </AbsoluteFill>
   );
 };
