@@ -272,6 +272,7 @@ const HpBar: React.FC<{ x: number; y: number; color: string; pct: number; label:
 const Scene3: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const v = useV();
   const charge = spring({ frame, fps, config: { damping: 20 } });
   const lunge = frame > 18 ? interpolate(frame, [18, 30], [0, 380], { extrapolateRight: "clamp" }) : 0;
   const recoil = frame > 30 ? interpolate(frame, [30, 50], [380, 80], { extrapolateRight: "clamp" }) : lunge;
@@ -331,7 +332,7 @@ const Scene3: React.FC = () => {
             transform: "rotate(-8deg)",
           }}
         >
-          -440
+          {v.damage}
         </div>
       )}
       {/* move name */}
@@ -352,7 +353,7 @@ const Scene3: React.FC = () => {
               boxShadow: `0 12px 0 ${C.bg1}`,
             }}
           >
-            EMBER BLAST!
+            {v.attackName}
           </div>
         </div>
       )}
