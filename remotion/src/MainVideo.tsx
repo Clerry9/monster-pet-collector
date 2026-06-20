@@ -533,16 +533,47 @@ const Scene5: React.FC = () => {
   );
 };
 
-export const MainVideo: React.FC = () => {
+export type MainVideoProps = {
+  variantId?: keyof typeof VARIANTS;
+};
+
+export const MainVideo: React.FC<MainVideoProps> = ({ variantId = "original" }) => {
+  const { width, height } = useVideoConfig();
+  const variant = VARIANTS[variantId] ?? VARIANTS.original;
+  // Native stage is designed at 1920x1080. Scale to fit canvas width.
+  const STAGE_W = 1920;
+  const STAGE_H = 1080;
+  const scale = width / STAGE_W;
+  const stageDisplayH = STAGE_H * scale;
+  const offsetY = (height - stageDisplayH) / 2;
+
   return (
-    <AbsoluteFill style={{ background: C.bg1 }}>
-      <Series>
-        <Series.Sequence durationInFrames={60}><Scene1 /></Series.Sequence>
-        <Series.Sequence durationInFrames={75}><Scene2 /></Series.Sequence>
-        <Series.Sequence durationInFrames={90}><Scene3 /></Series.Sequence>
-        <Series.Sequence durationInFrames={90}><Scene4 /></Series.Sequence>
-        <Series.Sequence durationInFrames={135}><Scene5 /></Series.Sequence>
-      </Series>
-    </AbsoluteFill>
+    <VariantCtx.Provider value={variant}>
+      <AbsoluteFill
+        style={{
+          background: `radial-gradient(circle at 50% 50%, ${C.bg2}, ${C.bg1} 75%)`,
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: offsetY,
+            width: STAGE_W,
+            height: STAGE_H,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+          }}
+        >
+          <Series>
+            <Series.Sequence durationInFrames={60}><Scene1 /></Series.Sequence>
+            <Series.Sequence durationInFrames={75}><Scene2 /></Series.Sequence>
+            <Series.Sequence durationInFrames={90}><Scene3 /></Series.Sequence>
+            <Series.Sequence durationInFrames={90}><Scene4 /></Series.Sequence>
+            <Series.Sequence durationInFrames={135}><Scene5 /></Series.Sequence>
+          </Series>
+        </div>
+      </AbsoluteFill>
+    </VariantCtx.Provider>
   );
 };
