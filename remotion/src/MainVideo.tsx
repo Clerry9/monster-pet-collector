@@ -365,6 +365,7 @@ const Scene3: React.FC = () => {
 const Scene4: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const v = useV();
   const aquaLunge = frame < 22 ? interpolate(frame, [4, 20], [0, 340], { extrapolateRight: "clamp" }) : interpolate(frame, [20, 32], [340, 100], { extrapolateRight: "clamp" });
   const dodgeY = frame > 14 && frame < 32 ? -240 : 0;
   const dodgeRot = frame > 14 && frame < 32 ? -20 : 0;
@@ -440,7 +441,7 @@ const Scene4: React.FC = () => {
               textShadow: `0 16px 0 ${C.hot}, 0 30px 60px rgba(0,0,0,0.7)`,
             }}
           >
-            CRITICAL!
+            {v.finisher}
           </div>
         </div>
       )}
