@@ -332,13 +332,13 @@ const Scene2: React.FC = () => {
       />
       {/* left monster */}
       <div style={{ position: "absolute", left: 120 + lx, top: 180, textAlign: "center" }}>
-        <Img src={staticFile("images/m1.png")} style={{ width: 620, filter: "drop-shadow(0 30px 40px rgba(0,0,0,0.6))" }} />
+        <MonsterBody src={staticFile("images/m1.png")} width={620} mode="idle" />
         <div style={{ fontFamily: DISPLAY, fontSize: 64, color: C.yellow, marginTop: 8, WebkitTextStroke: `4px ${C.bg1}` }}>EMBERFANG</div>
         <div style={{ fontFamily: BODY, fontWeight: 900, color: C.white, fontSize: 28, letterSpacing: 3 }}>LVL 24 • FIRE</div>
       </div>
       {/* right monster */}
       <div style={{ position: "absolute", right: 120 - rx, top: 180, textAlign: "center" }}>
-        <Img src={staticFile("images/m2.png")} style={{ width: 620, filter: "drop-shadow(0 30px 40px rgba(0,0,0,0.6))" }} />
+        <MonsterBody src={staticFile("images/m2.png")} width={620} mode="idle" frameOffset={9} />
         <div style={{ fontFamily: DISPLAY, fontSize: 64, color: C.cyan, marginTop: 8, WebkitTextStroke: `4px ${C.bg1}` }}>AQUAJAW</div>
         <div style={{ fontFamily: BODY, fontWeight: 900, color: C.white, fontSize: 28, letterSpacing: 3 }}>LVL 22 • AQUA</div>
       </div>
@@ -401,11 +401,25 @@ const Scene3: React.FC = () => {
 
       {/* attacker */}
       <div style={{ position: "absolute", left: 180 + recoil, bottom: 120, transform: `rotate(${interpolate(charge, [0, 1], [-8, 6])}deg)` }}>
-        <Img src={staticFile("images/m1.png")} style={{ width: 560, filter: "drop-shadow(0 0 60px rgba(255,61,139,0.8))" }} />
+        <MonsterBody
+          src={staticFile("images/m1.png")}
+          width={560}
+          mode={frame < 18 ? "windup" : "attack"}
+          frameOffset={frame < 18 ? 0 : -18}
+          glow="rgba(255,61,139,0.8)"
+          facing={1}
+        />
       </div>
       {/* defender */}
       <div style={{ position: "absolute", right: 180 + shake, bottom: 120 + (hit ? 30 : 0) }}>
-        <Img src={staticFile("images/m2.png")} style={{ width: 560, filter: hit ? "brightness(2.4) drop-shadow(0 0 40px #fff)" : "drop-shadow(0 30px 30px rgba(0,0,0,0.5))" }} />
+        <MonsterBody
+          src={staticFile("images/m2.png")}
+          width={560}
+          mode={hit ? "hit" : frame > 34 ? "hit" : "idle"}
+          frameOffset={hit ? -28 : 0}
+          brightness={hit ? 2.4 : undefined}
+          facing={-1}
+        />
       </div>
       {/* impact burst */}
       {frame > 26 && frame < 50 && (
@@ -503,7 +517,14 @@ const Scene4: React.FC = () => {
           transform: `rotate(${dodgeRot + (finishLunge > 0 ? 8 : 0)}deg)`,
         }}
       >
-        <Img src={staticFile("images/m1.png")} style={{ width: 560, filter: "drop-shadow(0 0 60px rgba(255,61,139,0.9))" }} />
+        <MonsterBody
+          src={staticFile("images/m1.png")}
+          width={560}
+          mode={frame > 42 ? "attack" : frame > 14 && frame < 32 ? "walk" : "idle"}
+          frameOffset={frame > 42 ? -42 : 0}
+          glow="rgba(255,61,139,0.9)"
+          facing={1}
+        />
       </div>
       {/* Aquajaw — attacks then gets KO'd */}
       <div
@@ -512,10 +533,17 @@ const Scene4: React.FC = () => {
           right: 180 + aquaLunge + koShake,
           bottom: 120 - koFall,
           transform: `rotate(${koRot}deg)`,
-          filter: ko ? "grayscale(0.6) brightness(0.7)" : "drop-shadow(0 30px 30px rgba(0,0,0,0.5))",
         }}
       >
-        <Img src={staticFile("images/m2.png")} style={{ width: 560 }} />
+        <MonsterBody
+          src={staticFile("images/m2.png")}
+          width={560}
+          mode={ko ? "ko" : frame < 22 ? "attack" : "hit"}
+          frameOffset={ko ? -52 : 0}
+          grayscale={ko ? 0.6 : undefined}
+          brightness={ko ? 0.7 : undefined}
+          facing={-1}
+        />
       </div>
 
       {/* Finishing burst */}
@@ -576,7 +604,12 @@ const Scene5: React.FC = () => {
 
       {/* Victorious monster */}
       <div style={{ position: "absolute", left: "50%", top: 140 + bob, transform: `translateX(-50%) scale(${winPop})` }}>
-        <Img src={staticFile("images/m1.png")} style={{ width: 520, filter: "drop-shadow(0 0 80px rgba(255,210,63,0.9))" }} />
+        <MonsterBody
+          src={staticFile("images/m1.png")}
+          width={520}
+          mode="victory"
+          glow="rgba(255,210,63,0.9)"
+        />
       </div>
 
       <div
