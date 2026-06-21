@@ -43,6 +43,16 @@ export type Variant = {
   victory: string;
   ctaLine1: string;
   ctaLine2: string;
+  /** Body-motion intensity preset. Scales lunges, squash/stretch and idle sway. */
+  intensity?: "subtle" | "balanced" | "exaggerated";
+};
+
+// Intensity multipliers applied to MonsterBody offsets/scales.
+// "balanced" = 1.0 baseline; subtle dials motion down, exaggerated amps it up.
+export const INTENSITY: Record<NonNullable<Variant["intensity"]>, number> = {
+  subtle: 0.55,
+  balanced: 1,
+  exaggerated: 1.7,
 };
 
 export const VARIANTS: Record<string, Variant> = {
@@ -56,6 +66,7 @@ export const VARIANTS: Record<string, Variant> = {
     victory: "VICTORY!",
     ctaLine1: "COLLECT 100+ MONSTERS.",
     ctaLine2: "BATTLE. LEVEL UP. RULE THE ARENA.",
+    intensity: "balanced",
   },
   hookA: {
     hook1: "CAN YOU",
@@ -67,6 +78,7 @@ export const VARIANTS: Record<string, Variant> = {
     victory: "FLAWLESS!",
     ctaLine1: "BUILD THE ULTIMATE SQUAD.",
     ctaLine2: "PLAY FREE TODAY.",
+    intensity: "subtle",
   },
   hookB: {
     hook1: "ONE TAP.",
@@ -78,6 +90,7 @@ export const VARIANTS: Record<string, Variant> = {
     victory: "DOMINATED!",
     ctaLine1: "100+ MONSTERS TO HUNT.",
     ctaLine2: "JOIN THE ARENA NOW.",
+    intensity: "exaggerated",
   },
   hookC: {
     hook1: "READY",
@@ -89,6 +102,7 @@ export const VARIANTS: Record<string, Variant> = {
     victory: "CHAMPION!",
     ctaLine1: "EVOLVE YOUR TEAM.",
     ctaLine2: "DOWNLOAD & PLAY FREE.",
+    intensity: "balanced",
   },
 };
 
