@@ -104,6 +104,114 @@ const Bg: React.FC<{ shift?: number }> = ({ shift = 0 }) => {
   );
 };
 
+// ============================================================
+// MonsterBody — fakes humanoid body motion on a static monster image.
+// Modes: idle (breathing), walk (stride + arm swing), windup (crouch & lean
+// back), attack (forward thrust + stretch), hit (flinch shake), ko (limp
+// rotate, parent handles fall), victory (arms-up bounce).
+// transformOrigin is bottom center so the "feet" stay planted.
+// ============================================================
+type BodyMode = "idle" | "walk" | "windup" | "attack" | "hit" | "ko" | "victory";
+
+const MonsterBody: React.FC<{
+  src: string;
+  width: number;
+  mode: BodyMode;
+  facing?: 1 | -1; // 1 = facing right, -1 = facing left
+  glow?: string;
+  brightness?: number;
+  grayscale?: number;
+  frameOffset?: number; // for syncing
+}> = ({ src, width, mode, facing = 1, glow, brightness, grayscale, frameOffset = 0 }) => {
+  const f = useCurrentFrame() + frameOffset;
+
+  // Default body offsets
+  let translateY = 0;
+  let translateX = 0;
+  let rotate = 0;
+  let scaleX = 1;
+  let scaleY = 1;
+  // Simulated "arm/limb" swing via skew gives a sense of body twist
+  let skewX = 0;
+
+  if (mode === "idle") {
+    // chest breathing — gentle Y bob and scaleY pulse
+    translateY = Math.sin(f / 12) * 6;
+    scaleY = 1 + Math.sin(f / 12) * 0.015;
+    scaleX = 1 - Math.sin(f / 12) * 0.01;
+    rotate = Math.sin(f / 24) * 1.5;
+  } else if (mode === "walk") {
+    // Stride: vertical hop on each footfall (|sin|), forward sway, slight tilt
+    const stride = Math.abs(Math.sin(f / 4));
+    translateY = -stride * 18; // hop up on step
+    translateX = Math.sin(f / 4) * 8;
+    rotate = Math.sin(f / 4) * 6; // body twist with each step
+    skewX = Math.sin(f / 4) * 3; // arms swinging
+    scaleY = 1 - stride * 0.04; // tiny squash on landing
+    scaleX = 1 + stride * 0.03;
+  } else if (mode === "windup") {
+    // Coil back: lean away, crouch
+    const w = Math.min(1, f / 10);
+    translateX = -16 * w * facing;
+    translateY = 8 * w;
+    rotate = -10 * w * facing;
+    scaleY = 1 - 0.08 * w;
+    scaleX = 1 + 0.06 * w;
+  } else if (mode === "attack") {
+    // Forward thrust: explosive scale + lean in
+    const a = Math.min(1, f / 6);
+    translateX = 28 * a * facing;
+    translateY = -10 * a;
+    rotate = 14 * a * facing;
+    scaleX = 1 + 0.12 * a;
+    scaleY = 1 - 0.06 * a;
+    skewX = 8 * a * facing;
+  } else if (mode === "hit") {
+    // Flinch: jitter rotate, head-back recoil
+    rotate = Math.sin(f * 5) * 8 - 6 * facing;
+    translateY = Math.sin(f * 4) * 4;
+    scaleX = 0.96;
+    scaleY = 1.04;
+  } else if (mode === "ko") {
+    // Limp: slight wobble
+    rotate = Math.sin(f / 6) * 2;
+    scaleY = 0.96;
+  } else if (mode === "victory") {
+    // Jumping celebration
+    const j = Math.abs(Math.sin(f / 10));
+    translateY = -j * 40;
+    scaleY = 1 + j * 0.08;
+    scaleX = 1 - j * 0.04;
+    rotate = Math.sin(f / 14) * 4;
+  }
+
+  const filterParts: string[] = [];
+  if (brightness != null) filterParts.push(`brightness(${brightness})`);
+  if (grayscale != null) filterParts.push(`grayscale(${grayscale})`);
+  if (glow) filterParts.push(`drop-shadow(0 0 60px ${glow})`);
+  filterParts.push("drop-shadow(0 30px 30px rgba(0,0,0,0.5))");
+
+  return (
+    <div
+      style={{
+        width,
+        transformOrigin: "50% 100%",
+        transform: `translate(${translateX}px, ${translateY}px) rotate(${rotate}deg) skewX(${skewX}deg) scale(${scaleX}, ${scaleY})`,
+        display: "inline-block",
+      }}
+    >
+      <Img
+        src={src}
+        style={{
+          width,
+          transform: facing === -1 ? "scaleX(-1)" : undefined,
+          filter: filterParts.join(" "),
+        }}
+      />
+    </div>
+  );
+};
+
 const Confetti: React.FC<{ count?: number; colors?: string[] }> = ({ count = 40, colors = [C.hot, C.yellow, C.cyan, C.lime] }) => {
   const frame = useCurrentFrame();
   const pieces = Array.from({ length: count }, (_, i) => {
