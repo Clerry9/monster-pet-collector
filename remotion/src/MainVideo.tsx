@@ -30,6 +30,68 @@ const C = {
   white: "#fff8ee",
 };
 
+const VariantCtx = React.createContext<Variant>(null as any);
+const useV = () => React.useContext(VariantCtx);
+
+export type Variant = {
+  hook1: string;
+  hook2: string;
+  tagline: string;
+  attackName: string;
+  damage: string;
+  finisher: string;
+  victory: string;
+  ctaLine1: string;
+  ctaLine2: string;
+};
+
+export const VARIANTS: Record<string, Variant> = {
+  original: {
+    hook1: "MONSTER",
+    hook2: "BATTLE!",
+    tagline: "COLLECT • TRAIN • WIN",
+    attackName: "EMBER BLAST!",
+    damage: "-440",
+    finisher: "CRITICAL!",
+    victory: "VICTORY!",
+    ctaLine1: "COLLECT 100+ MONSTERS.",
+    ctaLine2: "BATTLE. LEVEL UP. RULE THE ARENA.",
+  },
+  hookA: {
+    hook1: "CAN YOU",
+    hook2: "WIN THIS?",
+    tagline: "TAP • ROLL • CRUSH",
+    attackName: "INFERNO FANG!",
+    damage: "-512",
+    finisher: "MEGA HIT!",
+    victory: "FLAWLESS!",
+    ctaLine1: "BUILD THE ULTIMATE SQUAD.",
+    ctaLine2: "PLAY FREE TODAY.",
+  },
+  hookB: {
+    hook1: "ONE TAP.",
+    hook2: "BIG K.O.",
+    tagline: "FAST • FIERCE • FUN",
+    attackName: "PYRO STRIKE!",
+    damage: "-678",
+    finisher: "PERFECT!",
+    victory: "DOMINATED!",
+    ctaLine1: "100+ MONSTERS TO HUNT.",
+    ctaLine2: "JOIN THE ARENA NOW.",
+  },
+  hookC: {
+    hook1: "READY",
+    hook2: "TO BRAWL?",
+    tagline: "ROLL • RAGE • REIGN",
+    attackName: "BLAZE COMBO!",
+    damage: "-999",
+    finisher: "ULTRA KO!",
+    victory: "CHAMPION!",
+    ctaLine1: "EVOLVE YOUR TEAM.",
+    ctaLine2: "DOWNLOAD & PLAY FREE.",
+  },
+};
+
 const Bg: React.FC<{ shift?: number }> = ({ shift = 0 }) => {
   const frame = useCurrentFrame();
   const t = (frame + shift) / 30;
@@ -74,6 +136,7 @@ const Confetti: React.FC<{ count?: number; colors?: string[] }> = ({ count = 40,
 const Scene1: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const v = useV();
   const pop = spring({ frame, fps, config: { damping: 10, stiffness: 180 } });
   const subPop = spring({ frame: frame - 10, fps, config: { damping: 14 } });
   const slamScale = interpolate(pop, [0, 1], [3, 1]);
@@ -102,7 +165,7 @@ const Scene1: React.FC = () => {
             lineHeight: 0.9,
           }}
         >
-          MONSTER
+          {v.hook1}
         </div>
         <div
           style={{
@@ -115,7 +178,7 @@ const Scene1: React.FC = () => {
             lineHeight: 0.9,
           }}
         >
-          BATTLE!
+          {v.hook2}
         </div>
         <div
           style={{
@@ -128,7 +191,7 @@ const Scene1: React.FC = () => {
             letterSpacing: 8,
           }}
         >
-          COLLECT • TRAIN • WIN
+          {v.tagline}
         </div>
       </div>
     </AbsoluteFill>
@@ -209,6 +272,7 @@ const HpBar: React.FC<{ x: number; y: number; color: string; pct: number; label:
 const Scene3: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const v = useV();
   const charge = spring({ frame, fps, config: { damping: 20 } });
   const lunge = frame > 18 ? interpolate(frame, [18, 30], [0, 380], { extrapolateRight: "clamp" }) : 0;
   const recoil = frame > 30 ? interpolate(frame, [30, 50], [380, 80], { extrapolateRight: "clamp" }) : lunge;
@@ -268,7 +332,7 @@ const Scene3: React.FC = () => {
             transform: "rotate(-8deg)",
           }}
         >
-          -440
+          {v.damage}
         </div>
       )}
       {/* move name */}
@@ -289,7 +353,7 @@ const Scene3: React.FC = () => {
               boxShadow: `0 12px 0 ${C.bg1}`,
             }}
           >
-            EMBER BLAST!
+            {v.attackName}
           </div>
         </div>
       )}
@@ -301,6 +365,7 @@ const Scene3: React.FC = () => {
 const Scene4: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const v = useV();
   const aquaLunge = frame < 22 ? interpolate(frame, [4, 20], [0, 340], { extrapolateRight: "clamp" }) : interpolate(frame, [20, 32], [340, 100], { extrapolateRight: "clamp" });
   const dodgeY = frame > 14 && frame < 32 ? -240 : 0;
   const dodgeRot = frame > 14 && frame < 32 ? -20 : 0;
@@ -376,7 +441,7 @@ const Scene4: React.FC = () => {
               textShadow: `0 16px 0 ${C.hot}, 0 30px 60px rgba(0,0,0,0.7)`,
             }}
           >
-            CRITICAL!
+            {v.finisher}
           </div>
         </div>
       )}
@@ -388,6 +453,7 @@ const Scene4: React.FC = () => {
 const Scene5: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const v = useV();
   const winPop = spring({ frame, fps, config: { damping: 8, stiffness: 180 } });
   const cta = spring({ frame: frame - 50, fps, config: { damping: 12 } });
   const logo = spring({ frame: frame - 80, fps, config: { damping: 14 } });
@@ -427,7 +493,7 @@ const Scene5: React.FC = () => {
             lineHeight: 0.9,
           }}
         >
-          VICTORY!
+          {v.victory}
         </div>
         <div
           style={{
@@ -441,9 +507,9 @@ const Scene5: React.FC = () => {
             textAlign: "center",
           }}
         >
-          COLLECT 100+ MONSTERS.
+          {v.ctaLine1}
           <br />
-          BATTLE. LEVEL UP. RULE THE ARENA.
+          {v.ctaLine2}
         </div>
         <div
           style={{
@@ -467,16 +533,47 @@ const Scene5: React.FC = () => {
   );
 };
 
-export const MainVideo: React.FC = () => {
+export type MainVideoProps = {
+  variantId?: keyof typeof VARIANTS;
+};
+
+export const MainVideo: React.FC<MainVideoProps> = ({ variantId = "original" }) => {
+  const { width, height } = useVideoConfig();
+  const variant = VARIANTS[variantId] ?? VARIANTS.original;
+  // Native stage is designed at 1920x1080. Scale to fit canvas width.
+  const STAGE_W = 1920;
+  const STAGE_H = 1080;
+  const scale = width / STAGE_W;
+  const stageDisplayH = STAGE_H * scale;
+  const offsetY = (height - stageDisplayH) / 2;
+
   return (
-    <AbsoluteFill style={{ background: C.bg1 }}>
-      <Series>
-        <Series.Sequence durationInFrames={60}><Scene1 /></Series.Sequence>
-        <Series.Sequence durationInFrames={75}><Scene2 /></Series.Sequence>
-        <Series.Sequence durationInFrames={90}><Scene3 /></Series.Sequence>
-        <Series.Sequence durationInFrames={90}><Scene4 /></Series.Sequence>
-        <Series.Sequence durationInFrames={135}><Scene5 /></Series.Sequence>
-      </Series>
-    </AbsoluteFill>
+    <VariantCtx.Provider value={variant}>
+      <AbsoluteFill
+        style={{
+          background: `radial-gradient(circle at 50% 50%, ${C.bg2}, ${C.bg1} 75%)`,
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: offsetY,
+            width: STAGE_W,
+            height: STAGE_H,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+          }}
+        >
+          <Series>
+            <Series.Sequence durationInFrames={60}><Scene1 /></Series.Sequence>
+            <Series.Sequence durationInFrames={75}><Scene2 /></Series.Sequence>
+            <Series.Sequence durationInFrames={90}><Scene3 /></Series.Sequence>
+            <Series.Sequence durationInFrames={90}><Scene4 /></Series.Sequence>
+            <Series.Sequence durationInFrames={135}><Scene5 /></Series.Sequence>
+          </Series>
+        </div>
+      </AbsoluteFill>
+    </VariantCtx.Provider>
   );
 };
