@@ -43,6 +43,16 @@ export type Variant = {
   victory: string;
   ctaLine1: string;
   ctaLine2: string;
+  /** Body-motion intensity preset. Scales lunges, squash/stretch and idle sway. */
+  intensity?: "subtle" | "balanced" | "exaggerated";
+};
+
+// Intensity multipliers applied to MonsterBody offsets/scales.
+// "balanced" = 1.0 baseline; subtle dials motion down, exaggerated amps it up.
+export const INTENSITY: Record<NonNullable<Variant["intensity"]>, number> = {
+  subtle: 0.55,
+  balanced: 1,
+  exaggerated: 1.7,
 };
 
 export const VARIANTS: Record<string, Variant> = {
@@ -56,6 +66,7 @@ export const VARIANTS: Record<string, Variant> = {
     victory: "VICTORY!",
     ctaLine1: "COLLECT 100+ MONSTERS.",
     ctaLine2: "BATTLE. LEVEL UP. RULE THE ARENA.",
+    intensity: "balanced",
   },
   hookA: {
     hook1: "CAN YOU",
@@ -67,6 +78,7 @@ export const VARIANTS: Record<string, Variant> = {
     victory: "FLAWLESS!",
     ctaLine1: "BUILD THE ULTIMATE SQUAD.",
     ctaLine2: "PLAY FREE TODAY.",
+    intensity: "subtle",
   },
   hookB: {
     hook1: "ONE TAP.",
@@ -78,6 +90,7 @@ export const VARIANTS: Record<string, Variant> = {
     victory: "DOMINATED!",
     ctaLine1: "100+ MONSTERS TO HUNT.",
     ctaLine2: "JOIN THE ARENA NOW.",
+    intensity: "exaggerated",
   },
   hookC: {
     hook1: "READY",
@@ -89,6 +102,7 @@ export const VARIANTS: Record<string, Variant> = {
     victory: "CHAMPION!",
     ctaLine1: "EVOLVE YOUR TEAM.",
     ctaLine2: "DOWNLOAD & PLAY FREE.",
+    intensity: "balanced",
   },
 };
 
@@ -122,8 +136,12 @@ const MonsterBody: React.FC<{
   brightness?: number;
   grayscale?: number;
   frameOffset?: number; // for syncing
-}> = ({ src, width, mode, facing = 1, glow, brightness, grayscale, frameOffset = 0 }) => {
+  /** Override the variant-level intensity for this instance. */
+  intensity?: "subtle" | "balanced" | "exaggerated";
+}> = ({ src, width, mode, facing = 1, glow, brightness, grayscale, frameOffset = 0, intensity }) => {
   const f = useCurrentFrame() + frameOffset;
+  const v = React.useContext(VariantCtx);
+  const k = INTENSITY[intensity ?? v?.intensity ?? "balanced"];
 
   // Default body offsets
   let translateY = 0;
@@ -135,54 +153,70 @@ const MonsterBody: React.FC<{
   let skewX = 0;
 
   if (mode === "idle") {
-    // chest breathing — gentle Y bob and scaleY pulse
-    translateY = Math.sin(f / 12) * 6;
-    scaleY = 1 + Math.sin(f / 12) * 0.015;
-    scaleX = 1 - Math.sin(f / 12) * 0.01;
-    rotate = Math.sin(f / 24) * 1.5;
+    // Seamless idle loop. All channels are pure sin/cos starting at 0 so the
+    // motion is C¹-continuous and never snaps — safe to enter/exit at any frame.
+    // Period of breathing = 60f (2s @ 30fps); sway = 90f. Both are aligned to
+    // start at neutral pose, giving a clean loop on the VS screen.
+    const breath = Math.sin((f * Math.PI * 2) / 60);     // chest rise/fall
+    const sway   = Math.sin((f * Math.PI * 2) / 90);     // hip sway
+    const tilt   = Math.sin((f * Math.PI * 2) / 120);    // shoulder tilt
+    translateY = breath * 7 * k;
+    translateX = sway * 5 * k;
+    scaleY = 1 + breath * 0.022 * k;
+    scaleX = 1 - breath * 0.014 * k;
+    rotate = tilt * 2 * k;
+    skewX = sway * 1.2 * k;
   } else if (mode === "walk") {
     // Stride: vertical hop on each footfall (|sin|), forward sway, slight tilt
     const stride = Math.abs(Math.sin(f / 4));
-    translateY = -stride * 18; // hop up on step
-    translateX = Math.sin(f / 4) * 8;
-    rotate = Math.sin(f / 4) * 6; // body twist with each step
-    skewX = Math.sin(f / 4) * 3; // arms swinging
-    scaleY = 1 - stride * 0.04; // tiny squash on landing
-    scaleX = 1 + stride * 0.03;
+    translateY = -stride * 18 * k;
+    translateX = Math.sin(f / 4) * 8 * k;
+    rotate = Math.sin(f / 4) * 6 * k;
+    skewX = Math.sin(f / 4) * 3 * k;
+    scaleY = 1 - stride * 0.04 * k;
+    scaleX = 1 + stride * 0.03 * k;
   } else if (mode === "windup") {
-    // Coil back: lean away, crouch
+    // Coil back: bigger crouch + deeper squash so the wind-up reads on camera.
     const w = Math.min(1, f / 10);
-    translateX = -16 * w * facing;
-    translateY = 8 * w;
-    rotate = -10 * w * facing;
-    scaleY = 1 - 0.08 * w;
-    scaleX = 1 + 0.06 * w;
+    translateX = -28 * w * facing * k;
+    translateY = 18 * w * k;            // sink down into the legs
+    rotate = -16 * w * facing * k;
+    scaleY = 1 - 0.18 * w * k;          // pronounced squash (compress)
+    scaleX = 1 + 0.16 * w * k;
   } else if (mode === "attack") {
-    // Forward thrust: explosive scale + lean in
-    const a = Math.min(1, f / 6);
-    translateX = 28 * a * facing;
-    translateY = -10 * a;
-    rotate = 14 * a * facing;
-    scaleX = 1 + 0.12 * a;
-    scaleY = 1 - 0.06 * a;
-    skewX = 8 * a * facing;
+    // Aggressive forward lunge with clear stretch on the leading axis, plus a
+    // tiny recovery beat so it doesn't freeze at full extension.
+    const a = Math.min(1, f / 6);                    // 0 -> 1 launch
+    const rec = Math.max(0, Math.min(1, (f - 6) / 8)); // 0 -> 1 settle
+    const punch = a - rec * 0.35;                    // overshoot then ease back
+    translateX = 70 * punch * facing * k;            // way bigger lunge (was 28)
+    translateY = -22 * punch * k;
+    rotate = 22 * punch * facing * k;
+    // Squash-on-windup -> stretch-on-thrust. Horizontal stretch reads as
+    // "speed lines" on the body.
+    scaleX = 1 + 0.30 * punch * k;                   // strong stretch
+    scaleY = 1 - 0.18 * punch * k;                   // strong squash
+    skewX = 14 * punch * facing * k;                 // arm/torso whip
   } else if (mode === "hit") {
-    // Flinch: jitter rotate, head-back recoil
-    rotate = Math.sin(f * 5) * 8 - 6 * facing;
-    translateY = Math.sin(f * 4) * 4;
-    scaleX = 0.96;
-    scaleY = 1.04;
+    // Flinch with a clear impact squash (compressed vertically by the hit).
+    rotate = (Math.sin(f * 5) * 8 - 6 * facing) * k;
+    translateX = -Math.sin(f * 4) * 10 * facing * k; // knocked back
+    translateY = Math.sin(f * 4) * 4 * k;
+    scaleX = 1 + 0.10 * k;                           // splat outward
+    scaleY = 1 - 0.12 * k;                           // crushed downward
   } else if (mode === "ko") {
     // Limp: slight wobble
     rotate = Math.sin(f / 6) * 2;
     scaleY = 0.96;
   } else if (mode === "victory") {
-    // Jumping celebration
-    const j = Math.abs(Math.sin(f / 10));
-    translateY = -j * 40;
-    scaleY = 1 + j * 0.08;
-    scaleX = 1 - j * 0.04;
-    rotate = Math.sin(f / 14) * 4;
+    // Jumping celebration with anticipatory squash on each landing.
+    const phase = Math.sin(f / 10);
+    const j = Math.abs(phase);
+    const landing = 1 - j; // 1 at the ground, 0 at apex
+    translateY = -j * 50 * k;
+    scaleY = 1 + j * 0.10 * k - landing * 0.06 * k; // squash on touchdown
+    scaleX = 1 - j * 0.05 * k + landing * 0.05 * k;
+    rotate = Math.sin(f / 14) * 4 * k;
   }
 
   const filterParts: string[] = [];
